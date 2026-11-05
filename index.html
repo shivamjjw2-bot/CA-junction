@@ -4,197 +4,419 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CA Junction | Your CA Journey</title>
+<title>CA Junction | Your CA Journey Connects</title>
+<meta name="description" content="Your complete CA learning partner. Notes, mock tests, study tools and career resources.">
+
 <style>
+:root{
+  --bg:#080b16;
+  --card:rgba(255,255,255,.045);
+  --border:rgba(255,255,255,.10);
+  --purple:#a78bfa;
+  --blue:#60a5fa;
+  --text:#f4f4fb;
+  --muted:#9ca3b8;
+}
 *{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
 body{
- font-family:Arial,sans-serif;background:#090b20;color:#fff;
- min-height:100vh;overflow-x:hidden;
- background-image:radial-gradient(circle at 15% 10%,#5126a544,transparent 35%),
- radial-gradient(circle at 90% 50%,#1647a944,transparent 35%);
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  line-height:1.6;
+  overflow-x:hidden;
 }
 a{text-decoration:none;color:inherit}
+button{font:inherit;cursor:pointer}
+.container{width:min(1120px,92%);margin:auto}
+
+/* Background */
+body:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+  radial-gradient(circle at 15% 10%,rgba(124,58,237,.17),transparent 35%),
+  radial-gradient(circle at 85% 35%,rgba(37,99,235,.13),transparent 35%);
+  pointer-events:none;
+  z-index:-1;
+}
+
+/* Header */
 header{
- margin:16px auto;width:94%;padding:18px 24px;
- display:flex;justify-content:space-between;align-items:center;
- background:#ffffff0b;border:1px solid #ffffff20;
- backdrop-filter:blur(20px);border-radius:20px;
+  position:sticky;top:0;z-index:100;
+  background:rgba(8,11,22,.78);
+  backdrop-filter:blur(22px);
+  border-bottom:1px solid var(--border);
 }
-
-.logo{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  font-size:22px;
-  font-weight:bold;
-  color:#fff;
+.nav{
+  min-height:76px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:20px;
 }
-
-.logo b{
-  color:#b7a4ff;
-}
-
+.logo{display:flex;align-items:center;gap:11px;font-size:21px;font-weight:800}
 .logo-glass{
-  width:42px;
-  height:42px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:14px;
-  background:linear-gradient(135deg,rgba(167,139,250,.3),rgba(96,165,250,.15));
-  border:1px solid rgba(255,255,255,.25);
-  backdrop-filter:blur(15px);
-  box-shadow:0 0 25px rgba(139,92,246,.3);
-  color:#c4b5fd;
-  font-size:16px;
+  width:43px;height:43px;border-radius:14px;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,rgba(167,139,250,.30),rgba(96,165,250,.12));
+  border:1px solid rgba(255,255,255,.24);
+  backdrop-filter:blur(16px);
+  box-shadow:0 0 25px rgba(139,92,246,.22);
+  color:#c4b5fd;font-size:16px;
+}
+.logo b{color:var(--purple)}
+.nav-links{display:flex;align-items:center;gap:25px;color:#b5bad0;font-size:14px}
+.nav-links a:hover{color:white}
+.nav-btn{
+  padding:10px 17px;border-radius:12px;
+  background:linear-gradient(135deg,#7c3aed,#4f46e5);
+  color:white;font-weight:650;
+  border:1px solid rgba(255,255,255,.12);
+}
+.menu-btn{display:none;background:none;color:white;border:0;font-size:25px}
+
+/* Hero */
+.hero{padding:95px 0 75px;text-align:center}
+.badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 15px;border-radius:50px;
+  background:rgba(167,139,250,.09);
+  border:1px solid rgba(167,139,250,.22);
+  color:#c4b5fd;font-size:13px;margin-bottom:25px;
+}
+.hero h1{
+  font-size:clamp(42px,7vw,76px);
+  line-height:1.08;letter-spacing:-3px;
+  max-width:850px;margin:0 auto 24px;
+}
+.gradient-text{
+  background:linear-gradient(110deg,#c4b5fd,#818cf8,#60a5fa);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero p{
+  color:var(--muted);max-width:620px;
+  margin:0 auto;font-size:17px;
+}
+.hero-actions{
+  display:flex;justify-content:center;gap:14px;
+  margin-top:32px;flex-wrap:wrap;
+}
+.primary,.secondary{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:14px 23px;border-radius:14px;font-weight:650;
+}
+.primary{
+  background:linear-gradient(135deg,#8b5cf6,#4f46e5);
+  box-shadow:0 8px 30px rgba(99,102,241,.22);
+}
+.secondary{
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.045);
+}
+.primary:hover,.secondary:hover{transform:translateY(-2px)}
+.hero-note{margin-top:30px;color:#727b95;font-size:13px}
+
+/* Sections */
+section{padding:65px 0}
+.section-head{text-align:center;margin-bottom:35px}
+.eyebrow{
+  color:var(--purple);font-size:12px;
+  text-transform:uppercase;letter-spacing:2px;font-weight:700;
+}
+.section-head h2{
+  font-size:clamp(28px,4vw,42px);
+  letter-spacing:-1.5px;margin:8px 0;
+}
+.section-head p{color:var(--muted);max-width:600px;margin:auto}
+
+/* Cards */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:23px;padding:25px;
+  backdrop-filter:blur(18px);
+  transition:.25s;
+}
+.card:hover{
+  transform:translateY(-5px);
+  border-color:rgba(167,139,250,.4);
+  background:rgba(255,255,255,.065);
+}
+.icon{
+  width:48px;height:48px;border-radius:15px;
+  display:grid;place-items:center;
+  background:rgba(167,139,250,.12);
+  border:1px solid rgba(167,139,250,.18);
+  font-size:23px;margin-bottom:18px;
+}
+.card h3{font-size:19px;margin-bottom:8px}
+.card p{color:var(--muted);font-size:14px}
+.card-link{
+  display:inline-block;margin-top:18px;
+  color:#c4b5fd;font-size:14px;font-weight:650;
 }
 
-nav{display:flex;gap:22px;font-size:14px;color:#c6c9df}
-nav a:hover{color:#a78bfa}
-.btn{
- display:inline-block;padding:13px 20px;border-radius:12px;
- background:linear-gradient(120deg,#8b5cf6,#6366f1);
- color:white;border:0;font-weight:bold;cursor:pointer
+/* Levels */
+.level{position:relative;overflow:hidden}
+.level:after{
+  content:"";position:absolute;width:130px;height:130px;
+  right:-60px;top:-60px;border-radius:50%;
+  background:rgba(139,92,246,.12);filter:blur(35px);
 }
-.outline{background:#ffffff0b;border:1px solid #ffffff30}
-.hero{
- max-width:1150px;margin:auto;padding:85px 25px;
- display:grid;grid-template-columns:1.2fr .8fr;
- align-items:center;gap:35px
+.level-tag{
+  font-size:12px;color:#c4b5fd;
+  background:rgba(167,139,250,.12);
+  border-radius:8px;padding:5px 10px;display:inline-block;margin-bottom:15px;
 }
-.tag{color:#b7a4ff;font-size:13px;letter-spacing:1px}
-h1{font-size:clamp(42px,6vw,70px);line-height:1.08;margin:20px 0}
-h1 span{background:linear-gradient(90deg,#a78bfa,#67e8f9);
- -webkit-background-clip:text;color:transparent}
-p{color:#b9bfdc;line-height:1.7}
-.hero p{font-size:17px;max-width:520px}
-.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
-.art{
- height:330px;border-radius:35px;border:1px solid #ffffff25;
- background:linear-gradient(145deg,#ffffff18,#ffffff04);
- backdrop-filter:blur(20px);display:flex;align-items:center;
- justify-content:center;position:relative;box-shadow:0 30px 80px #0004
+
+/* Highlight */
+.highlight{
+  border:1px solid rgba(167,139,250,.2);
+  background:linear-gradient(120deg,rgba(124,58,237,.10),rgba(37,99,235,.06));
+  border-radius:28px;padding:40px;
+  display:flex;align-items:center;justify-content:space-between;gap:25px;
 }
-.art-inner{text-align:center}
-.art-symbol{font-size:100px;color:#a78bfa;text-shadow:0 0 45px #8b5cf6}
-.art-inner h2{font-size:28px;margin:10px}
-.art-inner p{font-size:12px}
-.section{max-width:1150px;margin:25px auto;padding:20px 25px}
-.heading{margin-bottom:25px}
-.heading h2{font-size:30px;margin-bottom:8px}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.card{
- padding:25px;border-radius:22px;background:#ffffff09;
- border:1px solid #ffffff18;backdrop-filter:blur(15px);
- transition:.2s
-}
-.card:hover{transform:translateY(-5px);border-color:#8b5cf666}
-.icon{font-size:35px;color:#a78bfa;margin-bottom:17px}
-.card h3{margin-bottom:10px;font-size:19px}
-.card p{font-size:14px}
-.level{display:flex;align-items:center;justify-content:space-between}
-.level span{color:#a78bfa;font-size:24px}
-.cta{
- margin:55px auto;max-width:1100px;padding:40px;
- border-radius:25px;border:1px solid #ffffff20;
- background:linear-gradient(120deg,#6d28d933,#2563eb22);
- display:flex;justify-content:space-between;align-items:center;gap:20px
-}
-footer{text-align:center;padding:35px;color:#777f9e;font-size:13px}
-@media(max-width:750px){
- header{padding:15px;flex-wrap:wrap}
- nav{order:3;width:100%;overflow:auto;padding-top:15px;gap:18px}
- .hero{grid-template-columns:1fr;padding-top:55px}
- .art{height:230px}
- .art-symbol{font-size:75px}
- .cards{grid-template-columns:1fr}
- .cta{margin:30px 18px;padding:25px;flex-direction:column;align-items:flex-start}
+.highlight h2{font-size:30px;letter-spacing:-1px}
+.highlight p{color:var(--muted);max-width:550px;margin-top:10px}
+
+/* Footer */
+footer{padding:35px 0;border-top:1px solid var(--border);margin-top:45px}
+.footer-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+footer p{color:var(--muted);font-size:13px}
+
+/* Mobile */
+@media(max-width:800px){
+  .nav-links{display:none}
+  .menu-btn{display:block}
+  .nav-links.open{
+    display:flex;position:absolute;top:76px;left:0;right:0;
+    flex-direction:column;align-items:stretch;gap:0;
+    padding:15px 5%;background:#0b0e1b;
+    border-bottom:1px solid var(--border);
+  }
+  .nav-links.open a{padding:12px}
+  .grid{grid-template-columns:1fr}
+  .hero{padding:65px 0 50px}
+  .hero h1{letter-spacing:-2px}
+  section{padding:48px 0}
+  .highlight{padding:27px;flex-direction:column;align-items:flex-start}
 }
 </style>
 </head>
+
 <body>
 
 <header>
- 
-<a class="logo" href="#">
-  <span class="logo-glass">CA</span>
-  <span>CA <b>Junction</b></span>
-</a>
+  <div class="container nav">
+    <a class="logo" href="#home">
+      <span class="logo-glass">CA</span>
+      <span>CA <b>Junction</b></span>
+    </a>
 
- <nav>
-  <a href="#home">Home</a>
-  <a href="#levels">Study</a>
-  <a href="#services">Services</a>
-  <a href="#career">Career</a>
- </nav>
- <a class="btn outline" href="#levels">Explore</a>
+    <button class="menu-btn" onclick="toggleMenu()" aria-label="Open menu">☰</button>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="#levels" onclick="closeMenu()">CA Courses</a>
+      <a href="#study" onclick="closeMenu()">Study</a>
+      <a href="#tools" onclick="closeMenu()">Tools</a>
+      <a href="#career" onclick="closeMenu()">Career</a>
+      <a href="#updates" onclick="closeMenu()">Updates</a>
+      <a href="#study" class="nav-btn" onclick="closeMenu()">Explore Platform ↗</a>
+    </nav>
+  </div>
 </header>
 
-<section class="hero" id="home">
- <div>
-  <div class="tag">✦ YOUR CA JOURNEY STARTS HERE</div>
-  <h1>Your complete<br>CA learning <span>partner.</span></h1>
-  <p>Notes. Practice. Revision. Guidance. Career.<br>
-  Everything a CA student needs, in one place.</p>
-  <div class="actions">
-   <a class="btn" href="#levels">Explore Study Materials →</a>
-   <a class="btn outline" href="#services">Discover Services</a>
+<main>
+
+<!-- HERO -->
+<section class="hero container" id="home">
+  <div class="badge">✦ Your CA journey, all in one place</div>
+
+  <h1>
+    Your complete<br>
+    <span class="gradient-text">CA learning partner.</span>
+  </h1>
+
+  <p>
+    Study smarter, stay organised and build your future.
+    Everything a CA student needs, connected in one platform.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#levels" class="primary">Start Your Journey ↗</a>
+    <a href="#study" class="secondary">Explore Resources</a>
   </div>
- </div>
- <div class="art">
-  <div class="art-inner">
-   <div class="art-symbol">✦</div>
-   <h2>CA Junction</h2>
-   <p>WHERE YOUR CA JOURNEY CONNECTS</p>
+
+  <div class="hero-note">
+    CA Foundation · CA Intermediate · CA Final
   </div>
- </div>
 </section>
 
-<section class="section" id="levels">
- <div class="heading">
-  <h2>Choose your CA level</h2>
-  <p>Resources designed for your preparation stage.</p>
- </div>
- <div class="cards">
-  <a class="card" href="#services">
-   <div class="icon">⌂</div>
-   <div class="level"><h3>CA Foundation</h3><span>↗</span></div>
-   <p>Build a strong base with concept-focused resources.</p>
-  </a>
-  <a class="card" href="#services">
-   <div class="icon">▱</div>
-   <div class="level"><h3>CA Intermediate</h3><span>↗</span></div>
-   <p>Study material, practice questions and revision tools.</p>
-  </a>
-  <a class="card" href="#services">
-   <div class="icon">♜</div>
-   <div class="level"><h3>CA Final</h3><span>↗</span></div>
-   <p>Advanced resources and exam-oriented preparation.</p>
-  </a>
- </div>
+<!-- COURSES -->
+<section class="container" id="levels">
+  <div class="section-head">
+    <div class="eyebrow">Your journey</div>
+    <h2>Choose your CA level.</h2>
+    <p>Resources and tools designed for every stage of your CA journey.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card level">
+      <span class="level-tag">LEVEL 01</span>
+      <div class="icon">📘</div>
+      <h3>CA Foundation</h3>
+      <p>Build strong fundamentals and start your journey towards becoming a Chartered Accountant.</p>
+      <a href="#study" class="card-link">Explore resources →</a>
+    </div>
+
+    <div class="card level">
+      <span class="level-tag">LEVEL 02</span>
+      <div class="icon">📚</div>
+      <h3>CA Intermediate</h3>
+      <p>Strengthen concepts, practise questions and prepare confidently for your exams.</p>
+      <a href="#study" class="card-link">Explore resources →</a>
+    </div>
+
+    <div class="card level">
+      <span class="level-tag">LEVEL 03</span>
+      <div class="icon">🎓</div>
+      <h3>CA Final</h3>
+      <p>Master advanced subjects, revise effectively and prepare for the final milestone.</p>
+      <a href="#study" class="card-link">Explore resources →</a>
+    </div>
+  </div>
 </section>
 
-<section class="section" id="services">
- <div class="heading">
-  <h2>Explore our services</h2>
-  <p>Everything you need to move forward.</p>
- </div>
- <div class="cards">
-  <div class="card"><div class="icon">▤</div><h3>Study Materials</h3><p>Notes, mind maps, formula books and question banks.</p></div>
-  <div class="card"><div class="icon">◎</div><h3>Mock Tests</h3><p>Exam-focused practice to build confidence.</p></div>
-  <div class="card"><div class="icon">ϟ</div><h3>Revision Tools</h3><p>Plan study sessions and track your progress.</p></div>
-  <div class="card" id="career"><div class="icon">▣</div><h3>Career Services</h3><p>CVs, interviews, articleship and job opportunities.</p></div>
-  <div class="card"><div class="icon">♧</div><h3>Student Community</h3><p>Connect and grow with fellow CA students.</p></div>
-  <div class="card"><div class="icon">↗</div><h3>CA Updates</h3><p>Stay informed about exam announcements.</p></div>
- </div>
+<!-- STUDY -->
+<section class="container" id="study">
+  <div class="section-head">
+    <div class="eyebrow">Study smarter</div>
+    <h2>Your study essentials.</h2>
+    <p>Everything you need to learn, practise and revise efficiently.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="icon">📝</div>
+      <h3>Notes & Study Material</h3>
+      <p>Self-prepared notes, chapter summaries, mind maps and formula books.</p>
+      <a href="#levels" class="card-link">Explore notes →</a>
+    </div>
+
+    <div class="card">
+      <div class="icon">🎯</div>
+      <h3>Mock Tests</h3>
+      <p>Practise exam-style questions and evaluate your preparation.</p>
+      <a href="#levels" class="card-link">Explore tests →</a>
+    </div>
+
+    <div class="card">
+      <div class="icon">📄</div>
+      <h3>Question Papers</h3>
+      <p>RTPs, MTPs and previous year question papers in one place.</p>
+      <a href="#levels" class="card-link">Explore papers →</a>
+    </div>
+  </div>
 </section>
 
-<section class="cta">
- <div><h2>Make your next study session count.</h2>
- <p>Where Your CA Journey Connects.</p></div>
- <a class="btn" href="#levels">Start Exploring →</a>
+<!-- TOOLS -->
+<section class="container" id="tools">
+  <div class="section-head">
+    <div class="eyebrow">Stay organised</div>
+    <h2>Tools for serious students.</h2>
+    <p>Make your preparation structured, measurable and consistent.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="icon">📅</div>
+      <h3>Study Planner</h3>
+      <p>Plan your daily targets and organise your preparation schedule.</p>
+      <a href="#career" class="card-link">Coming soon →</a>
+    </div>
+
+    <div class="card">
+      <div class="icon">⏱️</div>
+      <h3>Study Tracker</h3>
+      <p>Track study hours, revision progress and daily consistency.</p>
+      <a href="#career" class="card-link">Coming soon →</a>
+    </div>
+
+    <div class="card">
+      <div class="icon">🔥</div>
+      <h3>Exam Countdown</h3>
+      <p>Keep your target attempt in sight and stay focused.</p>
+      <a href="#career" class="card-link">Coming soon →</a>
+    </div>
+  </div>
 </section>
 
-<footer>© 2026 CA Junction · Where Your CA Journey Connects.</footer>
+<!-- CAREER -->
+<section class="container" id="career">
+  <div class="section-head">
+    <div class="eyebrow">Beyond exams</div>
+    <h2>Build your CA career.</h2>
+    <p>Prepare for opportunities beyond your textbooks.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="icon">💼</div>
+      <h3>Resume Builder</h3>
+      <p>Create professional resumes for articleship, internships and jobs.</p>
+      <a href="#updates" class="card-link">Coming soon →</a>
+    </div>
+
+    <div class="card">
+      <div class="icon">🚀</div>
+      <h3>Career Opportunities</h3>
+      <p>Discover internships, articleship openings and job opportunities.</p>
+      <a href="#updates" class="card-link">Coming soon →</a>
+    </div>
+
+    <div class="card">
+      <div class="icon">🎤</div>
+      <h3>Interview Preparation</h3>
+      <p>Prepare for interviews with practical questions and guidance.</p>
+      <a href="#updates" class="card-link">Coming soon →</a>
+    </div>
+  </div>
+</section>
+
+<!-- UPDATES -->
+<section class="container" id="updates">
+  <div class="highlight">
+    <div>
+      <div class="eyebrow">Stay informed</div>
+      <h2>Never miss an important update.</h2>
+      <p>Exam notifications, ICAI announcements, results and student opportunities — all in one place.</p>
+    </div>
+    <a href="#home" class="primary">Back to top ↑</a>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="container footer-inner">
+    <a class="logo" href="#home">
+      <span class="logo-glass">CA</span>
+      <span>CA <b>Junction</b></span>
+    </a>
+    <p>Where Your CA Journey Connects.</p>
+    <p>© 2026 CA Junction. Built for CA students.</p>
+  </div>
+</footer>
+
+<script>
+function toggleMenu(){
+  document.getElementById("navLinks").classList.toggle("open");
+}
+function closeMenu(){
+  document.getElementById("navLinks").classList.remove("open");
+}
+</script>
+
 </body>
 </html>
