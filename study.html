@@ -1,0 +1,249 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Materials | CA Junction</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+ background:#080b16;color:#f4f4fb;
+ font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ line-height:1.6;
+ background-image:
+ radial-gradient(circle at 10% 10%,rgba(124,58,237,.15),transparent 35%),
+ radial-gradient(circle at 90% 50%,rgba(37,99,235,.12),transparent 35%);
+}
+a{text-decoration:none;color:inherit}
+.container{width:min(1100px,92%);margin:auto}
+header{
+ background:rgba(8,11,22,.8);backdrop-filter:blur(20px);
+ border-bottom:1px solid rgba(255,255,255,.1);
+ position:sticky;top:0;
+}
+.nav{height:75px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:21px}
+.logo-box{
+ width:42px;height:42px;border-radius:14px;
+ display:grid;place-items:center;color:#c4b5fd;
+ background:rgba(167,139,250,.2);
+ border:1px solid rgba(255,255,255,.2);
+ backdrop-filter:blur(15px);
+}
+.logo b{color:#a78bfa}
+.nav a:last-child{color:#c4b5fd}
+.hero{padding:65px 0 35px}
+.tag{color:#a78bfa;font-size:12px;letter-spacing:2px;font-weight:bold}
+h1{font-size:clamp(35px,6vw,58px);letter-spacing:-2px;margin:10px 0}
+.gradient{
+ background:linear-gradient(100deg,#c4b5fd,#60a5fa);
+ -webkit-background-clip:text;background-clip:text;color:transparent
+}
+.hero p{color:#9ca3b8;max-width:600px}
+.back{
+ display:inline-block;margin-top:25px;padding:10px 16px;
+ border:1px solid rgba(255,255,255,.12);border-radius:12px;
+ background:rgba(255,255,255,.04)
+}
+section{padding:35px 0}
+h2{font-size:27px;margin-bottom:18px}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.level{
+ padding:22px;border-radius:20px;
+ background:rgba(255,255,255,.04);
+ border:1px solid rgba(255,255,255,.1);
+ cursor:pointer;transition:.2s
+}
+.level:hover,.material:hover{border-color:#8b5cf6;transform:translateY(-3px)}
+.level h3{font-size:19px}
+.level p{color:#9ca3b8;font-size:13px}
+.level.active{border-color:#a78bfa;background:rgba(139,92,246,.12)}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+input,select{
+ background:#111526;color:white;border:1px solid #292d42;
+ padding:13px 15px;border-radius:12px;font:inherit;
+}
+input{flex:1;min-width:200px}
+select{min-width:150px}
+.materials{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.material{
+ padding:22px;border-radius:20px;
+ background:rgba(255,255,255,.045);
+ border:1px solid rgba(255,255,255,.1);
+ transition:.2s
+}
+.material .icon{font-size:27px;margin-bottom:12px}
+.material h3{font-size:17px;margin-bottom:6px}
+.material p{color:#9ca3b8;font-size:13px}
+.pills{display:flex;gap:7px;margin:12px 0;flex-wrap:wrap}
+.pill{font-size:11px;padding:4px 9px;border-radius:20px;background:rgba(139,92,246,.15);color:#c4b5fd}
+.pill.free{background:rgba(34,197,94,.12);color:#86efac}
+.material button{
+ margin-top:15px;width:100%;padding:11px;
+ background:rgba(139,92,246,.15);color:#c4b5fd;
+ border:1px solid rgba(139,92,246,.3);border-radius:11px;font-weight:bold
+}
+.material button:hover{background:rgba(139,92,246,.3)}
+.empty{display:none;color:#9ca3b8;padding:25px}
+footer{border-top:1px solid rgba(255,255,255,.1);padding:30px 0;margin-top:50px;color:#9ca3b8;font-size:13px}
+@media(max-width:750px){
+ .levels{grid-template-columns:1fr}
+ .materials{grid-template-columns:1fr}
+ .hero{padding-top:45px}
+}
+</style>
+</head>
+
+<body>
+<header>
+ <div class="container nav">
+  <a class="logo" href="index.html">
+   <span class="logo-box">CA</span>
+   <span>CA <b>Junction</b></span>
+  </a>
+  <a href="index.html">← Home</a>
+ </div>
+</header>
+
+<main class="container">
+ <div class="hero">
+  <div class="tag">YOUR LEARNING LIBRARY</div>
+  <h1>Study smarter.<br><span class="gradient">Score better.</span></h1>
+  <p>Explore notes, mind maps, formula books and exam resources for every stage of your CA journey.</p>
+  <a class="back" href="index.html">← Back to Homepage</a>
+ </div>
+
+ <section>
+  <h2>Choose your CA level</h2>
+  <div class="levels">
+   <div class="level active" onclick="chooseLevel('All',this)">
+    <h3>All Levels</h3><p>Explore everything</p>
+   </div>
+   <div class="level" onclick="chooseLevel('Foundation',this)">
+    <h3>📘 Foundation</h3><p>Build your fundamentals</p>
+   </div>
+   <div class="level" onclick="chooseLevel('Intermediate',this)">
+    <h3>📚 Intermediate</h3><p>Strengthen your concepts</p>
+   </div>
+   <div class="level" onclick="chooseLevel('Final',this)">
+    <h3>🎓 Final</h3><p>Prepare for the final milestone</p>
+   </div>
+  </div>
+ </section>
+
+ <section>
+  <h2>Find your study material</h2>
+  <div class="toolbar">
+   <input id="search" placeholder="Search subjects or materials..." oninput="filterMaterials()">
+   <select id="type" onchange="filterMaterials()">
+    <option value="All">All Materials</option>
+    <option value="Notes">Notes</option>
+    <option value="Mind Maps">Mind Maps</option>
+    <option value="Formula Books">Formula Books</option>
+    <option value="MCQs">MCQs</option>
+   </select>
+  </div>
+
+  <div class="materials" id="materials">
+
+   <div class="material" data-level="Foundation" data-type="Notes">
+    <div class="icon">📝</div><h3>Foundation Notes</h3>
+    <p>Chapter-wise concept notes and summaries.</p>
+    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Free Preview</span></div>
+    <button onclick="preview()">Explore Material ↗</button>
+   </div>
+
+   <div class="material" data-level="Foundation" data-type="Mind Maps">
+    <div class="icon">🧠</div><h3>Foundation Mind Maps</h3>
+    <p>Visual summaries for faster revision.</p>
+    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Free Preview</span></div>
+    <button onclick="preview()">Explore Material ↗</button>
+   </div>
+
+   <div class="material" data-level="Foundation" data-type="MCQs">
+    <div class="icon">🎯</div><h3>Foundation MCQs</h3>
+    <p>Practise questions and strengthen concepts.</p>
+    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Free Preview</span></div>
+    <button onclick="preview()">Explore Material ↗</button>
+   </div>
+
+   <div class="material" data-level="Intermediate" data-type="Notes">
+    <div class="icon">📖</div><h3>Intermediate Notes</h3>
+    <p>Structured notes for your Intermediate subjects.</p>
+    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Free Preview</span></div>
+    <button onclick="preview()">Explore Material ↗</button>
+   </div>
+
+   <div class="material" data-level="Intermediate" data-type="Formula Books">
+    <div class="icon">🧮</div><h3>Intermediate Formula Books</h3>
+    <p>Important formulas and quick revision points.</p>
+    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Free Preview</span></div>
+    <button onclick="preview()">Explore Material ↗</button>
+   </div>
+
+   <div class="material" data-level="Intermediate" data-type="Mind Maps">
+    <div class="icon">🗺️</div><h3>Intermediate Mind Maps</h3>
+    <p>Visual chapter summaries for revision.</p>
+    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Free Preview</span></div>
+    <button onclick="preview()">Explore Material ↗</button>
+   </div>
+
+   <div class="material" data-level="Final" data-type="Notes">
+    <div class="icon">📚</div><h3>Final Notes</h3>
+    <p>Exam-focused notes for CA Final preparation.</p>
+    <div class="pills"><span class="pill">Final</span><span class="pill free">Free Preview</span></div>
+    <button onclick="preview()">Explore Material ↗</button>
+   </div>
+
+   <div class="material" data-level="Final" data-type="Formula Books">
+    <div class="icon">⚡</div><h3>Final Formula Books</h3>
+    <p>Quick-reference formulas and revision resources.</p>
+    <div class="pills"><span class="pill">Final</span><span class="pill free">Free Preview</span></div>
+    <button onclick="preview()">Explore Material ↗</button>
+   </div>
+
+   <div class="material" data-level="Final" data-type="Mind Maps">
+    <div class="icon">💡</div><h3>Final Mind Maps</h3>
+    <p>Connect complex concepts visually.</p>
+    <div class="pills"><span class="pill">Final</span><span class="pill free">Free Preview</span></div>
+    <button onclick="preview()">Explore Material ↗</button>
+   </div>
+
+  </div>
+  <div class="empty" id="empty">No materials found. Try another search.</div>
+ </section>
+</main>
+
+<footer><div class="container">© 2026 CA Junction · Where Your CA Journey Connects.</div></footer>
+
+<script>
+let selectedLevel="All";
+function chooseLevel(level,element){
+ selectedLevel=level;
+ document.querySelectorAll(".level").forEach(x=>x.classList.remove("active"));
+ element.classList.add("active");
+ filterMaterials();
+}
+function filterMaterials(){
+ let query=document.getElementById("search").value.toLowerCase();
+ let type=document.getElementById("type").value;
+ let cards=document.querySelectorAll(".material");
+ let count=0;
+ cards.forEach(card=>{
+  let matchesLevel=selectedLevel==="All"||card.dataset.level===selectedLevel;
+  let matchesType=type==="All"||card.dataset.type===type;
+  let matchesSearch=card.innerText.toLowerCase().includes(query);
+  let show=matchesLevel&&matchesType&&matchesSearch;
+  card.style.display=show?"block":"none";
+  if(show)count++;
+ });
+ document.getElementById("empty").style.display=count?"none":"block";
+}
+function preview(){
+ alert("Study materials will be available here soon. Content will be managed through the CA Junction Admin Panel.");
+}
+</script>
+</body>
+</html>
