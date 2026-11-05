@@ -1,0 +1,167 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CA Junction | Your CA Journey</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+ font-family:Arial,sans-serif;background:#090b20;color:#fff;
+ min-height:100vh;overflow-x:hidden;
+ background-image:radial-gradient(circle at 15% 10%,#5126a544,transparent 35%),
+ radial-gradient(circle at 90% 50%,#1647a944,transparent 35%);
+}
+a{text-decoration:none;color:inherit}
+header{
+ margin:16px auto;width:94%;padding:18px 24px;
+ display:flex;justify-content:space-between;align-items:center;
+ background:#ffffff0b;border:1px solid #ffffff20;
+ backdrop-filter:blur(20px);border-radius:20px;
+}
+.logo{font-size:22px;font-weight:bold;color:#b7a4ff}
+nav{display:flex;gap:22px;font-size:14px;color:#c6c9df}
+nav a:hover{color:#a78bfa}
+.btn{
+ display:inline-block;padding:13px 20px;border-radius:12px;
+ background:linear-gradient(120deg,#8b5cf6,#6366f1);
+ color:white;border:0;font-weight:bold;cursor:pointer
+}
+.outline{background:#ffffff0b;border:1px solid #ffffff30}
+.hero{
+ max-width:1150px;margin:auto;padding:85px 25px;
+ display:grid;grid-template-columns:1.2fr .8fr;
+ align-items:center;gap:35px
+}
+.tag{color:#b7a4ff;font-size:13px;letter-spacing:1px}
+h1{font-size:clamp(42px,6vw,70px);line-height:1.08;margin:20px 0}
+h1 span{background:linear-gradient(90deg,#a78bfa,#67e8f9);
+ -webkit-background-clip:text;color:transparent}
+p{color:#b9bfdc;line-height:1.7}
+.hero p{font-size:17px;max-width:520px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.art{
+ height:330px;border-radius:35px;border:1px solid #ffffff25;
+ background:linear-gradient(145deg,#ffffff18,#ffffff04);
+ backdrop-filter:blur(20px);display:flex;align-items:center;
+ justify-content:center;position:relative;box-shadow:0 30px 80px #0004
+}
+.art-inner{text-align:center}
+.art-symbol{font-size:100px;color:#a78bfa;text-shadow:0 0 45px #8b5cf6}
+.art-inner h2{font-size:28px;margin:10px}
+.art-inner p{font-size:12px}
+.section{max-width:1150px;margin:25px auto;padding:20px 25px}
+.heading{margin-bottom:25px}
+.heading h2{font-size:30px;margin-bottom:8px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{
+ padding:25px;border-radius:22px;background:#ffffff09;
+ border:1px solid #ffffff18;backdrop-filter:blur(15px);
+ transition:.2s
+}
+.card:hover{transform:translateY(-5px);border-color:#8b5cf666}
+.icon{font-size:35px;color:#a78bfa;margin-bottom:17px}
+.card h3{margin-bottom:10px;font-size:19px}
+.card p{font-size:14px}
+.level{display:flex;align-items:center;justify-content:space-between}
+.level span{color:#a78bfa;font-size:24px}
+.cta{
+ margin:55px auto;max-width:1100px;padding:40px;
+ border-radius:25px;border:1px solid #ffffff20;
+ background:linear-gradient(120deg,#6d28d933,#2563eb22);
+ display:flex;justify-content:space-between;align-items:center;gap:20px
+}
+footer{text-align:center;padding:35px;color:#777f9e;font-size:13px}
+@media(max-width:750px){
+ header{padding:15px;flex-wrap:wrap}
+ nav{order:3;width:100%;overflow:auto;padding-top:15px;gap:18px}
+ .hero{grid-template-columns:1fr;padding-top:55px}
+ .art{height:230px}
+ .art-symbol{font-size:75px}
+ .cards{grid-template-columns:1fr}
+ .cta{margin:30px 18px;padding:25px;flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<header>
+ <a class="logo" href="#">CA Junction</a>
+ <nav>
+  <a href="#home">Home</a>
+  <a href="#levels">Study</a>
+  <a href="#services">Services</a>
+  <a href="#career">Career</a>
+ </nav>
+ <a class="btn outline" href="#levels">Explore</a>
+</header>
+
+<section class="hero" id="home">
+ <div>
+  <div class="tag">✦ YOUR CA JOURNEY STARTS HERE</div>
+  <h1>Your complete<br>CA learning <span>partner.</span></h1>
+  <p>Notes. Practice. Revision. Guidance. Career.<br>
+  Everything a CA student needs, in one place.</p>
+  <div class="actions">
+   <a class="btn" href="#levels">Explore Study Materials →</a>
+   <a class="btn outline" href="#services">Discover Services</a>
+  </div>
+ </div>
+ <div class="art">
+  <div class="art-inner">
+   <div class="art-symbol">✦</div>
+   <h2>CA Junction</h2>
+   <p>WHERE YOUR CA JOURNEY CONNECTS</p>
+  </div>
+ </div>
+</section>
+
+<section class="section" id="levels">
+ <div class="heading">
+  <h2>Choose your CA level</h2>
+  <p>Resources designed for your preparation stage.</p>
+ </div>
+ <div class="cards">
+  <a class="card" href="#services">
+   <div class="icon">⌂</div>
+   <div class="level"><h3>CA Foundation</h3><span>↗</span></div>
+   <p>Build a strong base with concept-focused resources.</p>
+  </a>
+  <a class="card" href="#services">
+   <div class="icon">▱</div>
+   <div class="level"><h3>CA Intermediate</h3><span>↗</span></div>
+   <p>Study material, practice questions and revision tools.</p>
+  </a>
+  <a class="card" href="#services">
+   <div class="icon">♜</div>
+   <div class="level"><h3>CA Final</h3><span>↗</span></div>
+   <p>Advanced resources and exam-oriented preparation.</p>
+  </a>
+ </div>
+</section>
+
+<section class="section" id="services">
+ <div class="heading">
+  <h2>Explore our services</h2>
+  <p>Everything you need to move forward.</p>
+ </div>
+ <div class="cards">
+  <div class="card"><div class="icon">▤</div><h3>Study Materials</h3><p>Notes, mind maps, formula books and question banks.</p></div>
+  <div class="card"><div class="icon">◎</div><h3>Mock Tests</h3><p>Exam-focused practice to build confidence.</p></div>
+  <div class="card"><div class="icon">ϟ</div><h3>Revision Tools</h3><p>Plan study sessions and track your progress.</p></div>
+  <div class="card" id="career"><div class="icon">▣</div><h3>Career Services</h3><p>CVs, interviews, articleship and job opportunities.</p></div>
+  <div class="card"><div class="icon">♧</div><h3>Student Community</h3><p>Connect and grow with fellow CA students.</p></div>
+  <div class="card"><div class="icon">↗</div><h3>CA Updates</h3><p>Stay informed about exam announcements.</p></div>
+ </div>
+</section>
+
+<section class="cta">
+ <div><h2>Make your next study session count.</h2>
+ <p>Where Your CA Journey Connects.</p></div>
+ <a class="btn" href="#levels">Start Exploring →</a>
+</section>
+
+<footer>© 2026 CA Junction · Where Your CA Journey Connects.</footer>
+</body>
+</html>
