@@ -268,6 +268,8 @@
     renderList("#myTests",evals.data,r=>(r.study_tests?.title||"Written test")+" · "+r.status+(r.score!==null?" · "+r.score:""),"No evaluated submissions yet.");
     renderList("#myPurchases",orders.data,r=>(r.products?.title||"Service")+" · "+window.caFormatINR(r.amount_inr)+" · "+r.status,"No purchases yet.");
     renderList("#myPlanner",plans.data,r=>r.title+" · "+r.planned_minutes+" min"+(r.is_complete?" · complete":""),"No saved study targets.");
+    const dashboardGroup=$("#dashboardGroupLink");
+    if(dashboardGroup){const {data:group}=await sb.from("premium_resources").select("resource_url").eq("resource_key","whatsapp_study_group").eq("is_active",true).maybeSingle();if(group){dashboardGroup.href=group.resource_url;dashboardGroup.hidden=false;msg("#dashboardGroupStatus","Your premium group invite is available.");}}
     $("#profileForm")?.addEventListener("submit",async e=>{e.preventDefault();const {error}=await sb.from("profiles").update({full_name:$("#profileName").value.trim(),ca_level:$("#profileLevel").value,updated_at:new Date().toISOString()}).eq("user_id",user.id);msg("#profileStatus",error?error.message:"Profile saved.",error?"error":"success")});
     $("#signOutButton")?.addEventListener("click",async()=>{await sb.auth.signOut();location.href="account.html"});
   }
