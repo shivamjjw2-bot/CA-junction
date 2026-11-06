@@ -83,12 +83,13 @@ select{min-width:150px}
 .pills{display:flex;gap:7px;margin:12px 0;flex-wrap:wrap}
 .pill{font-size:11px;padding:4px 9px;border-radius:20px;background:rgba(139,92,246,.15);color:#c4b5fd}
 .pill.free{background:rgba(34,197,94,.12);color:#86efac}
-.material button{
+.material button,.material .material-link{
+.material .material-link{display:block;text-align:center}
  margin-top:15px;width:100%;padding:11px;
  background:rgba(139,92,246,.15);color:#c4b5fd;
  border:1px solid rgba(139,92,246,.3);border-radius:11px;font-weight:bold
 }
-.material button:hover{background:rgba(139,92,246,.3)}
+.material button:hover,.material .material-link:hover{background:rgba(139,92,246,.3)}
 .empty{display:none;color:#9ca3b8;padding:25px}
 footer{border-top:1px solid rgba(255,255,255,.1);padding:30px 0;margin-top:50px;color:#9ca3b8;font-size:13px}
 @media(max-width:750px){
@@ -155,64 +156,64 @@ footer{border-top:1px solid rgba(255,255,255,.1);padding:30px 0;margin-top:50px;
    <div class="material" data-level="Foundation" data-type="Notes">
     <div class="icon">📝</div><h3>Foundation Notes</h3>
     <p>Chapter-wise concept notes and summaries.</p>
-    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Free Preview</span></div>
-    <button onclick="preview()">Explore Material ↗</button>
+    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Demo listing</span></div>
+    <a class="material-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Official BoS portal ↗</a>
    </div>
 
    <div class="material" data-level="Foundation" data-type="Mind Maps">
     <div class="icon">🧠</div><h3>Foundation Mind Maps</h3>
     <p>Visual summaries for faster revision.</p>
-    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Free Preview</span></div>
-    <button onclick="preview()">Explore Material ↗</button>
+    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Demo listing</span></div>
+    <a class="material-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Official BoS portal ↗</a>
    </div>
 
    <div class="material" data-level="Foundation" data-type="MCQs">
     <div class="icon">🎯</div><h3>Foundation MCQs</h3>
     <p>Practise questions and strengthen concepts.</p>
-    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Free Preview</span></div>
-    <button onclick="preview()">Explore Material ↗</button>
+    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Demo listing</span></div>
+    <a class="material-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Official BoS portal ↗</a>
    </div>
 
    <div class="material" data-level="Intermediate" data-type="Notes">
     <div class="icon">📖</div><h3>Intermediate Notes</h3>
     <p>Structured notes for your Intermediate subjects.</p>
-    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Free Preview</span></div>
-    <button onclick="preview()">Explore Material ↗</button>
+    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Demo listing</span></div>
+    <a class="material-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Official BoS portal ↗</a>
    </div>
 
    <div class="material" data-level="Intermediate" data-type="Formula Books">
     <div class="icon">🧮</div><h3>Intermediate Formula Books</h3>
     <p>Important formulas and quick revision points.</p>
-    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Free Preview</span></div>
-    <button onclick="preview()">Explore Material ↗</button>
+    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Demo listing</span></div>
+    <a class="material-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Official BoS portal ↗</a>
    </div>
 
    <div class="material" data-level="Intermediate" data-type="Mind Maps">
     <div class="icon">🗺️</div><h3>Intermediate Mind Maps</h3>
     <p>Visual chapter summaries for revision.</p>
-    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Free Preview</span></div>
-    <button onclick="preview()">Explore Material ↗</button>
+    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Demo listing</span></div>
+    <a class="material-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Official BoS portal ↗</a>
    </div>
 
    <div class="material" data-level="Final" data-type="Notes">
     <div class="icon">📚</div><h3>Final Notes</h3>
     <p>Exam-focused notes for CA Final preparation.</p>
-    <div class="pills"><span class="pill">Final</span><span class="pill free">Free Preview</span></div>
-    <button onclick="preview()">Explore Material ↗</button>
+    <div class="pills"><span class="pill">Final</span><span class="pill free">Demo listing</span></div>
+    <a class="material-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Official BoS portal ↗</a>
    </div>
 
    <div class="material" data-level="Final" data-type="Formula Books">
     <div class="icon">⚡</div><h3>Final Formula Books</h3>
     <p>Quick-reference formulas and revision resources.</p>
-    <div class="pills"><span class="pill">Final</span><span class="pill free">Free Preview</span></div>
-    <button onclick="preview()">Explore Material ↗</button>
+    <div class="pills"><span class="pill">Final</span><span class="pill free">Demo listing</span></div>
+    <a class="material-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Official BoS portal ↗</a>
    </div>
 
    <div class="material" data-level="Final" data-type="Mind Maps">
     <div class="icon">💡</div><h3>Final Mind Maps</h3>
     <p>Connect complex concepts visually.</p>
-    <div class="pills"><span class="pill">Final</span><span class="pill free">Free Preview</span></div>
-    <button onclick="preview()">Explore Material ↗</button>
+    <div class="pills"><span class="pill">Final</span><span class="pill free">Demo listing</span></div>
+    <a class="material-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Official BoS portal ↗</a>
    </div>
 
   </div>
@@ -249,9 +250,6 @@ function filterMaterials(){
 const requestedLevel=new URLSearchParams(window.location.search).get("level");
 const requestedCard=[...document.querySelectorAll(".level")].find(card=>card.querySelector("h3").textContent.includes(requestedLevel||"__none__"));
 if(["Foundation","Intermediate","Final"].includes(requestedLevel)&&requestedCard)chooseLevel(requestedLevel,requestedCard);else filterMaterials();
-function preview(){
- alert("Study materials will be available here soon. Content will be managed through the CA Junction Admin Panel.");
-}
 </script>
 </body>
 </html>
