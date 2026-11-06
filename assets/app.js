@@ -253,7 +253,7 @@
     }
     const {error}=await sb.from("student_note_submissions").insert({
       user_id:user.id,title:$("#noteTitle").value.trim(),level:$("#noteLevel").value,
-      subject:$("#noteSubject").value.trim(),description:$("#noteDescription").value.trim(),contributor_name:$("#noteContributorName").value.trim(),instagram_handle:instagramHandle,file_path:path
+      subject:$("#noteSubject").value.trim(),chapter:$("#noteChapter").value.trim(),description:$("#noteDescription").value.trim(),contributor_name:$("#noteContributorName").value.trim(),instagram_handle:instagramHandle,file_path:path
     });
     if(error){await sb.storage.from("student-notes").remove([path]);msg("#uploadStatus",error.message,"error");return}
     const selectedLevel=$("#noteLevel").value;event.target.reset();$("#noteLevel").value=selectedLevel;if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent=selectedLevel;if($("#viewContributionLink"))$("#viewContributionLink").hidden=false;msg("#uploadStatus","Your PDF is now live in Contributions by Students, with your name"+(instagramHandle?" and Instagram handle":"")+" credited.");
@@ -288,7 +288,8 @@
   }
 
   function initStudy() {
-    const search=$("#materialSearch");
+    const subjectFilter=$("#subjectFilter");
+    const chapterFilter=$("#chapterFilter");
     const studentGrid=$("#studentNotesGrid");
     const adminGrid=$("#adminResourcesGrid");
     const level=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
@@ -313,12 +314,16 @@
         const title=document.createElement("h3");title.textContent=row.title;
         card.append(title);
         if(row.category!=="student_note"&&row.is_premium){const access=document.createElement("small");access.className="resource-access premium";access.textContent="Premium";card.append(access)}
-        const detail=document.createElement("p");detail.textContent=row.description||[row.subject,row.level].filter(Boolean).join(" · ");if(detail.textContent)card.append(detail);
+        if(row.category==="student_note"){
+          const detail=document.createElement("p");detail.textContent=row.description||"";if(detail.textContent)card.append(detail);
+        }else{
+          const detail=document.createElement("p");detail.textContent=row.description||[row.subject,row.level].filter(Boolean).join(" · ");if(detail.textContent)card.append(detail);
+        }
         if(row.category==="student_note"){
           const author=document.createElement("small");author.className="note-author";author.textContent="Shared by "+(row.contributor_name||"CA Junction student");card.append(author);
           if(row.instagram_handle){const handle=row.instagram_handle.replace(/^@/,"");if(/^[A-Za-z0-9._]{1,30}$/.test(handle)){const profile=document.createElement("a");profile.className="link";profile.href="https://www.instagram.com/"+encodeURIComponent(handle)+"/";profile.target="_blank";profile.rel="noopener";profile.textContent="Instagram: @"+handle+" ↗";card.append(profile)}}
         }
-        const meta=document.createElement("small");meta.textContent=[row.level,row.subject].filter(Boolean).join(" · ");if(meta.textContent)card.append(meta);
+        const meta=document.createElement("small");meta.textContent=row.category==="student_note"?[row.level,row.subject&&("Subject: "+row.subject),row.chapter&&("Chapter: "+row.chapter)].filter(Boolean).join(" · "):[row.level,row.subject].filter(Boolean).join(" · ");if(meta.textContent)card.append(meta);
         const action=row.external_url?document.createElement("a"):document.createElement("button");
         action.className="link";
         if(row.external_url){action.href=row.external_url;action.target="_blank";action.rel="noopener";action.textContent="Open PDF ↗"}
@@ -340,15 +345,28 @@
         grid.append(card);
       });
     };
+    const fillFilters=()=>{
+      if(!subjectFilter||!chapterFilter)return;
+      const currentSubject=subjectFilter.value;
+      const subjects=[...new Set(all.filter(row=>row.category==="student_note"&&matchesLevel(row)).map(row=>row.subject).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      subjectFilter.replaceChildren(new Option("All subjects",""),...subjects.map(value=>new Option(value,value)));
+      if(subjects.includes(currentSubject))subjectFilter.value=currentSubject;
+      const currentChapter=chapterFilter.value;
+      const chapters=[...new Set(all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!subjectFilter.value||row.subject===subjectFilter.value)).map(row=>row.chapter).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      chapterFilter.replaceChildren(new Option("All chapters",""),...chapters.map(value=>new Option(value,value)));
+      if(chapters.includes(currentChapter))chapterFilter.value=currentChapter;
+      chapterFilter.disabled=chapters.length===0;
+    };
     const render=()=>{
-      const q=(search?.value||"").trim().toLowerCase();
-      const students=all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!q||(row.title+" "+row.description+" "+row.subject).toLowerCase().includes(q)));
+      fillFilters();
+      const students=all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!subjectFilter?.value||row.subject===subjectFilter.value)&&(!chapterFilter?.value||row.chapter===chapterFilter.value));
       const admin=all.filter(row=>["revision","mind_map","formula"].includes(row.category)&&matchesLevel(row));
       draw(studentGrid,students,"Student contributions are on their way! No PDFs have been shared for this level yet. Be the first to help another CA student.","#materialStatus");
       draw(adminGrid,admin,"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
     };
-    search?.addEventListener("input",render);
-    sb.from("materials").select("id,title,description,level,subject,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle,student_submission_id,is_premium").eq("is_published",true).order("created_at",{ascending:false}).then(async({data,error})=>{
+    subjectFilter?.addEventListener("change",()=>{if(chapterFilter)chapterFilter.value="";render()});
+    chapterFilter?.addEventListener("change",render);
+    sb.from("materials").select("id,title,description,level,subject,chapter,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle,student_submission_id,is_premium").eq("is_published",true).order("created_at",{ascending:false}).then(async({data,error})=>{
       if(error){msg("#materialStatus",error.message,"error");msg("#adminResourcesStatus",error.message,"error");return}
       const {data:{user}}=await sb.auth.getUser();currentUserId=user?.id||"";
       all=data||[];render();
