@@ -103,6 +103,7 @@
         card.hidden = !show;
         if (show) matches++;
       });
+      if(query) $("#service-heads .service-group").forEach(group=>{if($(".service-tile:not([hidden])",group).length)group.open=true});
       msg("#searchMessage", query ? (matches ? matches + " matching services found below." : "No matching services. Try another search.") : "Showing all services.");
       if (query && matches) {
         const first = cards.find(card => !card.hidden);
