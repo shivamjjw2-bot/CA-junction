@@ -243,6 +243,13 @@ create table if not exists public.premium_resources (
   updated_at timestamptz not null default now()
 );
 
+-- Enforce the free launch for existing and new content.
+alter table public.study_tests alter column access_tier set default 'free';
+alter table public.jobs alter column is_premium set default false;
+update public.materials set is_premium=false where is_premium;
+update public.study_tests set access_tier='free' where access_tier<>'free';
+update public.jobs set is_premium=false where is_premium;
+
 create or replace function public.has_active_membership(target_user uuid default auth.uid())
 returns boolean language sql stable security definer set search_path = public
 as $$ select exists(select 1 from public.memberships m where m.user_id = target_user and m.expires_at > now()) $$;
