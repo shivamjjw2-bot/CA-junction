@@ -157,13 +157,14 @@
     const chosenLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"Foundation";
     localStorage.setItem("caJunctionLevel",chosenLevel);
     if($("#noteLevel"))$("#noteLevel").value=chosenLevel;
-    if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent=chosenLevel;
+    if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent="Preselected from your homepage choice; change it if needed.";
+    $("#noteLevel")?.addEventListener("change",()=>{localStorage.setItem("caJunctionLevel",$("#noteLevel").value);if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent="Selected: "+$("#noteLevel").value;});
     if($("#signupLevel"))$("#signupLevel").value=chosenLevel;
     if($("#signupLevelLabel"))$("#signupLevelLabel").textContent=chosenLevel;
     if (!ready()) {
       msg("#authStatus", backendMessage);
       msg("#uploadStatus", backendMessage);
-      $("#noteUploadForm")?.querySelectorAll("input,button").forEach(control=>control.disabled=true);
+      $("#noteUploadForm")?.querySelectorAll("input,select,button").forEach(control=>control.disabled=true);
       
       
       $("#signInForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
@@ -288,14 +289,17 @@
   }
 
   function initStudy() {
+    const levelFilter=$("#levelFilter");
     const subjectFilter=$("#subjectFilter");
     const chapterFilter=$("#chapterFilter");
     const studentGrid=$("#studentNotesGrid");
     const adminGrid=$("#adminResourcesGrid");
-    const level=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
+    const savedLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
+    if(levelFilter&&["Foundation","Intermediate","Final"].includes(savedLevel))levelFilter.value=savedLevel;
+    const activeLevel=()=>levelFilter?levelFilter.value:savedLevel;
     const levelLabel=$("#selectedLevelLabel");
-    if(levelLabel) levelLabel.textContent=level?"Showing "+level+" resources.":"Choose your CA level on the homepage.";
-    if(!level){
+    if(levelLabel) levelLabel.textContent=studentGrid?(activeLevel()?"Showing "+activeLevel()+" student PDFs.":"Showing student PDFs across all levels."):(activeLevel()?"Showing "+activeLevel()+" resources.":"Choose your CA level on the homepage.");
+    if(!activeLevel()&&!levelFilter){
       if(studentGrid){const empty=document.createElement("div");empty.className="empty";empty.textContent="Student contributions are on their way! No PDFs have been shared yet. Be the first to help another CA student.";studentGrid.replaceChildren(empty)}
       if(adminGrid){const empty=document.createElement("div");empty.className="empty";empty.textContent="Choose your CA level on the homepage to view matching resources.";adminGrid.replaceChildren(empty)}
       return;
@@ -303,7 +307,7 @@
     if(!ready()){msg("#materialStatus",backendMessage);msg("#adminResourcesStatus",backendMessage);return}
     let all=[];
     let currentUserId="";
-    const matchesLevel=row=>!level||row.level==="All"||row.level===level;
+    const matchesLevel=row=>!activeLevel()||row.level==="All"||row.level===activeLevel();
     const draw=(grid,rows,emptyText,statusId)=>{
       if(!grid)return;
       grid.replaceChildren();
@@ -361,9 +365,12 @@
       fillFilters();
       const students=all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!subjectFilter?.value||row.subject===subjectFilter.value)&&(!chapterFilter?.value||row.chapter===chapterFilter.value));
       const admin=all.filter(row=>["revision","mind_map","formula"].includes(row.category)&&matchesLevel(row));
-      draw(studentGrid,students,"Student contributions are on their way! No PDFs have been shared for this level yet. Be the first to help another CA student.","#materialStatus");
+      if(levelLabel)levelLabel.textContent=studentGrid?(activeLevel()?"Showing "+activeLevel()+" student PDFs.":"Showing student PDFs across all levels."):(activeLevel()?"Showing "+activeLevel()+" resources.":"Choose your CA level on the homepage.");
+      const count=$("#studentPdfCount");if(count)count.textContent=students.length+" PDF"+(students.length===1?"":"s")+" available";
+      draw(studentGrid,students,activeLevel()?"Student contributions are on their way! No PDFs have been shared for this level yet. Be the first to help another CA student.":"Student contributions are on their way! No PDFs have been shared yet. Be the first to help another CA student.","#materialStatus");
       draw(adminGrid,admin,"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
     };
+    levelFilter?.addEventListener("change",()=>{if(subjectFilter)subjectFilter.value="";if(chapterFilter)chapterFilter.value="";render()});
     subjectFilter?.addEventListener("change",()=>{if(chapterFilter)chapterFilter.value="";render()});
     chapterFilter?.addEventListener("change",render);
     sb.from("materials").select("id,title,description,level,subject,chapter,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle,student_submission_id,is_premium").eq("is_published",true).order("created_at",{ascending:false}).then(async({data,error})=>{
