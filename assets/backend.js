@@ -1,6 +1,6 @@
 (() => {
   const config = window.CA_CONFIG || {};
-  const publishableKey = config.SUPABASE_PUBLISHABLE_KEY || config.SUPABASE_ANON_KEY || "";
+  const publishableKey = config.SUPABASE_PUBLISHABLE_KEY || "";
   const configured =
     /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.SUPABASE_URL || "") &&
     typeof publishableKey === "string" &&
