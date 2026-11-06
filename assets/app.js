@@ -278,7 +278,7 @@
       const q=(search?.value||"").trim().toLowerCase();
       const students=all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!q||(row.title+" "+row.description+" "+row.subject).toLowerCase().includes(q)));
       const admin=all.filter(row=>["revision","mind_map","formula"].includes(row.category)&&matchesLevel(row));
-      draw(studentGrid,students,"No student notes for this level yet.","#materialStatus");
+      draw(studentGrid,students,"Be the first to share a helpful note—your notes could make another student’s study day easier.","#materialStatus");
       draw(adminGrid,admin,"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
     };
     search?.addEventListener("input",render);
