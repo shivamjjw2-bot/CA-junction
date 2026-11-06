@@ -93,6 +93,34 @@ alter table public.student_note_submissions add column if not exists contributor
 alter table public.student_note_submissions add column if not exists linkedin_url text not null default '';
 alter table public.student_note_submissions add column if not exists instagram_handle text not null default '';
 
+create or replace function public.publish_student_note_immediately()
+returns trigger language plpgsql security definer set search_path = public
+as $
+begin
+  if new.status <> 'pending' then
+    raise exception 'Student notes must be submitted as pending.';
+  end if;
+
+  insert into public.materials(
+    title,description,level,subject,category,file_bucket,file_path,
+    is_premium,is_published,submitted_by,contributor_name,linkedin_url,instagram_handle,created_by
+  ) values (
+    new.title,new.description,new.level,new.subject,'student_note','student-notes',new.file_path,
+    false,true,new.user_id,new.contributor_name,new.linkedin_url,new.instagram_handle,new.user_id
+  );
+
+  update public.student_note_submissions
+  set status='approved', reviewed_at=now()
+  where id=new.id;
+
+  return new;
+end $;
+
+drop trigger if exists publish_student_note_after_upload on public.student_note_submissions;
+create trigger publish_student_note_after_upload
+after insert on public.student_note_submissions
+for each row execute procedure public.publish_student_note_immediately();
+
 create table if not exists public.courses (
   id uuid primary key default gen_random_uuid(),
   title text not null,
@@ -494,7 +522,17 @@ create policy "admin material delete" on storage.objects for delete to authentic
 drop policy if exists "student upload own notes" on storage.objects;
 create policy "student upload own notes" on storage.objects for insert to authenticated with check (bucket_id='student-notes' and (storage.foldername(name))[1]=auth.uid()::text);
 drop policy if exists "student or admin reads note uploads" on storage.objects;
-create policy "student or admin reads note uploads" on storage.objects for select to authenticated using (bucket_id='student-notes' and ((storage.foldername(name))[1]=auth.uid()::text or public.is_admin()));
+create policy "student or admin reads note uploads" on storage.objects for select to authenticated using (
+  bucket_id='student-notes' and (
+    (storage.foldername(name))[1]=auth.uid()::text
+    or public.is_admin()
+    or exists(
+      select 1 from public.materials m
+      where m.file_bucket='student-notes' and m.file_path=name
+        and m.category='student_note' and m.is_published
+    )
+  )
+);
 drop policy if exists "student upload own test script" on storage.objects;
 create policy "student upload own test script" on storage.objects for insert to authenticated with check (bucket_id='test-scripts' and (storage.foldername(name))[1]=auth.uid()::text);
 drop policy if exists "owner or reviewer reads test scripts" on storage.objects;
