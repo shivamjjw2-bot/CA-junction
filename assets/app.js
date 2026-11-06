@@ -96,10 +96,10 @@
     if (form) form.addEventListener("submit", event => {
       event.preventDefault();
       const query = ($("#homeSearchInput").value || "").trim().toLowerCase();
-      const cards = $$("#notes .services .card, #test-series .services .card, #career-hub .services .card");
+      const cards = $("#service-heads .service-tile");
       let matches = 0;
       cards.forEach(card => {
-        const show = !query || card.innerText.toLowerCase().includes(query);
+        const show = !query || card.textContent.toLowerCase().includes(query);
         card.hidden = !show;
         if (show) matches++;
       });
