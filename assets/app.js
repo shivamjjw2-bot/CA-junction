@@ -182,53 +182,7 @@
       msg("#authStatus",data.session ? "Account created. Opening your dashboard…" : "Account created. Check your email to confirm, then sign in.");
       if(data.session) location.href="platform.html";
     });
-    loadProducts();
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
-    $("#submitUpiReference")?.addEventListener("click",submitUpiReference);
-  }
-
-  async function loadProducts() {
-    const list=$("#productsGrid");if(!list)return;
-    const {data,error}=await sb.from("products").select("id,title,description,product_type,price_inr,duration_days").eq("is_active",true).order("price_inr");
-    list.replaceChildren();
-    if(error || !data?.length){const p=document.createElement("div");p.className="product";p.textContent=error?"Plans are not available right now.":"The admin has not published membership plans yet.";list.append(p);return}
-    data.forEach(product=>{
-      const card=document.createElement("article");card.className="product";
-      const h=document.createElement("h3");h.textContent=product.title;
-      const d=document.createElement("p");d.textContent=product.description || product.product_type.replaceAll("_"," ");
-      const price=document.createElement("strong");price.textContent=window.caFormatINR(product.price_inr)+(product.duration_days?" · "+product.duration_days+" days":"");
-      const button=document.createElement("button");button.className="btn";button.type="button";button.textContent="Choose this service";button.addEventListener("click",()=>createOrder(product));
-      card.append(h,d,price,document.createElement("br"),button);list.append(card);
-    });
-  }
-
-  let activeOrderId=null;
-  async function createOrder(product) {
-    const {data:{user}}=await sb.auth.getUser();
-    if(!user){msg("#paymentStatus","Sign in before choosing a service.","error");location.hash="#authArea";return}
-    const {data,error}=await sb.rpc("create_payment_order",{target_product:product.id});
-    if(error){msg("#paymentStatus",error.message,"error");return}
-    activeOrderId=data;
-    $("#upiOrder").hidden=false;
-    $("#orderTitle").textContent=product.title;
-    $("#orderAmount").textContent="Amount: "+window.caFormatINR(product.price_inr);
-    const upiId=String(app.config.UPI_ID||"").trim();
-    const payLink=$("#upiPayLink");
-    if(upiId){
-      const params=new URLSearchParams({pa:upiId,pn:app.config.PAYEE_NAME||"CA Junction",am:Number(product.price_inr).toFixed(2),cu:app.config.CURRENCY||"INR",tn:"CA Junction order "+data});
-      payLink.href="upi://pay?"+params.toString();payLink.hidden=false;
-      msg("#upiSetupStatus","After paying, enter the UTR/reference from your bank or UPI app. Access stays locked until an admin verifies it.");
-    }else{
-      payLink.hidden=true;msg("#upiSetupStatus","UPI ID is not configured yet. The order is saved, but payment instructions are unavailable.");
-    }
-    $("#upiOrder").scrollIntoView({behavior:"smooth",block:"center"});
-  }
-  async function submitUpiReference() {
-    if(!activeOrderId){msg("#paymentStatus","Choose a service first.","error");return}
-    const reference=$("#upiReference").value.trim();
-    const {error}=await sb.rpc("submit_upi_reference",{target_order:activeOrderId,reference});
-    if(error){msg("#paymentStatus",error.message,"error");return}
-    msg("#paymentStatus","Reference submitted. Premium access will unlock after an admin matches the payment in the receiving account record.");
   }
 
   async function submitStudentNote(event) {
@@ -259,10 +213,9 @@
     const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
     if(role)$("#adminLink").hidden=false;
     $("#membershipStatus").textContent="Free CA Junction account · all services are free during launch.";
-    const [downloads,attempts,orders,plans,evals]=await Promise.all([
+    const [downloads,attempts,plans,evals]=await Promise.all([
       sb.from("material_downloads").select("downloaded_at,materials(title,level)").eq("user_id",user.id).order("downloaded_at",{ascending:false}).limit(10),
       sb.from("test_attempts").select("score,total_questions,submitted_at,study_tests(title)").eq("user_id",user.id).order("submitted_at",{ascending:false}).limit(10),
-      sb.from("payment_orders").select("amount_inr,status,created_at,products(title)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10),
       sb.from("study_plans").select("title,due_on,planned_minutes,is_complete").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10),
       sb.from("evaluation_submissions").select("status,score,feedback,created_at,study_tests(title)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10)
     ]);
@@ -270,7 +223,6 @@
     renderList("#myMaterials",downloads.data,r=>r.materials?.title+" · "+r.materials?.level,"No downloads yet.");
     renderList("#myProgress",attempts.data,r=>(r.study_tests?.title||"Test")+" · "+r.score+"/"+r.total_questions,"No completed tests yet.");
     renderList("#myTests",evals.data,r=>(r.study_tests?.title||"Written test")+" · "+r.status+(r.score!==null?" · "+r.score:""),"No evaluated submissions yet.");
-    renderList("#myPurchases",orders.data,r=>(r.products?.title||"Service")+" · "+window.caFormatINR(r.amount_inr)+" · "+r.status,"No purchases yet.");
     renderList("#myPlanner",plans.data,r=>r.title+" · "+r.planned_minutes+" min"+(r.is_complete?" · complete":""),"No saved study targets.");
     const dashboardGroup=$("#dashboardGroupLink");
     if(dashboardGroup){const {data:group}=await sb.from("premium_resources").select("resource_url").eq("resource_key","whatsapp_study_group").eq("is_active",true).maybeSingle();if(group){dashboardGroup.href=group.resource_url;dashboardGroup.hidden=false;msg("#dashboardGroupStatus","Your premium group invite is available.");}}
