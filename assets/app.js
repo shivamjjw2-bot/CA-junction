@@ -177,7 +177,7 @@
       e.preventDefault();msg("#authStatus","Signing in…");
       const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
       if(error){msg("#authStatus",error.message,"error");return}
-      location.href=new URLSearchParams(location.search).get("next")==="upload.html"?"upload.html":"platform.html";
+      const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"platform.html";
     });
     signUp?.addEventListener("submit",async e=>{
       e.preventDefault();msg("#authStatus","Creating your account…");
@@ -241,7 +241,6 @@
     const level=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
     const levelLabel=$("#selectedLevelLabel");
     if(levelLabel) levelLabel.textContent=level?"Showing "+level+" resources.":"All levels";
-    const statusFor=grid=>grid===studentGrid?"#materialStatus":"#adminResourcesStatus";
     if(!ready()){msg("#materialStatus",backendMessage);msg("#adminResourcesStatus",backendMessage);return}
     let all=[];
     const matchesLevel=row=>!level||row.level==="All"||row.level===level;
