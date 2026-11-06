@@ -80,6 +80,7 @@ create table if not exists public.student_note_submissions (
   description text not null default '',
   contributor_name text not null default '',
   linkedin_url text not null default '',
+  instagram_handle text not null default '',
   file_path text not null,
   status text not null default 'pending' check (status in ('pending','approved','rejected')),
   admin_note text not null default '',
@@ -89,7 +90,6 @@ create table if not exists public.student_note_submissions (
 );
 
 alter table public.student_note_submissions add column if not exists contributor_name text not null default '';
-alter table public.student_note_submissions add column if not exists instagram_handle text not null default '';
 alter table public.student_note_submissions add column if not exists linkedin_url text not null default '';
 alter table public.student_note_submissions add column if not exists instagram_handle text not null default '';
 
