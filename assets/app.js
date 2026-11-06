@@ -151,6 +151,9 @@
   }
 
   function initAccount() {
+    const chosenLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"Foundation";
+    if($("#noteLevel"))$("#noteLevel").value=chosenLevel;
+    if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent=chosenLevel;
     if (!ready()) {
       msg("#authStatus", backendMessage);
       msg("#uploadStatus", backendMessage);
@@ -161,9 +164,6 @@
       $("#signUpForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
       return;
     }
-    const chosenLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"Foundation";
-    if($("#noteLevel"))$("#noteLevel").value=chosenLevel;
-    if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent=chosenLevel;
     const signInTab=$("#signInTab"), signUpTab=$("#signUpTab"), signIn=$("#signInForm"), signUp=$("#signUpForm");
     const chooseTab = which => {
       const signingIn=which==="signin";
