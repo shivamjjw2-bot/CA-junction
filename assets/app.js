@@ -222,16 +222,18 @@
     const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
     if(role)$("#adminLink").hidden=false;
     $("#membershipStatus").textContent="Free CA Junction account · all services are free during launch.";
-    const [downloads,attempts,plans,evals]=await Promise.all([
+    const [downloads,attempts,plans,evals,purchases]=await Promise.all([
       sb.from("material_downloads").select("downloaded_at,materials(title,level)").eq("user_id",user.id).order("downloaded_at",{ascending:false}).limit(10),
       sb.from("test_attempts").select("score,total_questions,submitted_at,study_tests(title)").eq("user_id",user.id).order("submitted_at",{ascending:false}).limit(10),
       sb.from("study_plans").select("title,due_on,planned_minutes,is_complete").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10),
-      sb.from("evaluation_submissions").select("status,score,feedback,created_at,study_tests(title)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10)
+      sb.from("evaluation_submissions").select("status,score,feedback,created_at,study_tests(title)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10),
+      sb.from("payment_orders").select("id,amount_inr,status,created_at,products(title)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10)
     ]);
     const renderList=(selector,rows,fn,empty)=>{const el=$(selector);if(!el)return;el.replaceChildren();if(!rows?.length){emptyRow(el,empty);return}rows.forEach(row=>addRow(el,fn(row),row.submitted_at||row.downloaded_at||row.created_at||""))};
     renderList("#myMaterials",downloads.data,r=>r.materials?.title+" · "+r.materials?.level,"No downloads yet.");
     renderList("#myProgress",attempts.data,r=>(r.study_tests?.title||"Test")+" · "+r.score+"/"+r.total_questions,"No completed tests yet.");
     renderList("#myTests",evals.data,r=>(r.study_tests?.title||"Written test")+" · "+r.status+(r.score!==null?" · "+r.score:""),"No evaluated submissions yet.");
+    renderList("#myPurchases",purchases.data,r=>(r.products?.title||"Purchase")+" · "+r.status.replace(/_/g," ")+" · "+window.caFormatINR(r.amount_inr),"No purchases yet. All CA Junction services are free during launch.");
     renderList("#myPlanner",plans.data,r=>r.title+" · "+r.planned_minutes+" min"+(r.is_complete?" · complete":""),"No saved study targets.");
     const dashboardGroup=$("#dashboardGroupLink");
     if(dashboardGroup){const {data:group}=await sb.from("premium_resources").select("resource_url").eq("resource_key","whatsapp_study_group").eq("is_active",true).maybeSingle();if(group){dashboardGroup.href=group.resource_url;dashboardGroup.hidden=false;msg("#dashboardGroupStatus","Your premium group invite is available.");}}
