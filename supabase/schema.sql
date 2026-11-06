@@ -1,4 +1,5 @@
 -- CA Junction Supabase schema
+-- Free launch mode: checkout and paid access are disabled.
 -- Run in the Supabase SQL Editor after creating a new project.
 -- Keep service-role keys on a trusted server only; never put them in assets/config.js.
 
@@ -255,28 +256,15 @@ returns boolean language sql stable security definer set search_path = public
 as $$ select exists(select 1 from public.entitlements e where e.user_id = target_user and e.test_id = target_test) $$;
 
 create or replace function public.has_material_access(target_user uuid, target_material uuid)
-returns boolean language plpgsql stable security definer set search_path = public
-as $$
-declare m public.materials%rowtype; prior_download boolean; download_count integer;
-begin
-  if public.is_admin(target_user) then return true; end if;
-  select * into m from public.materials where id = target_material and is_published;
-  if not found then return false; end if;
-  if m.external_url is not null then return true; end if;
-  if m.is_premium then return public.has_active_membership(target_user) or public.has_material_entitlement(target_user,target_material); end if;
-  if target_user is null then return false; end if;
-  select exists(select 1 from public.material_downloads d where d.user_id=target_user and d.material_id=target_material) into prior_download;
-  if prior_download then return true; end if;
-  select count(*) into download_count from public.material_downloads d where d.user_id=target_user;
-  return download_count < 3 or public.has_active_membership(target_user);
-end $$;
+returns boolean language sql stable security definer set search_path = public
+as $$ select exists(select 1 from public.materials where id=target_material and is_published) $$;
 
 create or replace function public.register_material_download(target_material uuid)
 returns boolean language plpgsql security definer set search_path = public
 as $$
 begin
   if auth.uid() is null then raise exception 'Sign in to download notes.'; end if;
-  if not public.has_material_access(auth.uid(),target_material) then raise exception 'Three free PDF downloads are used. Premium membership unlocks more.'; end if;
+  if not public.has_material_access(auth.uid(),target_material) then raise exception 'This resource is not published.'; end if;
   if exists(select 1 from public.materials m where m.id=target_material and m.external_url is not null) then return true; end if;
   insert into public.material_downloads(user_id,material_id) values(auth.uid(),target_material) on conflict do nothing;
   return true;
@@ -284,26 +272,11 @@ end $$;
 
 create or replace function public.create_payment_order(target_product uuid)
 returns uuid language plpgsql security definer set search_path = public
-as $$
-declare p public.products%rowtype; new_order uuid;
-begin
-  if auth.uid() is null then raise exception 'Sign in before purchasing.'; end if;
-  select * into p from public.products where id=target_product and is_active;
-  if not found then raise exception 'This product is not available.'; end if;
-  insert into public.payment_orders(user_id,product_id,amount_inr) values(auth.uid(),p.id,p.price_inr) returning id into new_order;
-  return new_order;
-end $$;
+as $$ begin raise exception 'Payments are disabled while CA Junction is free.'; end $$;
 
 create or replace function public.submit_upi_reference(target_order uuid, reference text)
 returns void language plpgsql security definer set search_path = public
-as $$
-begin
-  if auth.uid() is null then raise exception 'Sign in before submitting a payment reference.'; end if;
-  if reference is null or length(trim(reference)) < 8 or length(trim(reference)) > 80 then raise exception 'Enter a valid UPI transaction reference.'; end if;
-  update public.payment_orders set upi_reference=trim(reference),status='pending_review'
-  where id=target_order and user_id=auth.uid() and status='initiated';
-  if not found then raise exception 'Payment order was not found or was already submitted.'; end if;
-end $$;
+as $$ begin raise exception 'Payments are disabled while CA Junction is free.'; end $$;
 
 create or replace function public.create_mcq_attempt(target_test uuid, submitted_answers jsonb)
 returns table(attempt_id uuid, points integer, question_count integer)
@@ -313,7 +286,7 @@ declare new_attempt uuid; earned integer; total integer;
 begin
   if auth.uid() is null then raise exception 'Sign in to take a test.'; end if;
   if submitted_answers is null or jsonb_typeof(submitted_answers) <> 'object' then raise exception 'Answers must be submitted as a question-response object.'; end if;
-  if not exists(select 1 from public.study_tests t where t.id=target_test and t.is_published and t.test_type in ('mcq','chapter','full_syllabus') and (t.access_tier='free' or public.has_active_membership(auth.uid()) or public.has_test_entitlement(auth.uid(),t.id))) then raise exception 'This test is not available to your account.'; end if;
+  if not exists(select 1 from public.study_tests t where t.id=target_test and t.is_published and t.test_type in ('mcq','chapter','full_syllabus')) then raise exception 'This test is not available.'; end if;
   select count(*),count(*) filter(where q.correct_index = (submitted_answers->>q.id::text)::integer)
   into total,earned from public.test_questions q where q.test_id=target_test;
   if total=0 then raise exception 'This test has no published questions.'; end if;
@@ -328,6 +301,7 @@ returns trigger language plpgsql security definer set search_path = public
 as $$
 declare p public.products%rowtype;
 begin
+  if new.status='paid' then raise exception 'Paid access is disabled while CA Junction is free.'; end if;
   if new.status='paid' and (new.upi_reference is null or length(trim(new.upi_reference)) < 8) then raise exception 'A bank/UPI reference must be reviewed before approval.'; end if;
   if new.status='paid' and new.verified_by is null then new.verified_by := auth.uid(); end if;
   if new.status='paid' and new.verified_by is null then raise exception 'An admin verifier is required.'; end if;
@@ -355,8 +329,7 @@ for each row execute procedure public.grant_purchase_access();
 create or replace view public.published_test_questions with (security_barrier=true) as
 select q.id,q.test_id,q.question,q.options,q.position
 from public.test_questions q join public.study_tests t on t.id=q.test_id
-where t.is_published and t.test_type in ('mcq','chapter','full_syllabus')
-and (t.access_tier='free' or public.has_active_membership(auth.uid()) or public.has_test_entitlement(auth.uid(),t.id));
+where t.is_published and t.test_type in ('mcq','chapter','full_syllabus');
 
 alter table public.user_roles enable row level security;
 alter table public.profiles enable row level security;
@@ -391,7 +364,7 @@ drop policy if exists "admin manages profiles" on public.profiles;
 create policy "admin manages profiles" on public.profiles for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "published accessible materials" on public.materials;
-create policy "published accessible materials" on public.materials for select to anon,authenticated using (is_published and (not is_premium or public.has_active_membership(auth.uid()) or public.has_material_entitlement(auth.uid(),id) or public.is_admin()));
+create policy "published accessible materials" on public.materials for select to anon,authenticated using (is_published or public.is_admin());
 drop policy if exists "admin manages materials" on public.materials;
 create policy "admin manages materials" on public.materials for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
@@ -408,7 +381,7 @@ drop policy if exists "admin manages courses" on public.courses;
 create policy "admin manages courses" on public.courses for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "accessible tests readable" on public.study_tests;
-create policy "accessible tests readable" on public.study_tests for select to authenticated using (is_published and (access_tier='free' or public.has_active_membership(auth.uid()) or public.has_test_entitlement(auth.uid(),id) or public.is_admin()));
+create policy "accessible tests readable" on public.study_tests for select to authenticated using (is_published or public.is_admin());
 drop policy if exists "admin manages tests" on public.study_tests;
 create policy "admin manages tests" on public.study_tests for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
@@ -426,7 +399,7 @@ drop policy if exists "reviewer grades scripts" on public.evaluation_submissions
 create policy "reviewer grades scripts" on public.evaluation_submissions for update to authenticated using (public.is_reviewer()) with check (public.is_reviewer());
 
 drop policy if exists "published jobs members only" on public.jobs;
-create policy "published jobs members only" on public.jobs for select to authenticated using (is_published and (not is_premium or public.has_active_membership(auth.uid()) or public.is_admin()));
+create policy "published jobs members only" on public.jobs for select to authenticated using (is_published or public.is_admin());
 drop policy if exists "admin manages jobs" on public.jobs;
 create policy "admin manages jobs" on public.jobs for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
@@ -465,7 +438,7 @@ drop policy if exists "own downloads insert" on public.material_downloads;
 create policy "own downloads insert" on public.material_downloads for insert to authenticated with check (user_id=auth.uid());
 
 drop policy if exists "premium resources members" on public.premium_resources;
-create policy "premium resources members" on public.premium_resources for select to authenticated using (is_active and (public.has_active_membership(auth.uid()) or public.is_admin()));
+create policy "premium resources members" on public.premium_resources for select to authenticated using (is_active or public.is_admin());
 drop policy if exists "admin manages premium resources" on public.premium_resources;
 create policy "admin manages premium resources" on public.premium_resources for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
