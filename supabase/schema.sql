@@ -444,6 +444,8 @@ create policy "own downloads read" on public.material_downloads for select to au
 drop policy if exists "own downloads insert" on public.material_downloads;
 create policy "own downloads insert" on public.material_downloads for insert to authenticated with check (user_id=auth.uid());
 
+drop policy if exists "public study room links" on public.premium_resources;
+create policy "public study room links" on public.premium_resources for select to anon,authenticated using (is_active and resource_key in ('virtual_library','doubt_solving'));
 drop policy if exists "premium resources members" on public.premium_resources;
 create policy "premium resources members" on public.premium_resources for select to authenticated using (is_active or public.is_admin());
 drop policy if exists "admin manages premium resources" on public.premium_resources;
