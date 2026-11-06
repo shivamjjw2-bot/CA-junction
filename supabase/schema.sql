@@ -52,6 +52,7 @@ create table if not exists public.materials (
   description text not null default '',
   level text not null check (level in ('Foundation','Intermediate','Final','All')),
   subject text not null default '',
+  chapter text not null default '',
   category text not null check (category in ('student_note','revision','mind_map','formula','icai_link')),
   file_bucket text,
   file_path text,
@@ -77,6 +78,7 @@ create table if not exists public.student_note_submissions (
   title text not null,
   level text not null check (level in ('Foundation','Intermediate','Final')),
   subject text not null,
+  chapter text not null default '',
   description text not null default '',
   contributor_name text not null default '',
   linkedin_url text not null default '',
@@ -89,6 +91,8 @@ create table if not exists public.student_note_submissions (
   created_at timestamptz not null default now()
 );
 
+alter table public.materials add column if not exists chapter text not null default '';
+alter table public.student_note_submissions add column if not exists chapter text not null default '';
 alter table public.student_note_submissions add column if not exists contributor_name text not null default '';
 alter table public.student_note_submissions add column if not exists linkedin_url text not null default '';
 alter table public.student_note_submissions add column if not exists instagram_handle text not null default '';
@@ -105,11 +109,11 @@ begin
   end if;
 
   insert into public.materials(
-    title,description,level,subject,category,file_bucket,file_path,
+    title,description,level,subject,chapter,category,file_bucket,file_path,
     is_premium,is_published,submitted_by,contributor_name,linkedin_url,instagram_handle,
     student_submission_id,created_by
   ) values (
-    new.title,new.description,new.level,new.subject,'student_note','student-notes',new.file_path,
+    new.title,new.description,new.level,new.subject,new.chapter,'student_note','student-notes',new.file_path,
     false,true,new.user_id,new.contributor_name,new.linkedin_url,new.instagram_handle,
     new.id,new.user_id
   );
