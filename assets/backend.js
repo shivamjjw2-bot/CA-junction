@@ -1,15 +1,16 @@
 (() => {
   const config = window.CA_CONFIG || {};
+  const publishableKey = config.SUPABASE_PUBLISHABLE_KEY || config.SUPABASE_ANON_KEY || "";
   const configured =
     /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.SUPABASE_URL || "") &&
-    typeof config.SUPABASE_ANON_KEY === "string" &&
-    config.SUPABASE_ANON_KEY.length > 20 &&
+    typeof publishableKey === "string" &&
+    publishableKey.length > 20 &&
     Boolean(window.supabase && window.supabase.createClient);
 
   window.CA_APP = {
     config,
     supabase: configured
-      ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
+      ? window.supabase.createClient(config.SUPABASE_URL, publishableKey, {
           auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
         })
       : null,
