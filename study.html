@@ -1,254 +1,54 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Official ICAI CA study material links and CA Junction student notes.">
 <title>Study Materials | CA Junction</title>
-
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{
- background:#080b16;color:#f4f4fb;
- font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
- line-height:1.6;
- background-image:
- radial-gradient(circle at 10% 10%,rgba(124,58,237,.15),transparent 35%),
- radial-gradient(circle at 90% 50%,rgba(37,99,235,.12),transparent 35%);
-}
-a{text-decoration:none;color:inherit}
-.container{width:min(1100px,92%);margin:auto}
-header{
- background:rgba(8,11,22,.8);backdrop-filter:blur(20px);
- border-bottom:1px solid rgba(255,255,255,.1);
- position:sticky;top:0;
-}
-.nav{height:75px;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:21px}
-.logo-box{
- width:42px;height:42px;border-radius:14px;
- display:grid;place-items:center;color:#c4b5fd;
- background:rgba(167,139,250,.2);
- border:1px solid rgba(255,255,255,.2);
- backdrop-filter:blur(15px);
-}
-.logo b{color:#a78bfa}
+:root{--bg:#080b16;--panel:rgba(255,255,255,.045);--line:rgba(255,255,255,.11);--purple:#a78bfa;--text:#f4f4fb;--muted:#9ca3b8}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}
+a{color:inherit;text-decoration:none}button,input,select{font:inherit}.container{width:min(1080px,92%);margin:auto}
+body:before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(circle at 15% 10%,rgba(124,58,237,.17),transparent 35%),radial-gradient(circle at 88% 35%,rgba(37,99,235,.12),transparent 35%)}
+header{position:sticky;top:0;z-index:10;background:rgba(8,11,22,.88);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.nav{min-height:70px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}.mark{width:39px;height:39px;border:1px solid var(--line);border-radius:13px;background:rgba(167,139,250,.16);display:grid;place-items:center;color:#c4b5fd}.brand b{color:var(--purple)}
 .nav a:last-child{color:#c4b5fd}
-.hero{padding:65px 0 35px}
-.tag{color:#a78bfa;font-size:12px;letter-spacing:2px;font-weight:bold}
-h1{font-size:clamp(35px,6vw,58px);letter-spacing:-2px;margin:10px 0}
-.gradient{
- background:linear-gradient(100deg,#c4b5fd,#60a5fa);
- -webkit-background-clip:text;background-clip:text;color:transparent
-}
-.hero p{color:#9ca3b8;max-width:600px}
-.back{
- display:inline-block;margin-top:25px;padding:10px 16px;
- border:1px solid rgba(255,255,255,.12);border-radius:12px;
- background:rgba(255,255,255,.04)
-}
-section{padding:35px 0}
-h2{font-size:27px;margin-bottom:18px}
-.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
-.level{
- padding:22px;border-radius:20px;
- background:rgba(255,255,255,.04);
- border:1px solid rgba(255,255,255,.1);
- cursor:pointer;transition:.2s;
- font:inherit;text-align:left;color:inherit;width:100%
-}
-.level:focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}
-.level:hover,.material:hover{border-color:#8b5cf6;transform:translateY(-3px)}
-.level h3{font-size:19px}
-.level p{color:#9ca3b8;font-size:13px}
-.level.active{border-color:#a78bfa;background:rgba(139,92,246,.12)}
-.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
-input,select{
- background:#111526;color:white;border:1px solid #292d42;
- padding:13px 15px;border-radius:12px;font:inherit;
-}
-input{flex:1;min-width:200px}
-select{min-width:150px}
-.result-count{flex-basis:100%;color:#9ca3b8;font-size:13px;margin-top:-4px}
-.materials{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
-.material{
- padding:22px;border-radius:20px;
- background:rgba(255,255,255,.045);
- border:1px solid rgba(255,255,255,.1);
- transition:.2s
-}
-.material .icon{font-size:27px;margin-bottom:12px}
-.material h3{font-size:17px;margin-bottom:6px}
-.material p{color:#9ca3b8;font-size:13px}
-.pills{display:flex;gap:7px;margin:12px 0;flex-wrap:wrap}
-.pill{font-size:11px;padding:4px 9px;border-radius:20px;background:rgba(139,92,246,.15);color:#c4b5fd}
-.pill.free{background:rgba(34,197,94,.12);color:#86efac}
-.material button,.material .material-link{
- display:block;text-align:center;margin-top:15px;width:100%;padding:11px;
- background:rgba(139,92,246,.15);color:#c4b5fd;
- border:1px solid rgba(139,92,246,.3);border-radius:11px;font-weight:bold
-}
-.material button:hover,.material .material-link:hover{background:rgba(139,92,246,.3)}
-.empty{display:none;color:#9ca3b8;padding:25px}
-footer{border-top:1px solid rgba(255,255,255,.1);padding:30px 0;margin-top:50px;color:#9ca3b8;font-size:13px}
-@media(max-width:750px){
- .levels{grid-template-columns:1fr}
- .materials{grid-template-columns:1fr}
- .hero{padding-top:45px}
-}
+main{padding-bottom:35px}.hero{padding:54px 0 30px}.eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#c4b5fd;font-weight:750}h1{font-size:clamp(36px,6vw,58px);line-height:1.1;letter-spacing:-2px;margin:8px 0 12px}.gradient{background:linear-gradient(100deg,#c4b5fd,#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent}
+p{color:var(--muted)}section{padding:28px 0}.section-head{margin-bottom:18px}.section-head h2{font-size:27px;margin:4px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:18px}.card h3{font-size:17px;margin:5px 0}.card p{font-size:13px}
+.button,.link{display:inline-flex;margin-top:13px;padding:10px 14px;border:1px solid rgba(167,139,250,.3);border-radius:11px;background:rgba(139,92,246,.13);color:#d6cbff;font-weight:700;font-size:14px}
+.badge{display:inline-block;border-radius:20px;padding:3px 8px;background:rgba(167,139,250,.13);color:#d6cbff;font-size:11px;margin:7px 4px 0 0}.badge.free{background:rgba(34,197,94,.11);color:#86efac}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.toolbar input{flex:1;min-width:190px}
+input,select{background:#111526;color:white;border:1px solid #30354b;border-radius:11px;padding:11px 12px}
+.notice{padding:16px;border-left:3px solid var(--purple);border-radius:0 12px 12px 0;background:rgba(167,139,250,.08);color:#d4d6e4;font-size:14px}
+.empty{grid-column:1/-1;padding:18px;border:1px dashed rgba(255,255,255,.2);border-radius:14px;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding:25px 0;color:var(--muted);font-size:13px;margin-top:30px}
+:focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.hero{padding-top:40px}section{padding:22px 0}}
 </style>
 </head>
-
-<body>
-<header>
- <div class="container nav">
-  <a class="logo" href="index.html">
-   <span class="logo-box">CA</span>
-   <span>CA <b>Junction</b></span>
-  </a>
-  <div class="nav-actions" style="display:flex;align-items:center;gap:16px"><a href="platform.html">Student workspace →</a><a href="index.html">← Home</a></div>
- </div>
-</header>
-
+<body data-page="study">
+<header><div class="container nav"><a class="brand" href="index.html"><span class="mark">CA</span><span>CA <b>Junction</b></span></a><div><a href="account.html">My Account</a>　<a href="index.html">Home</a></div></div></header>
 <main class="container">
- <div class="hero">
-  <div class="tag">YOUR LEARNING LIBRARY</div>
-  <h1>Study smarter.<br><span class="gradient">Score better.</span></h1>
-  <p>Explore notes, mind maps, formula books and exam resources for every stage of your CA journey.</p>
-  <a class="back" href="index.html">← Back to Homepage</a>
+<div class="hero"><div class="eyebrow">Study materials</div><h1>Official resources.<br><span class="gradient">Student-made notes.</span></h1><p>Use ICAI’s official course material and find notes shared by the CA Junction community.</p></div>
+<section id="icai">
+ <div class="section-head"><div class="eyebrow">Official ICAI learning resources</div><h2>Choose your CA level.</h2><p>These links open the ICAI Board of Studies learning portal.</p></div>
+ <div class="grid">
+  <article class="card"><h3>📘 CA Foundation</h3><p>Open official Foundation learning materials.</p><a class="link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Open ICAI portal ↗</a></article>
+  <article class="card"><h3>📚 CA Intermediate</h3><p>Open official Intermediate learning materials.</p><a class="link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Open ICAI portal ↗</a></article>
+  <article class="card"><h3>🎓 CA Final</h3><p>Open official Final learning materials.</p><a class="link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Open ICAI portal ↗</a></article>
  </div>
-
- <section>
-  <h2>Choose your CA level</h2>
-  <div class="levels">
-   <button type="button" class="level active" onclick="chooseLevel('All',this)">
-    <h3>All Levels</h3><p>Explore everything</p>
-   </button>
-   <button type="button" class="level" onclick="chooseLevel('Foundation',this)">
-    <h3>📘 Foundation</h3><p>Build your fundamentals</p>
-   </button>
-   <button type="button" class="level" onclick="chooseLevel('Intermediate',this)">
-    <h3>📚 Intermediate</h3><p>Strengthen your concepts</p>
-   </button>
-   <button type="button" class="level" onclick="chooseLevel('Final',this)">
-    <h3>🎓 Final</h3><p>Prepare for the final milestone</p>
-   </button>
-  </div>
- </section>
-
- <section>
-  <h2>Find your study material</h2>
-  <div class="toolbar">
-   <input id="search" type="search" aria-label="Search study materials" placeholder="Search subjects or materials..." oninput="filterMaterials()">
-   <select id="type" onchange="filterMaterials()">
-    <option value="All">All Materials</option>
-    <option value="Notes">Notes</option>
-    <option value="Mind Maps">Mind Maps</option>
-    <option value="Formula Books">Formula Books</option>
-    <option value="MCQs">MCQs</option>
-   </select>
-   <p class="result-count" id="resultCount" role="status" aria-live="polite" aria-atomic="true"></p>
-  </div>
-
-  <div class="materials" id="materials">
-
-   <div class="material" data-level="Foundation" data-type="Notes">
-    <div class="icon">📝</div><h3>Foundation Notes</h3>
-    <p>Chapter-wise concept notes and summaries.</p>
-    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Demo listing</span></div>
-    <a class="material-link" href="platform.html#notes-store">CA Junction notes coming soon →</a>
-   </div>
-
-   <div class="material" data-level="Foundation" data-type="Mind Maps">
-    <div class="icon">🧠</div><h3>Foundation Mind Maps</h3>
-    <p>Visual summaries for faster revision.</p>
-    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Demo listing</span></div>
-    <a class="material-link" href="platform.html#notes-store">CA Junction notes coming soon →</a>
-   </div>
-
-   <div class="material" data-level="Foundation" data-type="MCQs">
-    <div class="icon">🎯</div><h3>Foundation MCQs</h3>
-    <p>Practise questions and strengthen concepts.</p>
-    <div class="pills"><span class="pill">Foundation</span><span class="pill free">Demo listing</span></div>
-    <a class="material-link" href="platform.html#notes-store">CA Junction notes coming soon →</a>
-   </div>
-
-   <div class="material" data-level="Intermediate" data-type="Notes">
-    <div class="icon">📖</div><h3>Intermediate Notes</h3>
-    <p>Structured notes for your Intermediate subjects.</p>
-    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Demo listing</span></div>
-    <a class="material-link" href="platform.html#notes-store">CA Junction notes coming soon →</a>
-   </div>
-
-   <div class="material" data-level="Intermediate" data-type="Formula Books">
-    <div class="icon">🧮</div><h3>Intermediate Formula Books</h3>
-    <p>Important formulas and quick revision points.</p>
-    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Demo listing</span></div>
-    <a class="material-link" href="platform.html#notes-store">CA Junction notes coming soon →</a>
-   </div>
-
-   <div class="material" data-level="Intermediate" data-type="Mind Maps">
-    <div class="icon">🗺️</div><h3>Intermediate Mind Maps</h3>
-    <p>Visual chapter summaries for revision.</p>
-    <div class="pills"><span class="pill">Intermediate</span><span class="pill free">Demo listing</span></div>
-    <a class="material-link" href="platform.html#notes-store">CA Junction notes coming soon →</a>
-   </div>
-
-   <div class="material" data-level="Final" data-type="Notes">
-    <div class="icon">📚</div><h3>Final Notes</h3>
-    <p>Exam-focused notes for CA Final preparation.</p>
-    <div class="pills"><span class="pill">Final</span><span class="pill free">Demo listing</span></div>
-    <a class="material-link" href="platform.html#notes-store">CA Junction notes coming soon →</a>
-   </div>
-
-   <div class="material" data-level="Final" data-type="Formula Books">
-    <div class="icon">⚡</div><h3>Final Formula Books</h3>
-    <p>Quick-reference formulas and revision resources.</p>
-    <div class="pills"><span class="pill">Final</span><span class="pill free">Demo listing</span></div>
-    <a class="material-link" href="platform.html#notes-store">CA Junction notes coming soon →</a>
-   </div>
-
-   <div class="material" data-level="Final" data-type="Mind Maps">
-    <div class="icon">💡</div><h3>Final Mind Maps</h3>
-    <p>Connect complex concepts visually.</p>
-    <div class="pills"><span class="pill">Final</span><span class="pill free">Demo listing</span></div>
-    <a class="material-link" href="platform.html#notes-store">CA Junction notes coming soon →</a>
-   </div>
-
-  </div>
-  <div class="empty" id="empty">No materials found. Try another search.</div>
- </section>
+</section>
+<section id="materials">
+ <div class="section-head"><div class="eyebrow">CA Junction library</div><h2>Notes shared by students and admins.</h2><p>Students may download up to three PDFs free. Premium membership unlocks additional notes and admin resources.</p></div>
+ <div class="notice">Student notes are reviewed by the CA Junction admin before they are published. Revision notes, mind maps and formula sheets are managed through the admin panel.</div>
+ <div class="toolbar"><input id="materialSearch" type="search" placeholder="Search notes or subjects" aria-label="Search CA Junction materials"><select id="materialLevel" aria-label="Filter by CA level"><option value="">All levels</option><option>Foundation</option><option>Intermediate</option><option>Final</option></select><select id="materialCategory" aria-label="Filter by material type"><option value="">All material types</option><option value="student_note">Student notes</option><option value="revision">Revision notes</option><option value="mind_map">Mind maps</option><option value="formula">Formula sheets</option></select></div>
+ <div class="grid" id="materialsGrid"><div class="empty">Materials uploaded by students and admins will appear here.</div></div><p id="materialStatus" class="notice" role="status" aria-live="polite" style="margin-top:12px" hidden></p>
+ <div style="margin-top:16px"><a class="button" href="account.html#upload-notes">Upload your notes for review →</a><a class="button" href="account.html#membership">Explore premium membership →</a></div>
+</section>
 </main>
-
-<footer><div class="container">© 2026 CA Junction · Where Your CA Journey Connects.</div></footer>
-
-<script>
-let selectedLevel="All";
-function chooseLevel(level,element){
- selectedLevel=level;
- document.querySelectorAll(".level").forEach(x=>x.classList.remove("active"));
- element.classList.add("active");
- filterMaterials();
-}
-function filterMaterials(){
- let query=document.getElementById("search").value.toLowerCase();
- let type=document.getElementById("type").value;
- let cards=document.querySelectorAll(".material");
- let count=0;
- cards.forEach(card=>{
-  let matchesLevel=selectedLevel==="All"||card.dataset.level===selectedLevel;
-  let matchesType=type==="All"||card.dataset.type===type;
-  let matchesSearch=card.innerText.toLowerCase().includes(query);
-  let show=matchesLevel&&matchesType&&matchesSearch;
-  card.style.display=show?"block":"none";
-  if(show)count++;
- });
- document.getElementById("empty").style.display=count?"none":"block";
- document.getElementById("resultCount").textContent=`Showing ${count} ${count===1?"material":"materials"}.`;
-}
-const requestedLevel=new URLSearchParams(window.location.search).get("level");
-const requestedCard=[...document.querySelectorAll(".level")].find(card=>card.querySelector("h3").textContent.includes(requestedLevel||"__none__"));
-if(["Foundation","Intermediate","Final"].includes(requestedLevel)&&requestedCard)chooseLevel(requestedLevel,requestedCard);else filterMaterials();
-</script>
+<footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js"></script>
 </body>
 </html>
