@@ -21,10 +21,29 @@ footer{margin-top:25px;border-top:1px solid var(--line);padding:20px 0;color:var
 <div class="hero"><div class="eyebrow">Restricted access</div><h1>Admin panel</h1><p class="muted">Manage free notes, test series, jobs, student submissions and study group links. Access is granted to accounts marked admin in Supabase.</p><p id="adminStatus" class="status" role="status" aria-live="polite">Checking admin access…</p></div>
 <div id="adminSetup" class="warning" hidden></div>
 <div id="adminPanel" hidden>
-<nav class="tabs" aria-label="Admin sections"><a href="#admin-notes">Notes</a><a href="#admin-tests">Tests</a><a href="#admin-jobs">Career</a><a href="#admin-courses">Courses</a><a href="#admin-students">Students</a><a href="#admin-requests">Requests</a><a href="#admin-premium">Study group</a><a href="#admin-platform-links">Platform links</a></nav>
+<nav class="tabs" aria-label="Admin sections"><a href="#admin-notes">Notes</a><a href="#admin-mind-maps">Mind Maps</a><a href="#admin-tests">Tests</a><a href="#admin-jobs">Career</a><a href="#admin-courses">Courses</a><a href="#admin-students">Students</a><a href="#admin-requests">Requests</a><a href="#admin-premium">Study group</a><a href="#admin-platform-links">Platform links</a></nav>
 <section class="grid">
  <div class="panel" id="admin-notes"><h2>Publish CA Junction notes</h2><p class="muted">Upload admin revision notes, mind maps, formulas or approved student notes.</p><form id="adminMaterialForm"><label for="resourceTitle">Title</label><input id="resourceTitle" required maxlength="160"><label for="resourceDescription">Description</label><textarea id="resourceDescription" maxlength="800"></textarea><label for="resourceLevel">Level</label><select id="resourceLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option><option>All</option></select><label for="resourceSubject">Subject</label><input id="resourceSubject" maxlength="100"><label for="resourceCategory">Category</label><select id="resourceCategory"><option value="revision">Revision notes</option><option value="mind_map">Mind map</option><option value="formula">Formula sheet</option><option value="student_note">Student note</option></select><label for="resourcePdf">PDF (optional for an ICAI external link)</label><input id="resourcePdf" type="file" accept="application/pdf"><label for="resourceExternal">External URL (optional)</label><input id="resourceExternal" type="url" placeholder="https://..."><label class="check"><input id="resourcePublished" type="checkbox" checked> Publish now</label><button class="btn" type="submit">Save resource</button></form><p id="resourceStatus" class="status" role="status" aria-live="polite"></p><div id="adminResources" class="data-list"></div></div>
  <div class="panel"><h2>Review student note uploads</h2><p class="muted">Approve a PDF to publish it in the CA Junction library, or reject it with a note.</p><div id="noteSubmissions" class="data-list"></div><p id="submissionStatus" class="status" role="status" aria-live="polite"></p></div>
+</section>
+<section id="admin-mind-maps">
+ <div class="panel">
+  <h2>Manage mind maps</h2>
+  <p class="muted">Upload mind maps here. Choose Free for open access or Premium to restrict them to students with premium access. Premium checkout is currently disabled, so premium files will remain locked during the free launch.</p>
+  <form id="adminMindMapForm">
+   <label for="mindMapTitle">Mind map title</label><input id="mindMapTitle" required maxlength="160">
+   <label for="mindMapDescription">Short description</label><textarea id="mindMapDescription" maxlength="800"></textarea>
+   <label for="mindMapLevel">CA level</label><select id="mindMapLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option><option>All</option></select>
+   <label for="mindMapSubject">Subject</label><input id="mindMapSubject" maxlength="100">
+   <label for="mindMapPdf">PDF file (up to 50 MB)</label><input id="mindMapPdf" type="file" accept="application/pdf">
+   <label for="mindMapExternal">External PDF link (optional)</label><input id="mindMapExternal" type="url" placeholder="https://...">
+   <label class="check"><input id="mindMapPremium" type="checkbox"> Premium (locked behind premium access)</label>
+   <label class="check"><input id="mindMapPublished" type="checkbox" checked> Publish now</label>
+   <button class="btn" type="submit">Upload mind map</button>
+  </form>
+  <p id="mindMapAdminStatus" class="status" role="status" aria-live="polite"></p>
+  <div id="adminMindMaps" class="data-list"></div>
+ </div>
 </section>
 <section class="grid">
  <div class="panel" id="admin-tests"><h2>Create a test</h2><form id="adminTestForm"><label for="testTitle">Test title</label><input id="testTitle" required maxlength="160"><label for="testDescription">Description</label><textarea id="testDescription" maxlength="800"></textarea><label for="testLevel">Level</label><select id="testLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option></select><label for="testSubject">Subject</label><input id="testSubject" maxlength="100"><label for="testType">Test type</label><select id="testType"><option value="mcq">MCQ practice</option><option value="chapter">Chapter quiz</option><option value="full_syllabus">Full syllabus</option><option value="evaluated">Written evaluation</option></select><label for="testPart">Part label (optional)</label><input id="testPart" placeholder="Part 1 or Part 2"><input id="testTier" type="hidden" value="free"><label for="testMinutes">Minutes</label><input id="testMinutes" type="number" min="1" max="600" value="60"><label for="testQuestions">MCQ questions JSON</label><textarea id="testQuestions" placeholder='[{"question":"Question text","options":["A","B","C"],"correct_index":0,"explanation":"Why this is correct"}]'></textarea><label class="check"><input id="testPublished" type="checkbox"> Publish now</label><button class="btn" type="submit">Create test</button></form><p id="testAdminStatus" class="status" role="status" aria-live="polite"></p><div id="adminTests" class="data-list"></div></div>
