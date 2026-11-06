@@ -92,8 +92,9 @@
       const link = event.target.closest('a[href$=".html"],a[href*=".html#"]');
       if (!link) return;
       const level = localStorage.getItem("caJunctionLevel");
-      if (!level || !/^(study|tests|career|planner)\.html/.test(link.getAttribute("href") || "")) return;
-      const href = new URL(link.href);
+      if (!level) return;
+      const href = new URL(link.href,location.href);
+      if (href.origin !== location.origin || !href.pathname.endsWith(".html")) return;
       href.searchParams.set("level",level);
       link.href = href.pathname.split("/").pop() + href.search + href.hash;
     }, true);
@@ -154,6 +155,8 @@
     const chosenLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"Foundation";
     if($("#noteLevel"))$("#noteLevel").value=chosenLevel;
     if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent=chosenLevel;
+    if($("#signupLevel"))$("#signupLevel").value=chosenLevel;
+    if($("#signupLevelLabel"))$("#signupLevelLabel").textContent=chosenLevel;
     if (!ready()) {
       msg("#authStatus", backendMessage);
       msg("#uploadStatus", backendMessage);
@@ -240,7 +243,11 @@
     const adminGrid=$("#adminResourcesGrid");
     const level=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
     const levelLabel=$("#selectedLevelLabel");
-    if(levelLabel) levelLabel.textContent=level?"Showing "+level+" resources.":"All levels";
+    if(levelLabel) levelLabel.textContent=level?"Showing "+level+" resources.":"Choose your CA level on the homepage.";
+    if(!level){
+      [studentGrid,adminGrid].forEach(grid=>{if(grid){const empty=document.createElement("div");empty.className="empty";empty.textContent="Choose your CA level on the homepage to view matching resources.";grid.replaceChildren(empty)}});
+      return;
+    }
     if(!ready()){msg("#materialStatus",backendMessage);msg("#adminResourcesStatus",backendMessage);return}
     let all=[];
     const matchesLevel=row=>!level||row.level==="All"||row.level===level;
@@ -288,11 +295,15 @@
   }
 
   function initTests(){
+    const selectedLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
+    const levelLabel=$("#testsLevelLabel");
+    if(levelLabel)levelLabel.textContent=selectedLevel?"Showing "+selectedLevel+" tests.":"Choose your CA level on the homepage.";
+    if(!selectedLevel){msg("#testsStatus","Choose your CA level on the homepage to view matching tests.");return}
     if(!ready()){msg("#testsStatus",backendMessage);msg("#quizStatus",backendMessage);return}
     let tests=[];let selectedTest=null;
     const grid=$("#testsGrid"),form=$("#quizForm"),questionArea=$("#questionArea");
     const load=async()=>{
-      const {data,error}=await sb.from("study_tests").select("id,title,description,level,subject,test_type,part_label,access_tier,duration_minutes").eq("is_published",true).order("created_at",{ascending:false});
+      const {data,error}=await sb.from("study_tests").select("id,title,description,level,subject,test_type,part_label,access_tier,duration_minutes").eq("is_published",true).eq("level",selectedLevel).order("created_at",{ascending:false});
       if(error){msg("#testsStatus","Sign in to view available CA Junction tests.");return}
       tests=data||[];grid?.replaceChildren();
       if(grid&&!tests.length){const e=document.createElement("div");e.className="empty";e.textContent="No CA Junction tests have been published yet.";grid.append(e)}
@@ -403,6 +414,15 @@
     const {data,error}=await sb.from("premium_resources").select("resource_url").eq("resource_key",key).eq("is_active",true).maybeSingle();
     if(error||!data){if(status)status.textContent="This link has not been added yet.";return}
     link.href=data.resource_url;link.hidden=false;if(status)status.textContent="";
+  }
+
+  function initIcaiMaterial(){
+    const level=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
+    const title=$("#selectedIcaiLevel"),link=$("#selectedIcaiLink"),status=$("#icaiLevelStatus");
+    if(!level){if(status)status.textContent="Choose your CA level on the homepage first.";return}
+    if(title)title.textContent="CA "+level;
+    if(link){link.href=app.config.ICAI_STUDY_URL||"https://boslive.icai.org/";link.hidden=false}
+    if(status)status.textContent="Opening official ICAI study material for the level you selected.";
   }
 
   function initCareer(){
@@ -564,6 +584,7 @@
     initCommon();
     const page=document.body.dataset.page;
     if(page==="home")initHome();
+    if(page==="icai-material")initIcaiMaterial();
     if(page==="account")initAccount();
     if(page==="dashboard")initDashboard();
     if(page==="study")initStudy();
