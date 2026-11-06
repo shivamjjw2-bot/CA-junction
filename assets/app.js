@@ -67,7 +67,12 @@
   }
 
   function initHome() {
-    const levelButtons = $$(".level-card[data-level]");
+    const levelButtons = $(".level-card[data-level]");
+    $("a").forEach(link => link.addEventListener("click", () => {
+      if (!link.hash) return;
+      const target = $(link.hash);
+      if (target?.tagName === "DETAILS") target.open = true;
+    }));
     const levelMsg = $("#levelMessage");
     const saved = localStorage.getItem("caJunctionLevel");
     if (saved) {
