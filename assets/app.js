@@ -168,9 +168,28 @@
       
       $("#signInForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
       $("#signUpForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
+      if($("#googleSignInButton"))$("#googleSignInButton").disabled=true;
       return;
     }
     const signInTab=$("#signInTab"), signUpTab=$("#signUpTab"), signIn=$("#signInForm"), signUp=$("#signUpForm");
+    const accountParams=new URLSearchParams(location.search);
+    const allowedNext=/^(?:platform|index|upload|study|tests|planner|career)\.html(?:[?#][A-Za-z0-9_./?=&%-]*)?$/;
+    const requestedNext=accountParams.get("next")||"";
+    const postAuthPage=allowedNext.test(requestedNext)?requestedNext:"platform.html";
+    const googleButton=$("#googleSignInButton");
+    googleButton?.addEventListener("click",async()=>{
+      googleButton.disabled=true;msg("#authStatus","Connecting to Google…");
+      const callback=new URL("account.html",location.href);
+      callback.search="";callback.hash="";callback.searchParams.set("auth","google");callback.searchParams.set("next",postAuthPage);
+      const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:callback.href,queryParams:{prompt:"select_account"}}});
+      if(error){googleButton.disabled=false;msg("#authStatus",error.message,"error");}
+    });
+    if(accountParams.get("auth")==="google"){
+      sb.auth.getSession().then(({data:{session},error})=>{
+        if(error){msg("#authStatus",error.message,"error");return}
+        if(session)location.replace(postAuthPage);
+      });
+    }
     const chooseTab = which => {
       const signingIn=which==="signin";
       signIn.hidden=!signingIn;signUp.hidden=signingIn;
