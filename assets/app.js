@@ -153,7 +153,8 @@
   function initAccount() {
     if (!ready()) {
       msg("#authStatus", backendMessage);
-      msg("#uploadStatus", backendMessage);\n      $("#noteUploadForm")?.querySelectorAll("input,button").forEach(control=>control.disabled=true);
+      msg("#uploadStatus", backendMessage);
+      $("#noteUploadForm")?.querySelectorAll("input,button").forEach(control=>control.disabled=true);
       
       
       $("#signInForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
@@ -176,7 +177,7 @@
       e.preventDefault();msg("#authStatus","Signing in…");
       const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
       if(error){msg("#authStatus",error.message,"error");return}
-      location.href="platform.html";
+      location.href=new URLSearchParams(location.search).get("next")==="upload.html"?"upload.html":"platform.html";
     });
     signUp?.addEventListener("submit",async e=>{
       e.preventDefault();msg("#authStatus","Creating your account…");
@@ -553,7 +554,8 @@
     if(page==="home")initHome();
     if(page==="account")initAccount();
     if(page==="dashboard")initDashboard();
-    if(page==="study")initStudy();\n    if(page==="resource-link")initResourceLink();
+    if(page==="study")initStudy();
+    if(page==="resource-link")initResourceLink();
     if(page==="tests")initTests();
     if(page==="planner")initPlanner();
     if(page==="career")initCareer();
