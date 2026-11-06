@@ -54,8 +54,10 @@ h2{font-size:27px;margin-bottom:18px}
  padding:22px;border-radius:20px;
  background:rgba(255,255,255,.04);
  border:1px solid rgba(255,255,255,.1);
- cursor:pointer;transition:.2s
+ cursor:pointer;transition:.2s;
+ font:inherit;text-align:left;color:inherit;width:100%
 }
+.level:focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}
 .level:hover,.material:hover{border-color:#8b5cf6;transform:translateY(-3px)}
 .level h3{font-size:19px}
 .level p{color:#9ca3b8;font-size:13px}
@@ -119,18 +121,18 @@ footer{border-top:1px solid rgba(255,255,255,.1);padding:30px 0;margin-top:50px;
  <section>
   <h2>Choose your CA level</h2>
   <div class="levels">
-   <div class="level active" onclick="chooseLevel('All',this)">
+   <button type="button" class="level active" onclick="chooseLevel('All',this)">
     <h3>All Levels</h3><p>Explore everything</p>
-   </div>
-   <div class="level" onclick="chooseLevel('Foundation',this)">
+   </button>
+   <button type="button" class="level" onclick="chooseLevel('Foundation',this)">
     <h3>📘 Foundation</h3><p>Build your fundamentals</p>
-   </div>
-   <div class="level" onclick="chooseLevel('Intermediate',this)">
+   </button>
+   <button type="button" class="level" onclick="chooseLevel('Intermediate',this)">
     <h3>📚 Intermediate</h3><p>Strengthen your concepts</p>
-   </div>
-   <div class="level" onclick="chooseLevel('Final',this)">
+   </button>
+   <button type="button" class="level" onclick="chooseLevel('Final',this)">
     <h3>🎓 Final</h3><p>Prepare for the final milestone</p>
-   </div>
+   </button>
   </div>
  </section>
 
