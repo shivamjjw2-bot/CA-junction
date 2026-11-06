@@ -67,6 +67,7 @@ input,select{
 }
 input{flex:1;min-width:200px}
 select{min-width:150px}
+.result-count{flex-basis:100%;color:#9ca3b8;font-size:13px;margin-top:-4px}
 .materials{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
 .material{
  padding:22px;border-radius:20px;
@@ -136,7 +137,7 @@ footer{border-top:1px solid rgba(255,255,255,.1);padding:30px 0;margin-top:50px;
  <section>
   <h2>Find your study material</h2>
   <div class="toolbar">
-   <input id="search" placeholder="Search subjects or materials..." oninput="filterMaterials()">
+   <input id="search" type="search" aria-label="Search study materials" placeholder="Search subjects or materials..." oninput="filterMaterials()">
    <select id="type" onchange="filterMaterials()">
     <option value="All">All Materials</option>
     <option value="Notes">Notes</option>
@@ -144,6 +145,7 @@ footer{border-top:1px solid rgba(255,255,255,.1);padding:30px 0;margin-top:50px;
     <option value="Formula Books">Formula Books</option>
     <option value="MCQs">MCQs</option>
    </select>
+   <p class="result-count" id="resultCount" role="status" aria-live="polite" aria-atomic="true"></p>
   </div>
 
   <div class="materials" id="materials">
@@ -240,7 +242,9 @@ function filterMaterials(){
   if(show)count++;
  });
  document.getElementById("empty").style.display=count?"none":"block";
+ document.getElementById("resultCount").textContent=`Showing ${count} ${count===1?"material":"materials"}.`;
 }
+filterMaterials();
 function preview(){
  alert("Study materials will be available here soon. Content will be managed through the CA Junction Admin Panel.");
 }
