@@ -92,7 +92,7 @@ footer .container{display:flex;justify-content:space-between;gap:16px;flex-wrap:
   <a class="logo" href="index.html"><span class="logo-mark">CA</span><span>CA <b>Junction</b></span></a>
   <button class="menu-btn" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks" onclick="toggleMenu()">☰</button>
   <nav class="nav-links" id="navLinks" aria-label="Student workspace">
-   <a href="#courses" onclick="closeMenu()">Courses</a><a href="#mock-tests" onclick="closeMenu()">Mock Tests</a><a href="#study-planner" onclick="closeMenu()">Planner</a><a href="#career" onclick="closeMenu()">Career</a><a href="#updates" onclick="closeMenu()">Updates</a><a class="nav-cta" href="study.html" onclick="closeMenu()">Study library ↗</a>
+   <a href="#courses" onclick="closeMenu()">Courses</a><a href="#mock-tests" onclick="closeMenu()">Mock Tests</a><a href="#study-planner" onclick="closeMenu()">Planner</a><a href="#career" onclick="closeMenu()">Career</a><a href="#updates" onclick="closeMenu()">Updates</a><a href="#notes-store" onclick="closeMenu()">Notes Store</a><a href="#resume" onclick="closeMenu()">Resume</a><a class="nav-cta" href="study.html" onclick="closeMenu()">Study library ↗</a>
   </nav>
  </div>
 </header>
@@ -106,7 +106,7 @@ footer .container{display:flex;justify-content:space-between;gap:16px;flex-wrap:
    <a class="quick-card" href="#courses"><strong>Course pathways</strong><span>Foundation · Intermediate · Final</span></a>
    <a class="quick-card" href="#mock-tests"><strong>Sample quiz</strong><span>Try a short concept check</span></a>
    <a class="quick-card" href="#study-planner"><strong>Study planner</strong><span>Save your tasks on this device</span></a>
-   <a class="quick-card" href="#resume"><strong>Resume builder</strong><span>Preview and print your resume</span></a>
+   <a class="quick-card" href="#notes-store"><strong>Notes store</strong><span>See what is ready for students</span></a>
   </div>
  </section>
 
@@ -233,7 +233,7 @@ let quizIndex=-1,quizScore=0,quizLocked=false;
 function advanceQuiz(){
  const area=document.getElementById("quizContent"),button=document.getElementById("quizButton"),feedback=document.getElementById("quizFeedback");
  if(quizIndex===-1){quizIndex=0;renderQuestion();return}
- if(quizIndex>=quizQuestions.length){quizIndex=-1;quizScore=0;document.getElementById("quizProgress").style.width="0";document.getElementById("quizProgressText").textContent="Ready · 3 sample questions";area.innerHTML='<p class="quiz-question">Start the sample quiz when you’re ready.</p><p class="small">Choose an answer for each question. Your score appears at the end.</p>';feedback.textContent="";button.textContent="Start sample quiz";return}
+ if(quizIndex>=quizQuestions.length){quizIndex=0;quizScore=0;quizLocked=false;renderQuestion();return}
  if(quizLocked){quizIndex++;quizLocked=false;if(quizIndex>=quizQuestions.length){showQuizResult();return}renderQuestion();return}
  const selected=area.querySelector('input[name="answer"]:checked');
  if(!selected){feedback.textContent="Choose an answer before continuing.";return}
