@@ -451,6 +451,8 @@ create policy "premium resources members" on public.premium_resources for select
 drop policy if exists "admin manages premium resources" on public.premium_resources;
 create policy "admin manages premium resources" on public.premium_resources for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
+grant select on public.premium_resources to anon,authenticated;
+grant insert,update,delete on public.premium_resources to authenticated;
 grant execute on function public.register_material_download(uuid) to authenticated;
 grant execute on function public.create_payment_order(uuid) to authenticated;
 grant execute on function public.submit_upi_reference(uuid,text) to authenticated;
