@@ -138,8 +138,8 @@
       }
       rows.forEach(row=>{
         const card=document.createElement("a");card.className="card";card.href=link;
-        const tag=document.createElement("span");tag.className="badge"+(row.is_premium || row.access_tier==="premium" ? " premium" : " free");
-        tag.textContent=row.is_premium || row.access_tier==="premium" ? "Premium" : "Free";
+        const tag=document.createElement("span");tag.className="badge free";
+        tag.textContent="Free";
         const h=document.createElement("h3");h.textContent=row.title;
         const p=document.createElement("p");p.textContent=row.description || row.organization || row.level || "";
         card.append(tag,h,p);el.append(card);
@@ -258,9 +258,7 @@
     if(profile){$("#profileName").value=profile.full_name||"";$("#profileLevel").value=profile.ca_level||"Foundation"}
     const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
     if(role)$("#adminLink").hidden=false;
-    const {data:membership}=await sb.from("memberships").select("expires_at").eq("user_id",user.id).maybeSingle();
-    const {count:downloadCount}=await sb.from("material_downloads").select("material_id",{count:"exact",head:true}).eq("user_id",user.id);
-    $("#membershipStatus").textContent=membership?.expires_at && new Date(membership.expires_at)>new Date() ? "Premium active until "+new Date(membership.expires_at).toLocaleDateString("en-IN") : "Free account · "+Math.max(0,3-(downloadCount||0))+" free PDF downloads remaining";
+    $("#membershipStatus").textContent="Free CA Junction account · all services are free during launch.";
     const [downloads,attempts,orders,plans,evals]=await Promise.all([
       sb.from("material_downloads").select("downloaded_at,materials(title,level)").eq("user_id",user.id).order("downloaded_at",{ascending:false}).limit(10),
       sb.from("test_attempts").select("score,total_questions,submitted_at,study_tests(title)").eq("user_id",user.id).order("submitted_at",{ascending:false}).limit(10),
@@ -292,14 +290,14 @@
       if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent="No published resources match these filters.";grid.append(e);return}
       rows.forEach(m=>{
         const card=document.createElement("article");card.className="card";
-        const badge=document.createElement("span");badge.className="badge"+(m.is_premium?"":" free");badge.textContent=m.is_premium?"Premium":"Free";
+        const badge=document.createElement("span");badge.className="badge free";badge.textContent="Free";
         const h=document.createElement("h3");h.textContent=m.title;
         const p=document.createElement("p");p.textContent=m.description||m.subject||m.level;
         const meta=document.createElement("span");meta.className="badge";meta.textContent=m.level+" · "+m.category.replaceAll("_"," ");
         const action=m.external_url?document.createElement("a"):document.createElement("button");
         action.className="link";
         if(m.external_url){action.href=m.external_url;action.target="_blank";action.rel="noopener";action.textContent="Open resource ↗"}
-        else{action.type="button";action.textContent=m.is_premium?"Open premium PDF":"Download PDF";action.addEventListener("click",()=>downloadMaterial(m))}
+        else{action.type="button";action.textContent="Download PDF";action.addEventListener("click",()=>downloadMaterial(m))}
         card.append(badge,h,p,meta,action);grid.append(card);
       });
     };
@@ -334,7 +332,7 @@
       if(grid&&!tests.length){const e=document.createElement("div");e.className="empty";e.textContent="No CA Junction tests have been published yet.";grid.append(e)}
       tests.forEach(test=>{
         const card=document.createElement("article");card.className="card";
-        const badge=document.createElement("span");badge.className="badge"+(test.access_tier==="free"?" free":"");badge.textContent=test.access_tier==="free"?"Free":"Premium";
+        const badge=document.createElement("span");badge.className="badge free";badge.textContent="Free";
         const h=document.createElement("h3");h.textContent=test.title+(test.part_label?" · "+test.part_label:"");
         const p=document.createElement("p");p.textContent=test.description||test.level+" · "+test.subject+" · "+test.duration_minutes+" minutes";
         const button=document.createElement("button");button.className="btn";button.type="button";button.textContent=test.test_type==="evaluated"?"Submit answer script":"Start test";
@@ -446,8 +444,8 @@
     const loadJobs=async()=>{
       const {data,error}=await sb.from("jobs").select("id,title,organization,location,job_type,description,application_url,closes_at").eq("is_published",true).order("created_at",{ascending:false});
       const grid=$("#jobsGrid");if(!grid)return;grid.replaceChildren();
-      if(error||!data?.length){const e=document.createElement("div");e.className="listing";e.textContent=error?"Sign in with premium access to view job listings.":"No live opportunities are published at the moment.";grid.append(e);return}
-      data.forEach(job=>{const card=document.createElement("article");card.className="card";const tag=document.createElement("span");tag.className="tag premium";tag.textContent=job.job_type+" · Premium";const h=document.createElement("h3");h.textContent=job.title;const p=document.createElement("p");p.textContent=[job.organization,job.location].filter(Boolean).join(" · ");const d=document.createElement("p");d.textContent=job.description;card.append(tag,h,p,d);if(job.application_url){const a=document.createElement("a");a.className="btn";a.href=job.application_url;a.target="_blank";a.rel="noopener";a.textContent="Application details ↗";card.append(a)}grid.append(card)});
+      if(error||!data?.length){const e=document.createElement("div");e.className="listing";e.textContent=error?"Sign in to view free job listings.":"No live opportunities are published at the moment.";grid.append(e);return}
+      data.forEach(job=>{const card=document.createElement("article");card.className="card";const tag=document.createElement("span");tag.className="tag";tag.textContent=job.job_type+" · Free";const h=document.createElement("h3");h.textContent=job.title;const p=document.createElement("p");p.textContent=[job.organization,job.location].filter(Boolean).join(" · ");const d=document.createElement("p");d.textContent=job.description;card.append(tag,h,p,d);if(job.application_url){const a=document.createElement("a");a.className="btn";a.href=job.application_url;a.target="_blank";a.rel="noopener";a.textContent="Application details ↗";card.append(a)}grid.append(card)});
     };
     loadJobs();
     $("#careerRequest")?.addEventListener("submit",async e=>{e.preventDefault();const {data:{user}}=await sb.auth.getUser();if(!user){msg("#careerStatus","Sign in to send a request.","error");location.href="account.html";return}const {error}=await sb.from("service_requests").insert({user_id:user.id,service_type:$("#careerService").value,message:$("#careerMessage").value.trim()});if(error){msg("#careerStatus",error.message,"error");return}e.target.reset();msg("#careerStatus","Request received. The team will follow up to confirm the service.")});
@@ -471,7 +469,7 @@
       e.preventDefault();msg("#resourceStatus","Saving resource…");const {data:{user}}=await sb.auth.getUser();let path=null,bucket=null;const file=$("#resourcePdf").files[0];
       if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#resourceStatus","Choose a PDF no larger than 50 MB.","error");return}bucket="ca-materials";path="admin/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from(bucket).upload(path,file,{contentType:"application/pdf"});if(error){msg("#resourceStatus",error.message,"error");return}}
       const url=$("#resourceExternal").value.trim()||null;if(!path&&!url){msg("#resourceStatus","Upload a PDF or provide an external URL.","error");return}
-      const {error}=await sb.from("materials").insert({title:$("#resourceTitle").value.trim(),description:$("#resourceDescription").value.trim(),level:$("#resourceLevel").value,subject:$("#resourceSubject").value.trim(),category:$("#resourceCategory").value,file_bucket:bucket,file_path:path,external_url:url,is_premium:$("#resourcePremium").checked,is_published:$("#resourcePublished").checked,created_by:user.id});
+      const {error}=await sb.from("materials").insert({title:$("#resourceTitle").value.trim(),description:$("#resourceDescription").value.trim(),level:$("#resourceLevel").value,subject:$("#resourceSubject").value.trim(),category:$("#resourceCategory").value,file_bucket:bucket,file_path:path,external_url:url,is_premium:false,is_published:$("#resourcePublished").checked,created_by:user.id});
       if(error){if(path)await sb.storage.from(bucket).remove([path]);msg("#resourceStatus",error.message,"error");return}e.target.reset();msg("#resourceStatus","Resource saved.");loadAdminResources();
     }
     async function loadAdminResources(){
@@ -499,13 +497,13 @@
       e.preventDefault();const kind=$("#testType").value;let questions=[];
       if(kind!=="evaluated"){try{questions=JSON.parse($("#testQuestions").value||"[]")}catch{msg("#testAdminStatus","Question list must be valid JSON.","error");return}if(!Array.isArray(questions)||!questions.length){msg("#testAdminStatus","Add at least one MCQ question.","error");return}}
       const {data:{user}}=await sb.auth.getUser();
-      const {data:test,error}=await sb.from("study_tests").insert({title:$("#testTitle").value.trim(),description:$("#testDescription").value.trim(),level:$("#testLevel").value,subject:$("#testSubject").value.trim(),test_type:kind,part_label:$("#testPart").value.trim(),access_tier:$("#testTier").value,duration_minutes:Number($("#testMinutes").value),is_published:$("#testPublished").checked,created_by:user.id}).select().single();
+      const {data:test,error}=await sb.from("study_tests").insert({title:$("#testTitle").value.trim(),description:$("#testDescription").value.trim(),level:$("#testLevel").value,subject:$("#testSubject").value.trim(),test_type:kind,part_label:$("#testPart").value.trim(),access_tier:"free",duration_minutes:Number($("#testMinutes").value),is_published:$("#testPublished").checked,created_by:user.id}).select().single();
       if(error){msg("#testAdminStatus",error.message,"error");return}
       if(questions.length){const rows=questions.map((q,i)=>({test_id:test.id,question:String(q.question||""),options:q.options,correct_index:Number(q.correct_index),explanation:String(q.explanation||""),position:i}));const {error:qError}=await sb.from("test_questions").insert(rows);if(qError){msg("#testAdminStatus","Test was created, but questions failed: "+qError.message,"error");return}}
       e.target.reset();$("#testMinutes").value="60";msg("#testAdminStatus","Test created.");
     }
     async function saveJob(e){
-      e.preventDefault();const {data:{user}}=await sb.auth.getUser();const {error}=await sb.from("jobs").insert({title:$("#jobTitle").value.trim(),organization:$("#jobOrg").value.trim(),location:$("#jobLocation").value.trim(),job_type:$("#jobType").value,description:$("#jobDescription").value.trim(),application_url:$("#jobUrl").value.trim()||null,contact_email:$("#jobEmail").value.trim()||null,is_premium:true,is_published:$("#jobPublished").checked,created_by:user.id});
+      e.preventDefault();const {data:{user}}=await sb.auth.getUser();const {error}=await sb.from("jobs").insert({title:$("#jobTitle").value.trim(),organization:$("#jobOrg").value.trim(),location:$("#jobLocation").value.trim(),job_type:$("#jobType").value,description:$("#jobDescription").value.trim(),application_url:$("#jobUrl").value.trim()||null,contact_email:$("#jobEmail").value.trim()||null,is_premium:false,is_published:$("#jobPublished").checked,created_by:user.id});
       if(error){msg("#jobAdminStatus",error.message,"error");return}e.target.reset();msg("#jobAdminStatus","Opportunity saved.");
     }
     async function saveProduct(e){
