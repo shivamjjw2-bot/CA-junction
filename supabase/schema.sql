@@ -61,6 +61,7 @@ create table if not exists public.materials (
   submitted_by uuid references auth.users(id) on delete set null,
   contributor_name text not null default '',
   linkedin_url text not null default '',
+  instagram_handle text not null default '',
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   check ((file_path is not null) or (external_url is not null))
@@ -68,6 +69,7 @@ create table if not exists public.materials (
 
 alter table public.materials add column if not exists contributor_name text not null default '';
 alter table public.materials add column if not exists linkedin_url text not null default '';
+alter table public.materials add column if not exists instagram_handle text not null default '';
 
 create table if not exists public.student_note_submissions (
   id uuid primary key default gen_random_uuid(),
@@ -87,7 +89,9 @@ create table if not exists public.student_note_submissions (
 );
 
 alter table public.student_note_submissions add column if not exists contributor_name text not null default '';
+alter table public.student_note_submissions add column if not exists instagram_handle text not null default '';
 alter table public.student_note_submissions add column if not exists linkedin_url text not null default '';
+alter table public.student_note_submissions add column if not exists instagram_handle text not null default '';
 
 create table if not exists public.courses (
   id uuid primary key default gen_random_uuid(),
