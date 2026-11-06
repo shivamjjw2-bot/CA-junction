@@ -313,7 +313,7 @@
     if(!user){location.href="account.html?next="+encodeURIComponent(location.pathname.split("/").pop()+location.search);return}
     msg(statusId,"Opening PDF…");
     const {error:claimError}=await sb.rpc("register_material_download",{target_material:material.id});
-    if(claimError){msg(statusId,claimError.message,"error");return}
+    if(claimError){msg(statusId,material.is_premium?"This resource requires premium access. Premium checkout is not available yet.":claimError.message,"error");return}
     const {data,error}=await sb.storage.from(material.file_bucket||"ca-materials").createSignedUrl(material.file_path,90);
     if(error){msg(statusId,error.message,"error");return}
     window.open(data.signedUrl,"_blank","noopener");
