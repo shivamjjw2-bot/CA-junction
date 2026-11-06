@@ -19,6 +19,10 @@ footer{border-top:1px solid var(--line);margin-top:28px;padding:23px 0;color:var
 <header><div class="container nav"><a class="brand" href="index.html">CA <b>Junction</b></a><div><a href="study.html">Library</a>　<a href="account.html">My Account</a>　<a href="index.html">Home</a></div></div></header>
 <main class="container">
 <div class="hero"><div class="eyebrow">Study planner</div><h1>Plan the work.<br><span class="gradient">Track your focus.</span></h1><p>Use the free countdown and study-hours tracker, or request a premium one-on-one study plan.</p></div>
+<section id="planner-builder">
+ <div class="section-head"><div class="eyebrow">Make your own planner</div><h2>Set your subjects and available days.</h2><p>Create a simple day-by-day draft. It stays saved in this browser.</p></div>
+ <div class="panel"><form id="plannerBuilderForm"><label for="plannerSubjects">Subjects</label><textarea id="plannerSubjects" rows="3" maxlength="800" required placeholder="Example: Accounting, Law, Tax"></textarea><label for="plannerDays">Number of days</label><input id="plannerDays" type="number" min="1" max="180" value="14" required><button class="btn" type="submit">Create my plan</button></form><p id="plannerBuilderStatus" class="status" role="status" aria-live="polite"></p><div id="plannerBuilderResults" class="list" aria-live="polite"></div></div>
+</section>
 <section class="grid" id="free-tools">
  <div class="panel"><div class="eyebrow">Free</div><h2>Exam countdown</h2><p>Choose your target exam date.</p><label for="examDate">Exam date</label><input id="examDate" type="date"><button class="btn" id="countdownButton" type="button">Calculate</button><p id="countdownResult" class="status" role="status" aria-live="polite"></p></div>
  <div class="panel"><div class="eyebrow">Free</div><h2>Study-hours tracker</h2><p>Time a session and keep a total on this device.</p><div id="focusTimer" class="timer">00:00:00</div><button class="btn" id="timerStart" type="button">Start session</button><button class="btn secondary" id="timerReset" type="button">Reset</button><p>Today: <strong id="todayHours">0 minutes</strong></p><p id="timerStatus" class="status" role="status" aria-live="polite"></p></div>
@@ -31,5 +35,12 @@ footer{border-top:1px solid var(--line);margin-top:28px;padding:23px 0;color:var
 </section>
 </main>
 <footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js"></script><script>
+(()=>{const form=document.querySelector("#plannerBuilderForm"),list=document.querySelector("#plannerBuilderResults"),subjectsInput=document.querySelector("#plannerSubjects"),daysInput=document.querySelector("#plannerDays"),status=document.querySelector("#plannerBuilderStatus");if(!form)return;
+const render=rows=>{list.replaceChildren();rows.forEach(item=>{const row=document.createElement("div");row.className="row";const title=document.createElement("strong");title.textContent="Day "+item.day+" · "+item.subject;row.append(title);list.append(row)})};
+try{const saved=JSON.parse(localStorage.getItem("caJunctionCustomPlan")||"null");if(saved?.subjects&&saved?.days){subjectsInput.value=saved.subjects.join(", ");daysInput.value=saved.days;render(saved.schedule);status.textContent="Your saved plan is stored on this device. Edit the subjects or days to make another."}}catch{}
+form.addEventListener("submit",event=>{event.preventDefault();const subjects=subjectsInput.value.split(/[，,\n]/).map(x=>x.trim()).filter(Boolean);const days=Math.max(1,Math.min(180,Number(daysInput.value)||1));if(!subjects.length){status.textContent="Enter at least one subject.";return}const schedule=Array.from({length:days},(_,i)=>({day:i+1,subject:subjects[i%subjects.length]}));const plan={subjects,days,schedule};localStorage.setItem("caJunctionCustomPlan",JSON.stringify(plan));render(schedule);status.textContent="Your "+days+"-day plan is ready and saved in this browser."});
+})();
+</script>
+
 </body></html>
