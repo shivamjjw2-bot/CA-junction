@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Student Account | CA Junction</title>
+<style>
+:root{--bg:#080b16;--panel:rgba(255,255,255,.045);--line:rgba(255,255,255,.11);--purple:#a78bfa;--text:#f4f4fb;--muted:#9ca3b8}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth;scroll-padding-top:85px}body{background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}a{color:inherit;text-decoration:none}button,input,select{font:inherit}.container{width:min(1000px,92%);margin:auto}
+header{position:sticky;top:0;z-index:5;background:rgba(8,11,22,.88);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}.nav{min-height:70px;display:flex;align-items:center;justify-content:space-between}.brand{font-size:20px;font-weight:800}.brand b{color:var(--purple)}
+.hero{padding:45px 0 24px}.eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#c4b5fd;font-weight:750}h1{font-size:clamp(34px,5vw,50px);line-height:1.1;margin:6px 0 10px}.gradient{background:linear-gradient(100deg,#c4b5fd,#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent}p{color:var(--muted)}
+section{padding:22px 0}.section-head{margin-bottom:16px}.section-head h2{font-size:25px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{padding:20px;border:1px solid var(--line);border-radius:17px;background:var(--panel)}
+.tabs{display:flex;gap:8px;margin-bottom:15px}.tab,.btn{padding:10px 14px;border-radius:10px;border:1px solid rgba(167,139,250,.3);background:rgba(139,92,246,.14);color:#e0d7ff;font-weight:700}.tab[aria-selected="false"]{background:transparent;color:var(--muted)}
+label{display:block;font-size:13px;color:#cbd0df;margin:10px 0 5px}input,select{width:100%;padding:11px 12px;background:#111526;color:white;border:1px solid #30354b;border-radius:10px}
+.btn{display:inline-flex;justify-content:center;margin-top:12px;cursor:pointer}.status{min-height:22px;font-size:13px;color:#c4b5fd;margin-top:8px}.notice{padding:14px;background:rgba(167,139,250,.08);border-left:3px solid var(--purple);border-radius:0 10px 10px 0;color:#daddE8;font-size:13px}
+.product{padding:15px;border:1px solid var(--line);border-radius:14px;margin:10px 0}.product h3{font-size:16px}.product p{font-size:13px}.products{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+footer{border-top:1px solid var(--line);padding:22px 0;margin-top:30px;color:var(--muted);font-size:13px}
+:focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}[hidden]{display:none!important}
+@media(max-width:700px){.grid,.products{grid-template-columns:1fr}}
+</style></head>
+<body data-page="account">
+<header><div class="container nav"><a class="brand" href="index.html">CA <b>Junction</b></a><div><a href="platform.html">Dashboard</a>　<a href="index.html">Home</a></div></div></header>
+<main class="container">
+<div class="hero"><div class="eyebrow">Your CA Junction account</div><h1>Welcome to your <span class="gradient">student space.</span></h1><p>Sign in to save materials, track tests and request premium services.</p></div>
+<section class="grid" id="authArea">
+ <div class="panel">
+  <div class="tabs"><button class="tab" id="signInTab" type="button" aria-selected="true">Sign in</button><button class="tab" id="signUpTab" type="button" aria-selected="false">Create account</button></div>
+  <form id="signInForm"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="email" required><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required><button class="btn" type="submit">Sign in</button></form>
+  <form id="signUpForm" hidden><label for="signupName">Full name</label><input id="signupName" maxlength="100" autocomplete="name" required><label for="signupLevel">CA level</label><select id="signupLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option><option>Qualified</option></select><label for="signupEmail">Email</label><input id="signupEmail" type="email" autocomplete="email" required><label for="signupPassword">Password</label><input id="signupPassword" type="password" minlength="8" autocomplete="new-password" required><button class="btn" type="submit">Create account</button></form>
+  <p id="authStatus" class="status" role="status" aria-live="polite"></p>
+ </div>
+ <div class="notice"><strong>Account security</strong><br>Your password is handled by Supabase Auth. Never share it with CA Junction staff. Premium access is enabled only after an admin verifies the UPI payment record.</div>
+</section>
+<section id="membership">
+ <div class="section-head"><div class="eyebrow">Premium membership</div><h2>Choose a service or plan.</h2><p>Current services and prices are published by the CA Junction admin.</p></div>
+ <div id="productsGrid" class="products"><div class="product">Membership options will appear here when published.</div></div>
+ <div id="upiOrder" class="panel" hidden><h3 id="orderTitle">Payment instruction</h3><p id="orderAmount"></p><a id="upiPayLink" class="btn" hidden>Pay using UPI app</a><p id="upiSetupStatus" class="status" role="status" aria-live="polite"></p><label for="upiReference">UPI transaction reference / UTR</label><input id="upiReference" maxlength="80" autocomplete="off" placeholder="Enter the bank transaction reference"><button class="btn" id="submitUpiReference" type="button">Submit for verification</button><p id="paymentStatus" class="status" role="status" aria-live="polite"></p><p class="notice">Do not upload a payment screenshot as proof. Your premium access remains locked until the transaction is matched against the receiving account record.</p></div>
+</section>
+<section id="upload-notes">
+ <div class="section-head"><div class="eyebrow">Share your study notes</div><h2>Contribute a PDF.</h2><p>Your self-prepared notes are reviewed by the admin before students can access them.</p></div>
+ <div class="panel"><form id="noteUploadForm"><label for="noteTitle">Title</label><input id="noteTitle" maxlength="140" required placeholder="Subject and chapter"><label for="noteLevel">CA level</label><select id="noteLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option></select><label for="noteSubject">Subject</label><input id="noteSubject" maxlength="100" required><label for="noteDescription">Short description</label><input id="noteDescription" maxlength="300"><label for="notePdf">PDF file (maximum 10 MB)</label><input id="notePdf" type="file" accept="application/pdf" required><button class="btn" type="submit">Send for admin review</button></form><p id="uploadStatus" class="status" role="status" aria-live="polite"></p></div>
+</section>
+</main>
+<footer><div class="container">© 2026 CA Junction · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js"></script>
+</body></html>
