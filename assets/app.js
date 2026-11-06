@@ -198,6 +198,8 @@
     if(!user){location.href="account.html?next=upload.html";return}
     const file=$("#notePdf").files[0];
     if(!file || file.type!=="application/pdf" || file.size>10*1024*1024){msg("#uploadStatus","Choose a PDF no larger than 10 MB.","error");return}
+    const instagramHandle=$("#noteInstagram").value.trim().replace(/^@/,"");
+    if(instagramHandle&&!/^[A-Za-z0-9._]{1,30}$/.test(instagramHandle)){msg("#uploadStatus","Enter a valid Instagram handle, such as @yourusername.","error");return}
     const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
     const path=user.id+"/"+crypto.randomUUID()+"_"+safeName;
     msg("#uploadStatus","Uploading your PDF securely…");
@@ -205,7 +207,7 @@
     if(uploadError){msg("#uploadStatus",uploadError.message,"error");return}
     const {error}=await sb.from("student_note_submissions").insert({
       user_id:user.id,title:$("#noteTitle").value.trim(),level:$("#noteLevel").value,
-      subject:$("#noteSubject").value.trim(),description:$("#noteDescription").value.trim(),contributor_name:$("#noteContributorName").value.trim(),linkedin_url:$("#noteLinkedIn").value.trim(),file_path:path
+      subject:$("#noteSubject").value.trim(),description:$("#noteDescription").value.trim(),contributor_name:$("#noteContributorName").value.trim(),instagram_handle:instagramHandle,file_path:path
     });
     if(error){await sb.storage.from("student-notes").remove([path]);msg("#uploadStatus",error.message,"error");return}
     event.target.reset();msg("#uploadStatus","Submitted for admin review. It will appear in the library only after approval.");
@@ -264,7 +266,7 @@
         if(row.category==="student_note"){
           const author=document.createElement("small");author.className="note-author";author.textContent="Shared by "+(row.contributor_name||"CA Junction student");card.append(author);
           const studentId=document.createElement("small");studentId.className="note-author";studentId.textContent="Student ID: "+(row.submitted_by||"Unavailable");card.append(studentId);
-          if(row.linkedin_url){try{const profileUrl=new URL(row.linkedin_url);if(profileUrl.protocol==="https:"&&(profileUrl.hostname==="linkedin.com"||profileUrl.hostname.endsWith(".linkedin.com"))){const profile=document.createElement("a");profile.className="link";profile.href=profileUrl.href;profile.target="_blank";profile.rel="noopener";profile.textContent="LinkedIn profile ↗";card.append(profile)}}catch{}}
+          if(row.instagram_handle){const handle=row.instagram_handle.replace(/^@/,"");if(/^[A-Za-z0-9._]{1,30}$/.test(handle)){const profile=document.createElement("a");profile.className="link";profile.href="https://www.instagram.com/"+encodeURIComponent(handle)+"/";profile.target="_blank";profile.rel="noopener";profile.textContent="Instagram: @"+handle+" ↗";card.append(profile)}}
         }
         const meta=document.createElement("small");meta.textContent=[row.level,row.subject].filter(Boolean).join(" · ");if(meta.textContent)card.append(meta);
         const action=row.external_url?document.createElement("a"):document.createElement("button");
@@ -282,7 +284,7 @@
       draw(adminGrid,admin,"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
     };
     search?.addEventListener("input",render);
-    sb.from("materials").select("id,title,description,level,subject,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,linkedin_url").eq("is_published",true).order("created_at",{ascending:false}).then(({data,error})=>{
+    sb.from("materials").select("id,title,description,level,subject,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle").eq("is_published",true).order("created_at",{ascending:false}).then(({data,error})=>{
       if(error){msg("#materialStatus",error.message,"error");msg("#adminResourcesStatus",error.message,"error");return}
       all=data||[];render();
     });
@@ -491,7 +493,7 @@
       if(downloadError){msg("#submissionStatus",downloadError.message,"error");return}
       const {error:uploadError}=await sb.storage.from("ca-materials").upload(newPath,file,{contentType:"application/pdf"});
       if(uploadError){msg("#submissionStatus",uploadError.message,"error");return}
-      const {error:insertError}=await sb.from("materials").insert({title:row.title,description:row.description,level:row.level,subject:row.subject,category:"student_note",file_bucket:"ca-materials",file_path:newPath,is_premium:false,is_published:true,submitted_by:row.user_id,contributor_name:row.contributor_name,linkedin_url:row.linkedin_url,created_by:user.id});
+      const {error:insertError}=await sb.from("materials").insert({title:row.title,description:row.description,level:row.level,subject:row.subject,category:"student_note",file_bucket:"ca-materials",file_path:newPath,is_premium:false,is_published:true,submitted_by:row.user_id,contributor_name:row.contributor_name,instagram_handle:row.instagram_handle,created_by:user.id});
       if(insertError){await sb.storage.from("ca-materials").remove([newPath]);msg("#submissionStatus",insertError.message,"error");return}
       const {error:updateError}=await sb.from("student_note_submissions").update({status:"approved",reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq("id",row.id);
       msg("#submissionStatus",updateError?updateError.message:"Approved and published.",updateError?"error":"success");loadNoteSubmissions();loadAdminResources();
