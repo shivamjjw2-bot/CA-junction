@@ -1,8 +1,8 @@
 window.CA_CONFIG = {
-  // Add your Supabase project URL and publishable/anon key here.
+  // Add your Supabase project URL and publishable key here.
   // Never put a service_role key in this file.
   SUPABASE_URL: "https://acfwnunfglnjnxoxhxfd.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg",
+  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg",
 
   // International format digits only, e.g. 91XXXXXXXXXX.
   WHATSAPP_PHONE: "",
