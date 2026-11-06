@@ -155,6 +155,7 @@
 
   function initAccount() {
     const chosenLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"Foundation";
+    localStorage.setItem("caJunctionLevel",chosenLevel);
     if($("#noteLevel"))$("#noteLevel").value=chosenLevel;
     if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent=chosenLevel;
     if($("#signupLevel"))$("#signupLevel").value=chosenLevel;
