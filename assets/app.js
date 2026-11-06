@@ -316,7 +316,6 @@
         const detail=document.createElement("p");detail.textContent=row.description||[row.subject,row.level].filter(Boolean).join(" · ");if(detail.textContent)card.append(detail);
         if(row.category==="student_note"){
           const author=document.createElement("small");author.className="note-author";author.textContent="Shared by "+(row.contributor_name||"CA Junction student");card.append(author);
-          const studentId=document.createElement("small");studentId.className="note-author";studentId.textContent="Student ID: "+(row.submitted_by||"Unavailable");card.append(studentId);
           if(row.instagram_handle){const handle=row.instagram_handle.replace(/^@/,"");if(/^[A-Za-z0-9._]{1,30}$/.test(handle)){const profile=document.createElement("a");profile.className="link";profile.href="https://www.instagram.com/"+encodeURIComponent(handle)+"/";profile.target="_blank";profile.rel="noopener";profile.textContent="Instagram: @"+handle+" ↗";card.append(profile)}}
         }
         const meta=document.createElement("small");meta.textContent=[row.level,row.subject].filter(Boolean).join(" · ");if(meta.textContent)card.append(meta);
