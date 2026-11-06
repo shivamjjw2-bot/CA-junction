@@ -36,7 +36,7 @@ create or replace function public.create_profile_for_new_user()
 returns trigger language plpgsql security definer set search_path = public
 as $$ begin
   insert into public.profiles(user_id, full_name, ca_level)
-  values (new.id, coalesce(new.raw_user_meta_data->>'full_name',''), coalesce(new.raw_user_meta_data->>'ca_level','Foundation'))
+  values (new.id, coalesce(new.raw_user_meta_data->>'full_name',''), case when new.raw_user_meta_data->>'ca_level' in ('Foundation','Intermediate','Final','Qualified') then new.raw_user_meta_data->>'ca_level' else 'Foundation' end)
   on conflict (user_id) do nothing;
   return new;
 end $$;
@@ -224,6 +224,8 @@ create table if not exists public.entitlements (
   unique (user_id, product_id, material_id, test_id)
 );
 
+create unique index if not exists entitlements_unique_target on public.entitlements(user_id,product_id,coalesce(material_id,'00000000-0000-0000-0000-000000000000'::uuid),coalesce(test_id,'00000000-0000-0000-0000-000000000000'::uuid));
+
 create table if not exists public.material_downloads (
   user_id uuid not null references auth.users(id) on delete cascade,
   material_id uuid not null references public.materials(id) on delete cascade,
@@ -310,6 +312,7 @@ as $$
 declare new_attempt uuid; earned integer; total integer;
 begin
   if auth.uid() is null then raise exception 'Sign in to take a test.'; end if;
+  if submitted_answers is null or jsonb_typeof(submitted_answers) <> 'object' then raise exception 'Answers must be submitted as a question-response object.'; end if;
   if not exists(select 1 from public.study_tests t where t.id=target_test and t.is_published and t.test_type in ('mcq','chapter','full_syllabus') and (t.access_tier='free' or public.has_active_membership(auth.uid()) or public.has_test_entitlement(auth.uid(),t.id))) then raise exception 'This test is not available to your account.'; end if;
   select count(*),count(*) filter(where q.correct_index = (submitted_answers->>q.id::text)::integer)
   into total,earned from public.test_questions q where q.test_id=target_test;
@@ -325,6 +328,9 @@ returns trigger language plpgsql security definer set search_path = public
 as $$
 declare p public.products%rowtype;
 begin
+  if new.status='paid' and (new.upi_reference is null or length(trim(new.upi_reference)) < 8) then raise exception 'A bank/UPI reference must be reviewed before approval.'; end if;
+  if new.status='paid' and new.verified_by is null then new.verified_by := auth.uid(); end if;
+  if new.status='paid' and new.verified_by is null then raise exception 'An admin verifier is required.'; end if;
   if new.status='paid' and old.status is distinct from 'paid' then
     select * into p from public.products where id=new.product_id;
     if p.product_type='membership' then
@@ -411,8 +417,6 @@ create policy "question keys admin only" on public.test_questions for all to aut
 
 drop policy if exists "attempt owner or reviewer read" on public.test_attempts;
 create policy "attempt owner or reviewer read" on public.test_attempts for select to authenticated using (user_id=auth.uid() or public.is_reviewer());
-drop policy if exists "attempt owner insert" on public.test_attempts;
-create policy "attempt owner insert" on public.test_attempts for insert to authenticated with check (user_id=auth.uid());
 
 drop policy if exists "script owner or reviewer read" on public.evaluation_submissions;
 create policy "script owner or reviewer read" on public.evaluation_submissions for select to authenticated using (user_id=auth.uid() or public.is_reviewer());
