@@ -536,7 +536,7 @@ grant select on public.published_test_questions to authenticated;
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values
 ('ca-materials','ca-materials',false,52428800,array['application/pdf']),
-('student-notes','student-notes',false,10485760,array['application/pdf']),
+('student-notes','student-notes',false,52428800,array['application/pdf']),
 ('test-scripts','test-scripts',false,26214400,array['application/pdf'])
 on conflict (id) do nothing;
 
