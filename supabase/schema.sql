@@ -59,10 +59,15 @@ create table if not exists public.materials (
   is_premium boolean not null default false,
   is_published boolean not null default false,
   submitted_by uuid references auth.users(id) on delete set null,
+  contributor_name text not null default '',
+  linkedin_url text not null default '',
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   check ((file_path is not null) or (external_url is not null))
 );
+
+alter table public.materials add column if not exists contributor_name text not null default '';
+alter table public.materials add column if not exists linkedin_url text not null default '';
 
 create table if not exists public.student_note_submissions (
   id uuid primary key default gen_random_uuid(),
@@ -71,6 +76,8 @@ create table if not exists public.student_note_submissions (
   level text not null check (level in ('Foundation','Intermediate','Final')),
   subject text not null,
   description text not null default '',
+  contributor_name text not null default '',
+  linkedin_url text not null default '',
   file_path text not null,
   status text not null default 'pending' check (status in ('pending','approved','rejected')),
   admin_note text not null default '',
@@ -78,6 +85,9 @@ create table if not exists public.student_note_submissions (
   reviewed_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table public.student_note_submissions add column if not exists contributor_name text not null default '';
+alter table public.student_note_submissions add column if not exists linkedin_url text not null default '';
 
 create table if not exists public.courses (
   id uuid primary key default gen_random_uuid(),
