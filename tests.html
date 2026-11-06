@@ -31,6 +31,14 @@ footer{margin-top:30px;padding:24px 0;border-top:1px solid var(--line);font-size
  <div class="grid" id="testsGrid"><div class="empty">No CA Junction tests have been published yet.</div></div>
  <p id="testsStatus" class="status" role="status" aria-live="polite"></p>
 </section>
+<section id="ai-practice">
+ <div class="section-head"><div class="eyebrow">AI practice · setup pending</div><h2>Build a practice set.</h2><p>Select a subject and chapters. The AI generator must be connected before it can create questions or combine chapters.</p></div>
+ <div class="panel"><label for="aiPracticeLevel">CA level</label><select id="aiPracticeLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option></select>
+ <label for="aiPracticeSubject">Subject</label><input id="aiPracticeSubject" placeholder="For example: Accounting">
+ <label for="aiPracticeChapters">Chapter names</label><input id="aiPracticeChapters" placeholder="Enter one or more chapters, separated by commas">
+ <label for="aiPracticeMode">Question mix</label><select id="aiPracticeMode"><option>Questions from selected chapters</option><option>Combined questions using multiple chapters</option></select>
+ <button class="btn" type="button" disabled>Start AI practice</button><p class="status" role="status">This practice builder is a preview. AI question generation is not connected yet.</p></div>
+</section>
 <section id="mcq">
  <div class="section-head"><div class="eyebrow">Online MCQ tests</div><h2>Attempt an available quiz.</h2><p>Scores are recorded to your account. Correct answers are not exposed before you submit.</p></div>
  <div class="panel" id="quizPanel"><div class="notice">Sign in, then choose an available MCQ test from the member test library.</div><form id="quizForm" hidden><div id="questionArea"></div><button class="btn" type="submit">Submit test</button></form><p id="quizStatus" class="status" role="status" aria-live="polite"></p></div>
