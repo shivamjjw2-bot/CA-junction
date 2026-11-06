@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Study tools, sample quizzes, CA course links and career resources for CA Junction students.">
+<title>Student Workspace | CA Junction</title>
+<style>
+:root{--bg:#080b16;--panel:rgba(255,255,255,.045);--border:rgba(255,255,255,.11);--purple:#a78bfa;--blue:#60a5fa;--text:#f4f4fb;--muted:#9ca3b8;--green:#86efac}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}
+a{color:inherit;text-decoration:none}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+.container{width:min(1120px,92%);margin:auto}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(circle at 12% 8%,rgba(124,58,237,.17),transparent 34%),radial-gradient(circle at 88% 28%,rgba(37,99,235,.13),transparent 35%)}
+header{position:sticky;top:0;z-index:10;background:rgba(8,11,22,.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;white-space:nowrap}
+.logo-mark{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;color:#c4b5fd;background:rgba(167,139,250,.18);border:1px solid var(--border)}
+.logo b{color:var(--purple)}
+.nav-links{display:flex;align-items:center;gap:20px;color:#c1c5d5;font-size:13px}
+.nav-links a:hover{color:#fff}
+.nav-cta,.button{display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 15px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:white;font-weight:700}
+.menu-btn{display:none;border:0;background:none;color:white;font-size:25px}
+.hero{padding:68px 0 38px}
+.eyebrow{color:#c4b5fd;text-transform:uppercase;letter-spacing:2px;font-size:12px;font-weight:750}
+h1{font-size:clamp(38px,6vw,66px);line-height:1.08;letter-spacing:-2.5px;max-width:850px;margin:12px 0 16px}
+.gradient{background:linear-gradient(110deg,#c4b5fd,#818cf8,#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p,.section-head p{color:var(--muted);max-width:700px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.button.secondary{background:rgba(255,255,255,.05)}
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0 6px}
+.quick-card,.card,.quiz-box,.planner-box,.resume-box{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:20px;backdrop-filter:blur(14px)}
+.quick-card{transition:.2s}
+.quick-card:hover,.card:hover{transform:translateY(-3px);border-color:rgba(167,139,250,.38)}
+.quick-card strong{display:block;font-size:16px}
+.quick-card span{color:var(--muted);font-size:13px}
+section{padding:50px 0}
+.section-head{margin-bottom:24px}
+.section-head h2{font-size:clamp(27px,4vw,38px);letter-spacing:-1px;margin:5px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.card h3{font-size:18px;margin:8px 0}
+.card p{color:var(--muted);font-size:14px}
+.icon{font-size:24px}
+.card-link{display:inline-flex;margin-top:15px;color:#c4b5fd;font-size:14px;font-weight:700}
+.pill{display:inline-block;margin:6px 5px 0 0;padding:3px 9px;border-radius:20px;background:rgba(167,139,250,.12);color:#d3c8ff;font-size:11px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}
+.field{display:grid;gap:6px;margin-bottom:13px}
+label{font-size:13px;color:#cbd0df}
+input,textarea,select{width:100%;background:#111526;color:white;border:1px solid #30354c;padding:11px 12px;border-radius:11px}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}
+textarea{min-height:92px;resize:vertical}
+.small{font-size:12px;color:var(--muted)}
+.status{min-height:24px;margin-top:10px;color:#c4b5fd;font-size:13px}
+.quiz-question{font-size:18px;font-weight:700;margin:8px 0 14px}
+.answer-list{display:grid;gap:8px}
+.answer-option{display:flex;align-items:flex-start;gap:9px;border:1px solid var(--border);border-radius:12px;padding:10px;cursor:pointer}
+.answer-option input{width:auto;margin-top:5px;accent-color:#a78bfa}
+.quiz-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+.progress{height:7px;background:#20243a;border-radius:8px;overflow:hidden;margin:14px 0}
+.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#8b5cf6,#60a5fa);transition:width .2s}
+.task-list{list-style:none;display:grid;gap:8px;margin-top:14px}
+.task-row{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:11px;padding:10px}
+.task-row input{width:auto;accent-color:#8b5cf6}
+.task-row .task-text{flex:1}
+.task-row.done .task-text{text-decoration:line-through;color:var(--muted)}
+.delete-task{border:0;background:none;color:#fca5a5;font-size:18px}
+.timer{font-variant-numeric:tabular-nums;font-size:42px;font-weight:750;letter-spacing:2px}
+.empty{padding:18px;border:1px dashed rgba(255,255,255,.2);border-radius:14px;color:var(--muted);font-size:14px}
+.notice{border-left:3px solid #a78bfa;padding:12px 14px;background:rgba(167,139,250,.08);border-radius:0 10px 10px 0;color:#d1d3e1;font-size:13px}
+.resume-preview{background:#fff;color:#192033;border-radius:12px;padding:24px;min-height:330px}
+.resume-preview h3{font-size:25px;color:#34246f}
+.resume-preview .resume-contact{color:#575e70;font-size:13px;margin:4px 0 18px}
+.resume-preview h4{margin:15px 0 4px;color:#4c3a91;text-transform:uppercase;letter-spacing:1px;font-size:12px}
+.resume-preview p,.resume-preview li{font-size:13px;white-space:pre-wrap}
+.resume-preview ul{padding-left:18px}
+.link-list{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+.external-link{border:1px solid var(--border);padding:11px 14px;border-radius:12px;color:#d4caff;background:rgba(255,255,255,.04)}
+footer{padding:28px 0;margin-top:40px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+footer .container{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media(max-width:900px){.nav-links{display:none}.menu-btn{display:block}.nav-links.open{display:flex;position:absolute;top:72px;left:0;right:0;align-items:stretch;flex-direction:column;gap:0;padding:12px 4%;background:#0b0e1b;border-bottom:1px solid var(--border)}.nav-links.open a{padding:10px}.quick-grid{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.hero{padding-top:48px}.quick-grid,.grid,.two-col{grid-template-columns:1fr}section{padding:38px 0}.timer{font-size:34px}}
+@media print{body{background:#fff;color:#111}.container>*:not(#resume),header,footer,#resume .form-side,#resume .section-head,#resume .resume-actions{display:none!important}#resume{display:block!important;padding:0!important}.resume-preview{border:0;border-radius:0;min-height:0;padding:0;box-shadow:none}}
+</style>
+</head>
+<body>
+<header>
+ <div class="container nav">
+  <a class="logo" href="index.html"><span class="logo-mark">CA</span><span>CA <b>Junction</b></span></a>
+  <button class="menu-btn" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks" onclick="toggleMenu()">☰</button>
+  <nav class="nav-links" id="navLinks" aria-label="Student workspace">
+   <a href="#courses" onclick="closeMenu()">Courses</a><a href="#mock-tests" onclick="closeMenu()">Mock Tests</a><a href="#study-planner" onclick="closeMenu()">Planner</a><a href="#career" onclick="closeMenu()">Career</a><a href="#updates" onclick="closeMenu()">Updates</a><a class="nav-cta" href="study.html" onclick="closeMenu()">Study library ↗</a>
+  </nav>
+ </div>
+</header>
+<main class="container">
+ <section class="hero" id="top">
+  <div class="eyebrow">CA Junction · Student workspace</div>
+  <h1>Make your next study session <span class="gradient">count.</span></h1>
+  <p>Explore CA course pathways, practise with a short sample quiz, plan study tasks, and prepare a simple resume. Your planner stays in this browser.</p>
+  <div class="hero-actions"><a class="button" href="#mock-tests">Try a sample quiz ↓</a><a class="button secondary" href="#study-planner">Plan a study session</a></div>
+  <div class="quick-grid">
+   <a class="quick-card" href="#courses"><strong>Course pathways</strong><span>Foundation · Intermediate · Final</span></a>
+   <a class="quick-card" href="#mock-tests"><strong>Sample quiz</strong><span>Try a short concept check</span></a>
+   <a class="quick-card" href="#study-planner"><strong>Study planner</strong><span>Save your tasks on this device</span></a>
+   <a class="quick-card" href="#resume"><strong>Resume builder</strong><span>Preview and print your resume</span></a>
+  </div>
+ </section>
+
+ <section id="courses">
+  <div class="section-head"><div class="eyebrow">Learning</div><h2>Choose your CA level.</h2><p>Open the study library for the level you are working on, or visit ICAI’s official learning portal.</p></div>
+  <div class="grid">
+   <article class="card"><div class="icon">📘</div><h3>CA Foundation</h3><p>Start with the fundamentals and build a steady revision routine.</p><span class="pill">Foundation</span><a class="card-link" href="study.html?level=Foundation">Open Foundation library →</a></article>
+   <article class="card"><div class="icon">📚</div><h3>CA Intermediate</h3><p>Organise your subject resources and track your next study tasks.</p><span class="pill">Intermediate</span><a class="card-link" href="study.html?level=Intermediate">Open Intermediate library →</a></article>
+   <article class="card"><div class="icon">🎓</div><h3>CA Final</h3><p>Use the library to find revision resources for your current level.</p><span class="pill">Final</span><a class="card-link" href="study.html?level=Final">Open Final library →</a></article>
+  </div>
+  <div class="link-list"><a class="external-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">ICAI Board of Studies portal ↗</a></div>
+ </section>
+
+ <section id="mock-tests">
+  <div class="section-head"><div class="eyebrow">Practice</div><h2>Mock test sample.</h2><p>Try this short accounting concept check. These demo questions are for interface preview and are not official ICAI questions.</p></div>
+  <div class="quiz-box">
+   <div id="quizProgressText" class="small">Ready · 3 sample questions</div>
+   <div class="progress" aria-hidden="true"><span id="quizProgress"></span></div>
+   <div id="quizContent">
+    <p class="quiz-question">Start the sample quiz when you’re ready.</p>
+    <p class="small">Choose an answer for each question. Your score appears at the end.</p>
+   </div>
+   <div class="quiz-actions"><span id="quizFeedback" class="small" role="status" aria-live="polite"></span><button class="button" id="quizButton" type="button" onclick="advanceQuiz()">Start sample quiz</button></div>
+  </div>
+ </section>
+
+ <section id="study-planner">
+  <div class="section-head"><div class="eyebrow">Stay organised</div><h2>Plan today’s study.</h2><p>Add a target and mark it complete when you finish. Tasks are saved only in this browser.</p></div>
+  <div class="two-col">
+   <div class="planner-box">
+    <form id="taskForm">
+     <div class="field"><label for="taskInput">Study target</label><input id="taskInput" maxlength="100" placeholder="Example: Revise one chapter" required></div>
+     <div class="field"><label for="taskMinutes">Planned minutes</label><input id="taskMinutes" type="number" min="5" max="600" step="5" value="45" required></div>
+     <button class="button" type="submit">Add target</button>
+    </form>
+    <ul class="task-list" id="taskList" aria-label="Study targets"></ul>
+    <p class="status" id="taskStatus" role="status" aria-live="polite"></p>
+   </div>
+   <div class="planner-box" id="focus-timer">
+    <div class="eyebrow">Focus timer</div><h3>Take one focused session.</h3>
+    <p class="small">This simple timer runs while this page is open.</p>
+    <div class="timer" id="timerDisplay" aria-live="off">25:00</div>
+    <div class="toolbar"><button class="button" id="timerButton" type="button" onclick="toggleTimer()">Start 25 minutes</button><button class="button secondary" type="button" onclick="resetTimer()">Reset</button></div>
+    <p class="status" id="timerStatus" role="status" aria-live="polite"></p>
+   </div>
+  </div>
+ </section>
+
+ <section id="exam-countdown">
+  <div class="section-head"><div class="eyebrow">Keep your target in sight</div><h2>Exam countdown.</h2><p>Choose your own exam date to see how many days remain.</p></div>
+  <div class="planner-box">
+   <div class="toolbar"><div class="field" style="flex:1;min-width:220px"><label for="examDate">Target exam date</label><input id="examDate" type="date"></div><button class="button" type="button" onclick="updateCountdown()">Calculate days</button></div>
+   <p id="countdownResult" class="status" role="status" aria-live="polite">Select a date to begin.</p>
+  </div>
+ </section>
+
+ <section id="career">
+  <div class="section-head"><div class="eyebrow">Beyond exams</div><h2>Explore CA career paths.</h2><p>Browse broad career areas. Live job listings can be added when verified opportunities are available.</p></div>
+  <div class="grid">
+   <article class="card"><div class="icon">📊</div><h3>Audit & assurance</h3><p>Explore assurance work, audit processes, controls, and financial reporting.</p></article>
+   <article class="card"><div class="icon">🧾</div><h3>Taxation</h3><p>Learn about direct tax, indirect tax, compliance, and advisory roles.</p></article>
+   <article class="card"><div class="icon">🏢</div><h3>Industry & finance</h3><p>Consider roles in financial planning, reporting, analysis, and business finance.</p></article>
+  </div>
+  <div class="empty" style="margin-top:15px">No live vacancies are published yet. Listings should be added only after the employer and application details are confirmed.</div>
+  <p style="margin-top:15px"><a class="card-link" href="#resume">Build a resume for your next opportunity →</a></p>
+ </section>
+
+ <section id="updates">
+  <div class="section-head"><div class="eyebrow">Stay informed</div><h2>Check official CA updates.</h2><p>For current exam notifications and study resources, use ICAI’s official pages. CA Junction does not yet publish a live update feed.</p></div>
+  <div class="link-list"><a class="external-link" href="https://icai.org/category/announcements" target="_blank" rel="noopener">ICAI announcements ↗</a><a class="external-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">ICAI Board of Studies ↗</a></div>
+ </section>
+
+ <section id="notes-store">
+  <div class="section-head"><div class="eyebrow">Study resources</div><h2>Notes store setup.</h2><p>The storefront is ready for your notes catalogue. No notes are listed for sale yet.</p></div>
+  <div class="two-col">
+   <div class="card"><div class="icon">📚</div><h3>Your resources will appear here</h3><p>Once you provide the notes, descriptions, prices, and access terms, this space can present them to students.</p><span class="pill">Catalogue pending</span></div>
+   <div class="notice"><strong>Official study material meanwhile</strong><br>Students can use the ICAI Board of Studies portal for official course material. CA Junction will list independent resources only when they are ready to share.</div>
+  </div>
+  <div class="link-list"><a class="external-link" href="https://boslive.icai.org/" target="_blank" rel="noopener">Open official study portal ↗</a></div>
+ </section>
+
+ <section id="resume">
+  <div class="section-head"><div class="eyebrow">Career toolkit</div><h2>Build a simple resume.</h2><p>Enter your details to preview a clean resume. Nothing is uploaded; use Print to save it as a PDF.</p></div>
+  <div class="two-col">
+   <div class="resume-box form-side">
+    <form id="resumeForm">
+     <div class="field"><label for="resumeName">Full name</label><input id="resumeName" data-field="name" maxlength="80" placeholder="Your name"></div>
+     <div class="field"><label for="resumeEmail">Email</label><input id="resumeEmail" data-field="email" type="email" maxlength="120" placeholder="name@example.com"></div>
+     <div class="field"><label for="resumePhone">Phone</label><input id="resumePhone" data-field="phone" type="tel" maxlength="30" placeholder="+91"></div>
+     <div class="field"><label for="resumeLocation">Location</label><input id="resumeLocation" data-field="location" maxlength="80" placeholder="City, State"></div>
+     <div class="field"><label for="resumeObjective">Profile summary</label><textarea id="resumeObjective" data-field="objective" maxlength="500" placeholder="A short professional introduction"></textarea></div>
+     <div class="field"><label for="resumeEducation">Education</label><textarea id="resumeEducation" data-field="education" maxlength="500" placeholder="Course, institution, year"></textarea></div>
+     <div class="field"><label for="resumeExperience">Experience or articleship</label><textarea id="resumeExperience" data-field="experience" maxlength="700" placeholder="Role, organisation, dates, key work"></textarea></div>
+     <div class="field"><label for="resumeSkills">Skills</label><textarea id="resumeSkills" data-field="skills" maxlength="400" placeholder="Separate skills with commas"></textarea></div>
+    </form>
+   </div>
+   <div>
+    <div class="resume-preview" id="resumePreview">
+     <h3 id="previewName">Your name</h3><p class="resume-contact" id="previewContact">Email · Phone · Location</p>
+     <h4>Profile</h4><p id="previewObjective">Add a short professional introduction.</p>
+     <h4>Education</h4><p id="previewEducation">Add your education details.</p>
+     <h4>Experience</h4><p id="previewExperience">Add experience or articleship details.</p>
+     <h4>Skills</h4><ul id="previewSkills"><li>Add your skills.</li></ul>
+    </div>
+    <div class="resume-actions toolbar"><button class="button" type="button" onclick="window.print()">Print / Save PDF</button><button class="button secondary" type="reset" form="resumeForm" onclick="clearResume()">Clear form</button></div>
+    <p class="small">Review your details before sharing. This tool stores nothing on a server.</p>
+   </div>
+  </div>
+ </section>
+</main>
+<footer><div class="container"><span>© 2026 CA Junction · Where Your CA Journey Connects.</span><a href="index.html">Back to homepage ↑</a></div></footer>
+<script>
+const navLinks=document.getElementById("navLinks");
+const menuButton=document.getElementById("menuButton");
+function toggleMenu(){const open=navLinks.classList.toggle("open");menuButton.setAttribute("aria-expanded",String(open));menuButton.setAttribute("aria-label",open?"Close menu":"Open menu")}
+function closeMenu(){navLinks.classList.remove("open");menuButton.setAttribute("aria-expanded","false");menuButton.setAttribute("aria-label","Open menu")}
+
+const quizQuestions=[
+ {q:"A business buys furniture for cash. Which accounts are affected?",answers:["Furniture increases and cash decreases","Furniture decreases and cash increases","Both furniture and cash increase"],correct:0},
+ {q:"Current assets are ₹2,00,000 and current liabilities are ₹1,00,000. What is the current ratio?",answers:["1:2","2:1","3:1"],correct:1},
+ {q:"Which statement shows a business’s financial position on a particular date?",answers:["Statement of cash flows","Balance sheet","Statement of profit or loss"],correct:1}
+];
+let quizIndex=-1,quizScore=0,quizLocked=false;
+function advanceQuiz(){
+ const area=document.getElementById("quizContent"),button=document.getElementById("quizButton"),feedback=document.getElementById("quizFeedback");
+ if(quizIndex===-1){quizIndex=0;renderQuestion();return}
+ if(quizIndex>=quizQuestions.length){quizIndex=-1;quizScore=0;document.getElementById("quizProgress").style.width="0";document.getElementById("quizProgressText").textContent="Ready · 3 sample questions";area.innerHTML='<p class="quiz-question">Start the sample quiz when you’re ready.</p><p class="small">Choose an answer for each question. Your score appears at the end.</p>';feedback.textContent="";button.textContent="Start sample quiz";return}
+ if(quizLocked){quizIndex++;quizLocked=false;if(quizIndex>=quizQuestions.length){showQuizResult();return}renderQuestion();return}
+ const selected=area.querySelector('input[name="answer"]:checked');
+ if(!selected){feedback.textContent="Choose an answer before continuing.";return}
+ const correct=Number(selected.value)===quizQuestions[quizIndex].correct;
+ if(correct)quizScore++;
+ feedback.textContent=correct?"Correct.":"Not quite. The correct answer is "+quizQuestions[quizIndex].answers[quizQuestions[quizIndex].correct]+".";
+ quizLocked=true;button.textContent=quizIndex===quizQuestions.length-1?"See your score":"Next question";
+}
+function renderQuestion(){
+ const q=quizQuestions[quizIndex],area=document.getElementById("quizContent");
+ document.getElementById("quizProgressText").textContent="Question "+(quizIndex+1)+" of "+quizQuestions.length;
+ document.getElementById("quizProgress").style.width=((quizIndex+1)/quizQuestions.length*100)+"%";
+ document.getElementById("quizFeedback").textContent="";
+ area.innerHTML='<p class="quiz-question"></p><div class="answer-list"></div>';
+ area.querySelector(".quiz-question").textContent=q.q;
+ const list=area.querySelector(".answer-list");
+ q.answers.forEach((answer,index)=>{const label=document.createElement("label");label.className="answer-option";const radio=document.createElement("input");radio.type="radio";radio.name="answer";radio.value=String(index);const text=document.createElement("span");text.textContent=answer;label.append(radio,text);list.append(label)});
+ document.getElementById("quizButton").textContent="Check answer";
+}
+function showQuizResult(){
+ document.getElementById("quizProgressText").textContent="Sample quiz complete";
+ document.getElementById("quizContent").innerHTML='<p class="quiz-question"></p><p class="small">Your result is saved only for this session.</p>';
+ document.querySelector("#quizContent .quiz-question").textContent="You scored "+quizScore+" out of "+quizQuestions.length+".";
+ document.getElementById("quizFeedback").textContent=quizScore===quizQuestions.length?"Excellent work.":"Review the topics and try again.";
+ document.getElementById("quizButton").textContent="Try again";quizIndex=quizQuestions.length;
+}
+const storageKey="caJunctionStudyTasks";
+let tasks=[];
+try{tasks=JSON.parse(localStorage.getItem(storageKey)||"[]");if(!Array.isArray(tasks))tasks=[]}catch(e){tasks=[]}
+function saveTasks(){try{localStorage.setItem(storageKey,JSON.stringify(tasks));document.getElementById("taskStatus").textContent="Saved in this browser."}catch(e){document.getElementById("taskStatus").textContent="This browser could not save the list."}}
+function renderTasks(){
+ const list=document.getElementById("taskList");list.replaceChildren();
+ if(!tasks.length){const empty=document.createElement("li");empty.className="small";empty.textContent="No targets yet. Add one above.";list.append(empty);return}
+ tasks.forEach(task=>{const li=document.createElement("li");li.className="task-row"+(task.done?" done":"");const check=document.createElement("input");check.type="checkbox";check.checked=task.done;check.setAttribute("aria-label","Mark "+task.text+" complete");check.addEventListener("change",()=>{task.done=check.checked;saveTasks();renderTasks()});const text=document.createElement("span");text.className="task-text";text.textContent=task.text+" · "+task.minutes+" min";const remove=document.createElement("button");remove.className="delete-task";remove.type="button";remove.textContent="×";remove.setAttribute("aria-label","Delete "+task.text);remove.addEventListener("click",()=>{tasks=tasks.filter(x=>x.id!==task.id);saveTasks();renderTasks()});li.append(check,text,remove);list.append(li)});
+}
+document.getElementById("taskForm").addEventListener("submit",event=>{event.preventDefault();const text=document.getElementById("taskInput").value.trim();const minutes=Number(document.getElementById("taskMinutes").value);if(!text||minutes<5)return;tasks.push({id:Date.now(),text,minutes,done:false});saveTasks();renderTasks();event.target.reset();document.getElementById("taskMinutes").value="45";document.getElementById("taskInput").focus()});
+renderTasks();
+
+let secondsLeft=1500,timerHandle=null;
+function drawTimer(){const m=String(Math.floor(secondsLeft/60)).padStart(2,"0"),s=String(secondsLeft%60).padStart(2,"0");document.getElementById("timerDisplay").textContent=m+":"+s}
+function toggleTimer(){const button=document.getElementById("timerButton");if(timerHandle){clearInterval(timerHandle);timerHandle=null;button.textContent="Resume session";document.getElementById("timerStatus").textContent="Timer paused."}else{button.textContent="Pause session";document.getElementById("timerStatus").textContent="Focus session running.";timerHandle=setInterval(()=>{secondsLeft--;drawTimer();if(secondsLeft<=0){clearInterval(timerHandle);timerHandle=null;button.textContent="Start another 25 minutes";document.getElementById("timerStatus").textContent="Session complete. Take a short break.";secondsLeft=0}},1000)}}
+function resetTimer(){if(timerHandle)clearInterval(timerHandle);timerHandle=null;secondsLeft=1500;drawTimer();document.getElementById("timerButton").textContent="Start 25 minutes";document.getElementById("timerStatus").textContent="Timer reset."}
+drawTimer();
+
+function updateCountdown(){const input=document.getElementById("examDate"),result=document.getElementById("countdownResult");if(!input.value){result.textContent="Choose an exam date first.";return}const target=new Date(input.value+"T00:00:00");const today=new Date();today.setHours(0,0,0,0);const days=Math.ceil((target-today)/86400000);result.textContent=days>0?days+" days until your selected date.":days===0?"Your selected date is today.":"That date has passed. Choose a future date."}
+
+const resumeFields=["name","email","phone","location","objective","education","experience","skills"];
+function updateResume(){const v={};resumeFields.forEach(key=>{v[key]=document.querySelector('[data-field="'+key+'"]').value.trim()});document.getElementById("previewName").textContent=v.name||"Your name";const contact=[v.email,v.phone,v.location].filter(Boolean);document.getElementById("previewContact").textContent=contact.join(" · ")||"Email · Phone · Location";document.getElementById("previewObjective").textContent=v.objective||"Add a short professional introduction.";document.getElementById("previewEducation").textContent=v.education||"Add your education details.";document.getElementById("previewExperience").textContent=v.experience||"Add experience or articleship details.";const skills=document.getElementById("previewSkills");skills.replaceChildren();const parts=v.skills.split(",").map(x=>x.trim()).filter(Boolean);(parts.length?parts:["Add your skills."]).forEach(skill=>{const li=document.createElement("li");li.textContent=skill;skills.append(li)})}
+document.getElementById("resumeForm").addEventListener("input",updateResume);
+function clearResume(){setTimeout(updateResume,0)}
+</script>
+</body>
+</html>
