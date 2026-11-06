@@ -264,6 +264,7 @@
         if(row.category==="student_note"){const icon=document.createElement("span");icon.className="note-app-icon";icon.setAttribute("aria-hidden","true");icon.textContent="📄";card.append(icon)}
         const title=document.createElement("h3");title.textContent=row.title;
         card.append(title);
+        if(row.category!=="student_note"&&row.is_premium){const access=document.createElement("small");access.className="resource-access premium";access.textContent="Premium";card.append(access)}
         const detail=document.createElement("p");detail.textContent=row.description||[row.subject,row.level].filter(Boolean).join(" · ");if(detail.textContent)card.append(detail);
         if(row.category==="student_note"){
           const author=document.createElement("small");author.className="note-author";author.textContent="Shared by "+(row.contributor_name||"CA Junction student");card.append(author);
@@ -300,7 +301,7 @@
       draw(adminGrid,admin,"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
     };
     search?.addEventListener("input",render);
-    sb.from("materials").select("id,title,description,level,subject,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle,student_submission_id").eq("is_published",true).order("created_at",{ascending:false}).then(async({data,error})=>{
+    sb.from("materials").select("id,title,description,level,subject,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle,student_submission_id,is_premium").eq("is_published",true).order("created_at",{ascending:false}).then(async({data,error})=>{
       if(error){msg("#materialStatus",error.message,"error");msg("#adminResourcesStatus",error.message,"error");return}
       const {data:{user}}=await sb.auth.getUser();currentUserId=user?.id||"";
       all=data||[];render();
@@ -479,6 +480,7 @@
     if(!role){msg("#adminStatus","This account does not have the admin role.","error");$("#adminSetup").hidden=false;$("#adminSetup").textContent="Only the account you manually promote in Supabase can use this panel.";return}
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
     $("#adminMaterialForm")?.addEventListener("submit",saveMaterial);
+    $("#adminMindMapForm")?.addEventListener("submit",saveMindMap);
     $("#adminTestForm")?.addEventListener("submit",saveTest);
     $("#adminJobForm")?.addEventListener("submit",saveJob);
     $("#adminProductForm")?.addEventListener("submit",saveProduct);
@@ -486,13 +488,34 @@
     $("#groupLinkForm")?.addEventListener("submit",saveGroupLink);
     $("#virtualLibraryForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library","Virtual Library study room","#virtualLibraryUrl","#virtualLibraryStatus"));
     $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
-    await Promise.all([loadAdminResources(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
+    await Promise.all([loadAdminResources(),loadAdminMindMaps(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
     async function saveMaterial(e){
       e.preventDefault();msg("#resourceStatus","Saving resource…");const {data:{user}}=await sb.auth.getUser();let path=null,bucket=null;const file=$("#resourcePdf").files[0];
       if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#resourceStatus","Choose a PDF no larger than 50 MB.","error");return}bucket="ca-materials";path="admin/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from(bucket).upload(path,file,{contentType:"application/pdf"});if(error){msg("#resourceStatus",error.message,"error");return}}
       const url=$("#resourceExternal").value.trim()||null;if(!path&&!url){msg("#resourceStatus","Upload a PDF or provide an external URL.","error");return}
       const {error}=await sb.from("materials").insert({title:$("#resourceTitle").value.trim(),description:$("#resourceDescription").value.trim(),level:$("#resourceLevel").value,subject:$("#resourceSubject").value.trim(),category:$("#resourceCategory").value,file_bucket:bucket,file_path:path,external_url:url,is_premium:false,is_published:$("#resourcePublished").checked,created_by:user.id});
       if(error){if(path)await sb.storage.from(bucket).remove([path]);msg("#resourceStatus",error.message,"error");return}e.target.reset();msg("#resourceStatus","Resource saved.");loadAdminResources();
+    }
+
+    async function saveMindMap(e){
+      e.preventDefault();msg("#mindMapAdminStatus","Saving mind map…");const {data:{user}}=await sb.auth.getUser();let path=null;const file=$("#mindMapPdf").files[0];
+      if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#mindMapAdminStatus","Choose a PDF no larger than 50 MB.","error");return}path="admin/mind-maps/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from("ca-materials").upload(path,file,{contentType:"application/pdf"});if(error){msg("#mindMapAdminStatus",error.message,"error");return}}
+      const url=$("#mindMapExternal").value.trim()||null;if(!path&&!url){msg("#mindMapAdminStatus","Choose a PDF or add an external PDF link.","error");return}
+      if(url){try{const parsed=new URL(url);if(!["http:","https:"].includes(parsed.protocol))throw new Error()}catch{if(path)await sb.storage.from("ca-materials").remove([path]);msg("#mindMapAdminStatus","Enter a valid link beginning with https://.","error");return}}
+      const {error}=await sb.from("materials").insert({title:$("#mindMapTitle").value.trim(),description:$("#mindMapDescription").value.trim(),level:$("#mindMapLevel").value,subject:$("#mindMapSubject").value.trim(),category:"mind_map",file_bucket:path?"ca-materials":null,file_path:path,external_url:url,is_premium:$("#mindMapPremium").checked,is_published:$("#mindMapPublished").checked,created_by:user.id});
+      if(error){if(path)await sb.storage.from("ca-materials").remove([path]);msg("#mindMapAdminStatus",error.message,"error");return}e.target.reset();$("#mindMapPublished").checked=true;msg("#mindMapAdminStatus","Mind map saved.");loadAdminMindMaps();
+    }
+    async function loadAdminMindMaps(){
+      const {data,error}=await sb.from("materials").select("id,title,level,subject,is_premium,is_published,file_bucket,file_path,external_url").eq("category","mind_map").order("created_at",{ascending:false}).limit(200);
+      const list=$("#adminMindMaps");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load mind maps.":"No mind maps uploaded yet.");return}
+      data.forEach(row=>{
+        const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+(row.subject||"No subject")+" · "+(row.is_premium?"Premium":"Free")+" · "+(row.is_published?"Published":"Draft");info.append(h,p);
+        const actions=document.createElement("div");actions.className="row-actions";
+        const access=document.createElement("button");access.className="btn";access.type="button";access.textContent=row.is_premium?"Set Free":"Set Premium";access.addEventListener("click",async()=>{access.disabled=true;const {error}=await sb.from("materials").update({is_premium:!row.is_premium}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:(row.is_premium?"Mind map is now free.":"Mind map is now premium and access-restricted."),error?"error":"success");loadAdminMindMaps()});
+        const visibility=document.createElement("button");visibility.className="btn";visibility.type="button";visibility.textContent=row.is_published?"Unpublish":"Publish";visibility.addEventListener("click",async()=>{visibility.disabled=true;const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:"Mind map visibility updated.",error?"error":"success");loadAdminMindMaps()});
+        const remove=document.createElement("button");remove.className="btn danger";remove.type="button";remove.textContent="Delete";remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” permanently from CA Junction?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#mindMapAdminStatus",error.message,"error");remove.disabled=false;return}if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);if(storageError)msg("#mindMapAdminStatus","Mind map deleted, but its stored PDF could not be cleaned up: "+storageError.message,"error");else msg("#mindMapAdminStatus","Mind map deleted.","success")}else msg("#mindMapAdminStatus","Mind map deleted.","success");loadAdminMindMaps()});
+        actions.append(access,visibility,remove);item.append(info,actions);list.append(item);
+      });
     }
     async function loadAdminResources(){
       const {data}=await sb.from("materials").select("id,title,level,category,is_premium,is_published").order("created_at",{ascending:false}).limit(100);
