@@ -283,7 +283,7 @@
     const {error:claimError}=await sb.rpc("register_material_download",{target_material:material.id});
     if(claimError){msg(statusId,claimError.message,"error");return}
     const {data,error}=await sb.storage.from(material.file_bucket||"ca-materials").createSignedUrl(material.file_path,90);
-    if(error){msg("#materialStatus",error.message,"error");return}
+    if(error){msg(statusId,error.message,"error");return}
     window.open(data.signedUrl,"_blank","noopener");
     msg(statusId,"PDF opened.");
   }
