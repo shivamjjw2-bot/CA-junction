@@ -154,8 +154,8 @@
     if (!ready()) {
       msg("#authStatus", backendMessage);
       msg("#uploadStatus", backendMessage);
-      msg("#paymentStatus", backendMessage);
-      msg("#upiSetupStatus", "Add your Supabase project URL, public key and UPI ID before accepting payments.");
+      
+      
       $("#signInForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
       $("#signUpForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
       return;
