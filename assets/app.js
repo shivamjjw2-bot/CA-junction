@@ -192,7 +192,7 @@
   async function submitStudentNote(event) {
     event.preventDefault();
     const {data:{user}}=await sb.auth.getUser();
-    if(!user){msg("#uploadStatus","Sign in before uploading your notes.","error");return}
+    if(!user){location.href="account.html?next=upload.html";return}
     const file=$("#notePdf").files[0];
     if(!file || file.type!=="application/pdf" || file.size>10*1024*1024){msg("#uploadStatus","Choose a PDF no larger than 10 MB.","error");return}
     const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
@@ -374,6 +374,7 @@
     if(ready())sb.auth.getUser().then(({data})=>loadTodayHours(data.user?.id));else loadTodayHours();
     const planList=$("#planList");
     async function loadPlans(){
+      if(!planList)return;
       if(!ready()){emptyRow(planList,"Connect an account to save planner tasks online.");return}
       const {data:{user}}=await sb.auth.getUser();if(!user){emptyRow(planList,"Sign in to save your planner tasks.");return}
       const {data,error}=await sb.from("study_plans").select("*").eq("user_id",user.id).order("created_at",{ascending:false});
@@ -439,7 +440,9 @@
     $("#adminProductForm")?.addEventListener("submit",saveProduct);
     $("#adminCourseForm")?.addEventListener("submit",saveCourse);
     $("#groupLinkForm")?.addEventListener("submit",saveGroupLink);
-    await Promise.all([loadAdminResources(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents()]);
+    $("#virtualLibraryForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library","Virtual Library study room","#virtualLibraryUrl","#virtualLibraryStatus"));
+    $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
+    await Promise.all([loadAdminResources(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
     async function saveMaterial(e){
       e.preventDefault();msg("#resourceStatus","Saving resource…");const {data:{user}}=await sb.auth.getUser();let path=null,bucket=null;const file=$("#resourcePdf").files[0];
       if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#resourceStatus","Choose a PDF no larger than 50 MB.","error");return}bucket="ca-materials";path="admin/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from(bucket).upload(path,file,{contentType:"application/pdf"});if(error){msg("#resourceStatus",error.message,"error");return}}
@@ -489,11 +492,21 @@
       const {error}=await sb.from("products").insert({title:$("#productTitle").value.trim(),description:$("#productDescription").value.trim(),product_type:productType,material_id:productType==="material"?materialId:null,test_id:productType==="test"?testId:null,price_inr:Number($("#productPrice").value),duration_days:productType==="membership"?Number($("#productDuration").value||30):null,is_active:$("#productActive").checked});
       if(error){msg("#productStatus",error.message,"error");return}e.target.reset();msg("#productStatus","Product saved.");loadAdminProducts();
     }
+    async function saveManagedLink(e,key,label,inputSelector,statusSelector){
+      e.preventDefault();const url=$(inputSelector).value.trim();
+      try{const parsed=new URL(url);if(!["http:","https:"].includes(parsed.protocol))throw new Error()}catch{msg(statusSelector,"Enter a valid link beginning with https://.","error");return}
+      const {error}=await sb.from("premium_resources").upsert({resource_key:key,label,resource_url:url,is_active:true,updated_at:new Date().toISOString()},{onConflict:"resource_key"});
+      msg(statusSelector,error?error.message:"Link saved.",error?"error":"success");
+    }
+    async function loadManagedLinks(){
+      const {data,error}=await sb.from("premium_resources").select("resource_key,resource_url").in("resource_key",["virtual_library","doubt_solving"]);
+      if(error)return;(data||[]).forEach(row=>{if(row.resource_key==="virtual_library"&&$("#virtualLibraryUrl"))$("#virtualLibraryUrl").value=row.resource_url;if(row.resource_key==="doubt_solving"&&$("#doubtSolvingUrl"))$("#doubtSolvingUrl").value=row.resource_url});
+    }
     async function saveGroupLink(e){
       e.preventDefault();const url=$("#groupUrl").value.trim();
       if(!/^https:\/\/chat\.whatsapp\.com\//i.test(url)){msg("#groupAdminStatus","Enter a valid WhatsApp group invite link.","error");return}
-      const {error}=await sb.from("premium_resources").upsert({resource_key:"whatsapp_study_group",label:"Premium WhatsApp study group",resource_url:url,is_active:true,updated_at:new Date().toISOString()},{onConflict:"resource_key"});
-      msg("#groupAdminStatus",error?error.message:"Members-only group link saved.",error?"error":"success");
+      const {error}=await sb.from("premium_resources").upsert({resource_key:"whatsapp_study_group",label:"Student WhatsApp study group",resource_url:url,is_active:true,updated_at:new Date().toISOString()},{onConflict:"resource_key"});
+      msg("#groupAdminStatus",error?error.message:"Student group invite saved.",error?"error":"success");
     }
     async function loadProductTargets(){
       const [m,t]=await Promise.all([sb.from("materials").select("id,title").order("created_at",{ascending:false}),sb.from("study_tests").select("id,title").order("created_at",{ascending:false})]);
