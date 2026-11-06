@@ -153,13 +153,16 @@
   function initAccount() {
     if (!ready()) {
       msg("#authStatus", backendMessage);
-      msg("#uploadStatus", backendMessage);
+      msg("#uploadStatus", backendMessage);\n      $("#noteUploadForm")?.querySelectorAll("input,button").forEach(control=>control.disabled=true);
       
       
       $("#signInForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
       $("#signUpForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
       return;
     }
+    const chosenLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"Foundation";
+    if($("#noteLevel"))$("#noteLevel").value=chosenLevel;
+    if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent=chosenLevel;
     const signInTab=$("#signInTab"), signUpTab=$("#signUpTab"), signIn=$("#signInForm"), signUp=$("#signUpForm");
     const chooseTab = which => {
       const signingIn=which==="signin";
@@ -180,7 +183,7 @@
       const {data,error}=await sb.auth.signUp({email:$("#signupEmail").value.trim(),password:$("#signupPassword").value,options:{data:{full_name:$("#signupName").value.trim(),ca_level:$("#signupLevel").value}}});
       if(error){msg("#authStatus",error.message,"error");return}
       msg("#authStatus",data.session ? "Account created. Opening your dashboard…" : "Account created. Check your email to confirm, then sign in.");
-      if(data.session) location.href="platform.html";
+      if(data.session) location.href=new URLSearchParams(location.search).get("next")==="upload.html"?"upload.html":"platform.html";
     });
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
   }
@@ -231,46 +234,57 @@
   }
 
   function initStudy() {
-    const search=$("#materialSearch"),level=$("#materialLevel"),category=$("#materialCategory");
-    const grid=$("#materialsGrid");let all=[];
-    if(!ready()){msg("#materialStatus",backendMessage);return}
-    const render=()=>{
-      if(!grid)return;grid.replaceChildren();
-      const q=(search?.value||"").trim().toLowerCase();
-      const selectedLevel=level?.value||"",selectedCategory=category?.value||"";
-      const rows=all.filter(m=>(!selectedLevel||m.level===selectedLevel||m.level==="All")&&(!selectedCategory||m.category===selectedCategory)&&(!q||(m.title+" "+m.description+" "+m.subject).toLowerCase().includes(q)));
-      if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent="No published resources match these filters.";grid.append(e);return}
-      rows.forEach(m=>{
-        const card=document.createElement("article");card.className="card";
-        const badge=document.createElement("span");badge.className="badge free";badge.textContent="Free";
-        const h=document.createElement("h3");h.textContent=m.title;
-        const p=document.createElement("p");p.textContent=m.description||m.subject||m.level;
-        const meta=document.createElement("span");meta.className="badge";meta.textContent=m.level+" · "+m.category.replaceAll("_"," ");
-        const action=m.external_url?document.createElement("a"):document.createElement("button");
+    const search=$("#materialSearch");
+    const studentGrid=$("#studentNotesGrid");
+    const adminGrid=$("#adminResourcesGrid");
+    const level=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
+    const levelLabel=$("#selectedLevelLabel");
+    if(levelLabel) levelLabel.textContent=level?"Showing "+level+" resources.":"All levels";
+    const statusFor=grid=>grid===studentGrid?"#materialStatus":"#adminResourcesStatus";
+    if(!ready()){msg("#materialStatus",backendMessage);msg("#adminResourcesStatus",backendMessage);return}
+    let all=[];
+    const matchesLevel=row=>!level||row.level==="All"||row.level===level;
+    const draw=(grid,rows,emptyText,statusId)=>{
+      if(!grid)return;
+      grid.replaceChildren();
+      if(!rows.length){const empty=document.createElement("div");empty.className="empty";empty.textContent=emptyText;grid.append(empty);return}
+      rows.forEach(row=>{
+        const card=document.createElement("article");card.className="note";
+        const title=document.createElement("h3");title.textContent=row.title;
+        card.append(title);
+        const detail=document.createElement("p");detail.textContent=row.description||[row.subject,row.level].filter(Boolean).join(" · ");if(detail.textContent)card.append(detail);
+        const meta=document.createElement("small");meta.textContent=[row.level,row.subject].filter(Boolean).join(" · ");if(meta.textContent)card.append(meta);
+        const action=row.external_url?document.createElement("a"):document.createElement("button");
         action.className="link";
-        if(m.external_url){action.href=m.external_url;action.target="_blank";action.rel="noopener";action.textContent="Open resource ↗"}
-        else{action.type="button";action.textContent="Download PDF";action.addEventListener("click",()=>downloadMaterial(m))}
-        card.append(badge,h,p,meta,action);grid.append(card);
+        if(row.external_url){action.href=row.external_url;action.target="_blank";action.rel="noopener";action.textContent="Open PDF ↗"}
+        else{action.type="button";action.textContent="Open PDF";action.addEventListener("click",()=>downloadMaterial(row,statusId))}
+        card.append(action);grid.append(card);
       });
     };
-    [search,level,category].forEach(el=>el?.addEventListener("input",render));
-    [level,category].forEach(el=>el?.addEventListener("change",render));
-    const requested=new URLSearchParams(location.search).get("level");
-    if(["Foundation","Intermediate","Final"].includes(requested)&&level)level.value=requested;
-    sb.from("materials").select("id,title,description,level,subject,category,file_bucket,file_path,external_url,is_premium,created_at").eq("is_published",true).order("created_at",{ascending:false}).then(({data,error})=>{
-      if(error){msg("#materialStatus",error.message,"error");return}all=data||[];render();
+    const render=()=>{
+      const q=(search?.value||"").trim().toLowerCase();
+      const students=all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!q||(row.title+" "+row.description+" "+row.subject).toLowerCase().includes(q)));
+      const admin=all.filter(row=>["revision","mind_map","formula"].includes(row.category)&&matchesLevel(row));
+      draw(studentGrid,students,"No student notes for this level yet.","#materialStatus");
+      draw(adminGrid,admin,"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
+    };
+    search?.addEventListener("input",render);
+    sb.from("materials").select("id,title,description,level,subject,category,file_bucket,file_path,external_url,created_at").eq("is_published",true).order("created_at",{ascending:false}).then(({data,error})=>{
+      if(error){msg(statusId,error.message,"error");msg("#adminResourcesStatus",error.message,"error");return}
+      all=data||[];render();
     });
   }
-  async function downloadMaterial(material){
+
+  async function downloadMaterial(material,statusId="#materialStatus"){
     const {data:{user}}=await sb.auth.getUser();
-    if(!user){location.href="account.html?next="+encodeURIComponent("study.html");return}
-    msg("#materialStatus","Checking access…");
+    if(!user){location.href="account.html?next="+encodeURIComponent(location.pathname.split("/").pop()+location.search);return}
+    msg(statusId,"Opening PDF…");
     const {error:claimError}=await sb.rpc("register_material_download",{target_material:material.id});
-    if(claimError){msg("#materialStatus",claimError.message,"error");return}
+    if(claimError){msg(statusId,claimError.message,"error");return}
     const {data,error}=await sb.storage.from(material.file_bucket||"ca-materials").createSignedUrl(material.file_path,90);
     if(error){msg("#materialStatus",error.message,"error");return}
     window.open(data.signedUrl,"_blank","noopener");
-    msg("#materialStatus","Your secure download link is ready.");
+    msg(statusId,"PDF opened.");
   }
 
   function initTests(){
@@ -380,6 +394,14 @@
       const a=$("#groupLink");a.href=data.resource_url;a.hidden=false;msg("#groupStatus","Premium study group link is available to your account.");
     }
     loadPlans();
+  }
+
+  async function initResourceLink(){
+    const link=$("#resourceLink"),status=$("#resourceStatus"),key=document.body.dataset.resourceKey;
+    if(!ready()){if(status)status.textContent="This link has not been added yet.";return}
+    const {data,error}=await sb.from("premium_resources").select("resource_url").eq("resource_key",key).eq("is_active",true).maybeSingle();
+    if(error||!data){if(status)status.textContent="This link has not been added yet.";return}
+    link.href=data.resource_url;link.hidden=false;if(status)status.textContent="";
   }
 
   function initCareer(){
@@ -531,7 +553,7 @@
     if(page==="home")initHome();
     if(page==="account")initAccount();
     if(page==="dashboard")initDashboard();
-    if(page==="study")initStudy();
+    if(page==="study")initStudy();\n    if(page==="resource-link")initResourceLink();
     if(page==="tests")initTests();
     if(page==="planner")initPlanner();
     if(page==="career")initCareer();
