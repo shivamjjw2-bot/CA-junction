@@ -81,6 +81,7 @@
       levelButtons.forEach(x => x.setAttribute("aria-pressed", String(x === button)));
       localStorage.setItem("caJunctionLevel", button.dataset.level);
       if (levelMsg) levelMsg.textContent = button.dataset.level + " selected. Your next links will open at this level.";
+      $("#service-heads")?.scrollIntoView({behavior:"smooth",block:"start"});
     }));
     document.addEventListener("click", event => {
       const link = event.target.closest('a[href$=".html"],a[href*=".html#"]');
@@ -252,7 +253,8 @@
     const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
     if(role)$("#adminLink").hidden=false;
     const {data:membership}=await sb.from("memberships").select("expires_at").eq("user_id",user.id).maybeSingle();
-    $("#membershipStatus").textContent=membership?.expires_at && new Date(membership.expires_at)>new Date() ? "Premium active until "+new Date(membership.expires_at).toLocaleDateString("en-IN") : "Free account · 3 free PDF downloads";
+    const {count:downloadCount}=await sb.from("material_downloads").select("material_id",{count:"exact",head:true}).eq("user_id",user.id);
+    $("#membershipStatus").textContent=membership?.expires_at && new Date(membership.expires_at)>new Date() ? "Premium active until "+new Date(membership.expires_at).toLocaleDateString("en-IN") : "Free account · "+Math.max(0,3-(downloadCount||0))+" free PDF downloads remaining";
     const [downloads,attempts,orders,plans,evals]=await Promise.all([
       sb.from("material_downloads").select("downloaded_at,materials(title,level)").eq("user_id",user.id).order("downloaded_at",{ascending:false}).limit(10),
       sb.from("test_attempts").select("score,total_questions,submitted_at,study_tests(title)").eq("user_id",user.id).order("submitted_at",{ascending:false}).limit(10),
@@ -455,7 +457,7 @@
     $("#adminJobForm")?.addEventListener("submit",saveJob);
     $("#adminProductForm")?.addEventListener("submit",saveProduct);
     $("#groupLinkForm")?.addEventListener("submit",saveGroupLink);
-    await Promise.all([loadAdminResources(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue()]);
+    await Promise.all([loadAdminResources(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets()]);
     async function saveMaterial(e){
       e.preventDefault();msg("#resourceStatus","Saving resource…");const {data:{user}}=await sb.auth.getUser();let path=null,bucket=null;const file=$("#resourcePdf").files[0];
       if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#resourceStatus","Choose a PDF no larger than 50 MB.","error");return}bucket="ca-materials";path="admin/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from(bucket).upload(path,file,{contentType:"application/pdf"});if(error){msg("#resourceStatus",error.message,"error");return}}
@@ -498,7 +500,11 @@
       if(error){msg("#jobAdminStatus",error.message,"error");return}e.target.reset();msg("#jobAdminStatus","Opportunity saved.");
     }
     async function saveProduct(e){
-      e.preventDefault();const {error}=await sb.from("products").insert({title:$("#productTitle").value.trim(),description:$("#productDescription").value.trim(),product_type:$("#productType").value,price_inr:Number($("#productPrice").value),duration_days:$("#productType").value==="membership"?Number($("#productDuration").value||30):null,is_active:$("#productActive").checked});
+      e.preventDefault();const productType=$("#productType").value;
+      const materialId=$("#productMaterial")?.value||null,testId=$("#productTest")?.value||null;
+      if(productType==="material"&&!materialId){msg("#productStatus","Choose the material this product unlocks.","error");return}
+      if(productType==="test"&&!testId){msg("#productStatus","Choose the test this product unlocks.","error");return}
+      const {error}=await sb.from("products").insert({title:$("#productTitle").value.trim(),description:$("#productDescription").value.trim(),product_type:productType,material_id:productType==="material"?materialId:null,test_id:productType==="test"?testId:null,price_inr:Number($("#productPrice").value),duration_days:productType==="membership"?Number($("#productDuration").value||30):null,is_active:$("#productActive").checked});
       if(error){msg("#productStatus",error.message,"error");return}e.target.reset();msg("#productStatus","Product saved.");loadAdminProducts();
     }
     async function saveGroupLink(e){
@@ -506,6 +512,12 @@
       if(!/^https:\/\/chat\.whatsapp\.com\//i.test(url)){msg("#groupAdminStatus","Enter a valid WhatsApp group invite link.","error");return}
       const {error}=await sb.from("premium_resources").upsert({resource_key:"whatsapp_study_group",label:"Premium WhatsApp study group",resource_url:url,is_active:true,updated_at:new Date().toISOString()},{onConflict:"resource_key"});
       msg("#groupAdminStatus",error?error.message:"Members-only group link saved.",error?"error":"success");
+    }
+    async function loadProductTargets(){
+      const [m,t]=await Promise.all([sb.from("materials").select("id,title").order("created_at",{ascending:false}),sb.from("study_tests").select("id,title").order("created_at",{ascending:false})]);
+      const materialSelect=$("#productMaterial"),testSelect=$("#productTest");
+      if(materialSelect){materialSelect.replaceChildren();const o=document.createElement("option");o.value="";o.textContent="Choose a material";materialSelect.append(o);(m.data||[]).forEach(row=>{const option=document.createElement("option");option.value=row.id;option.textContent=row.title;materialSelect.append(option)})}
+      if(testSelect){testSelect.replaceChildren();const o=document.createElement("option");o.value="";o.textContent="Choose a test";testSelect.append(o);(t.data||[]).forEach(row=>{const option=document.createElement("option");option.value=row.id;option.textContent=row.title;testSelect.append(option)})}
     }
     async function loadAdminProducts(){
       const {data}=await sb.from("products").select("id,title,product_type,price_inr,is_active").order("created_at",{ascending:false});
