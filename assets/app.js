@@ -67,6 +67,8 @@
   }
 
   function initHome() {
+    const accountLink=$("#accountNavLink");
+    if(accountLink&&ready())sb.auth.getUser().then(({data:{user}}=>{if(user){accountLink.href="platform.html";accountLink.textContent="My Dashboard";}}));
     const levelButtons = $(".level-card[data-level]");
     $("a").forEach(link => link.addEventListener("click", () => {
       if (!link.hash) return;
@@ -180,14 +182,14 @@
       e.preventDefault();msg("#authStatus","Signing in…");
       const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
       if(error){msg("#authStatus",error.message,"error");return}
-      const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"platform.html";
+      const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";
     });
     signUp?.addEventListener("submit",async e=>{
       e.preventDefault();msg("#authStatus","Creating your account…");
       const {data,error}=await sb.auth.signUp({email:$("#signupEmail").value.trim(),password:$("#signupPassword").value,options:{data:{full_name:$("#signupName").value.trim(),ca_level:$("#signupLevel").value}}});
       if(error){msg("#authStatus",error.message,"error");return}
       msg("#authStatus",data.session ? "Account created. Opening your dashboard…" : "Account created. Check your email to confirm, then sign in.");
-      if(data.session){const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"platform.html";}
+      if(data.session){const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";}
     });
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
   }
