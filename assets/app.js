@@ -68,7 +68,7 @@
 
   function initHome() {
     const accountLink=$("#accountNavLink");
-    if(accountLink&&ready())sb.auth.getUser().then(({data:{user}}=>{if(user){accountLink.href="platform.html";accountLink.textContent="My Dashboard";}}));
+    if(accountLink&&ready())sb.auth.getUser().then(({data:{user}})=>{if(user){accountLink.href="platform.html";accountLink.textContent="My Dashboard";}});
     const levelButtons = $(".level-card[data-level]");
     $("a").forEach(link => link.addEventListener("click", () => {
       if (!link.hash) return;
