@@ -184,7 +184,7 @@
       const {data,error}=await sb.auth.signUp({email:$("#signupEmail").value.trim(),password:$("#signupPassword").value,options:{data:{full_name:$("#signupName").value.trim(),ca_level:$("#signupLevel").value}}});
       if(error){msg("#authStatus",error.message,"error");return}
       msg("#authStatus",data.session ? "Account created. Opening your dashboard…" : "Account created. Check your email to confirm, then sign in.");
-      if(data.session){const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\\.html(?:[?#]|$)/.test(nextPage)?nextPage:"platform.html";}
+      if(data.session){const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"platform.html";}
     });
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
   }
