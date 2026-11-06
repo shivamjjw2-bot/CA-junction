@@ -184,7 +184,7 @@
       const {data,error}=await sb.auth.signUp({email:$("#signupEmail").value.trim(),password:$("#signupPassword").value,options:{data:{full_name:$("#signupName").value.trim(),ca_level:$("#signupLevel").value}}});
       if(error){msg("#authStatus",error.message,"error");return}
       msg("#authStatus",data.session ? "Account created. Opening your dashboard…" : "Account created. Check your email to confirm, then sign in.");
-      if(data.session) location.href=new URLSearchParams(location.search).get("next")==="upload.html"?"upload.html":"platform.html";
+      if(data.session){const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\\.html(?:[?#]|$)/.test(nextPage)?nextPage:"platform.html";}
     });
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
   }
@@ -270,7 +270,7 @@
     };
     search?.addEventListener("input",render);
     sb.from("materials").select("id,title,description,level,subject,category,file_bucket,file_path,external_url,created_at").eq("is_published",true).order("created_at",{ascending:false}).then(({data,error})=>{
-      if(error){msg(statusId,error.message,"error");msg("#adminResourcesStatus",error.message,"error");return}
+      if(error){msg("#materialStatus",error.message,"error");msg("#adminResourcesStatus",error.message,"error");return}
       all=data||[];render();
     });
   }
