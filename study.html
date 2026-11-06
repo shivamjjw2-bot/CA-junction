@@ -106,7 +106,7 @@ footer{border-top:1px solid rgba(255,255,255,.1);padding:30px 0;margin-top:50px;
    <span class="logo-box">CA</span>
    <span>CA <b>Junction</b></span>
   </a>
-  <a href="index.html">← Home</a>
+  <div class="nav-actions" style="display:flex;align-items:center;gap:16px"><a href="platform.html">Student workspace →</a><a href="index.html">← Home</a></div>
  </div>
 </header>
 
@@ -246,7 +246,9 @@ function filterMaterials(){
  document.getElementById("empty").style.display=count?"none":"block";
  document.getElementById("resultCount").textContent=`Showing ${count} ${count===1?"material":"materials"}.`;
 }
-filterMaterials();
+const requestedLevel=new URLSearchParams(window.location.search).get("level");
+const requestedCard=[...document.querySelectorAll(".level")].find(card=>card.querySelector("h3").textContent.includes(requestedLevel||"__none__"));
+if(["Foundation","Intermediate","Final"].includes(requestedLevel)&&requestedCard)chooseLevel(requestedLevel,requestedCard);else filterMaterials();
 function preview(){
  alert("Study materials will be available here soon. Content will be managed through the CA Junction Admin Panel.");
 }
