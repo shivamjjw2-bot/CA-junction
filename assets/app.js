@@ -194,19 +194,62 @@
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
   }
 
+  async function uploadStudentNoteResumable(file,path,onProgress){
+    if(!window.tus?.Upload){
+      const {error}=await sb.storage.from("student-notes").upload(path,file,{contentType:"application/pdf",upsert:false});
+      if(error)throw error;
+      onProgress(file.size,file.size);
+      return;
+    }
+    const {data:{session},error:sessionError}=await sb.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!session)throw new Error("Your sign-in expired. Please sign in again and retry.");
+    const projectHost=new URL(app.config.SUPABASE_URL).hostname;
+    const storageHost=projectHost.replace(".supabase.co",".storage.supabase.co");
+    const endpoint="https://"+storageHost+"/storage/v1/upload/resumable";
+    await new Promise((resolve,reject)=>{
+      const upload=new window.tus.Upload(file,{
+        endpoint,
+        retryDelays:[0,1000,3000,5000,10000],
+        headers:{authorization:"Bearer "+session.access_token,apikey:app.config.SUPABASE_PUBLISHABLE_KEY,"x-upsert":"false"},
+        metadata:{bucketName:"student-notes",objectName:path,contentType:"application/pdf",cacheControl:"3600"},
+        chunkSize:6*1024*1024,
+        uploadDataDuringCreation:true,
+        removeFingerprintOnSuccess:true,
+        onError:reject,
+        onProgress:onProgress,
+        onSuccess:resolve
+      });
+      upload.start();
+    });
+  }
+
   async function submitStudentNote(event) {
     event.preventDefault();
     const {data:{user}}=await sb.auth.getUser();
     if(!user){location.href="account.html?next=upload.html";return}
     const file=$("#notePdf").files[0];
-    if(!file || file.type!=="application/pdf" || file.size>10*1024*1024){msg("#uploadStatus","Choose a PDF no larger than 10 MB.","error");return}
+    if(!file || !(file.type==="application/pdf"||/\.pdf$/i.test(file.name)) || file.size>50*1024*1024){msg("#uploadStatus","Choose a PDF no larger than 50 MB. The current storage plan does not accept larger files.","error");return}
     const instagramHandle=$("#noteInstagram").value.trim().replace(/^@/,"");
     if(instagramHandle&&!/^[A-Za-z0-9._]{1,30}$/.test(instagramHandle)){msg("#uploadStatus","Enter a valid Instagram handle, such as @yourusername.","error");return}
     const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
     const path=user.id+"/"+crypto.randomUUID()+"_"+safeName;
     msg("#uploadStatus","Uploading your PDF securely…");
-    const {error:uploadError}=await sb.storage.from("student-notes").upload(path,file,{contentType:"application/pdf",upsert:false});
-    if(uploadError){msg("#uploadStatus",uploadError.message,"error");return}
+    const submitButton=$("#noteUploadForm button[type=submit]"),progress=$("#uploadProgress"),progressText=$("#uploadProgressText");
+    if(submitButton)submitButton.disabled=true;
+    if(progress){progress.hidden=false;progress.value=0}
+    if(progressText){progressText.hidden=false;progressText.textContent="0% uploaded"}
+    try{
+      await uploadStudentNoteResumable(file,path,(uploaded,total)=>{
+        const percent=total?Math.min(100,Math.round(uploaded/total*100)):0;
+        if(progress)progress.value=percent;
+        if(progressText)progressText.textContent=percent+"% uploaded";
+      });
+    }catch(uploadError){
+      msg("#uploadStatus",uploadError.message||"The PDF upload failed. Check your connection and try again.","error");
+      if(submitButton)submitButton.disabled=false;
+      return;
+    }
     const {error}=await sb.from("student_note_submissions").insert({
       user_id:user.id,title:$("#noteTitle").value.trim(),level:$("#noteLevel").value,
       subject:$("#noteSubject").value.trim(),description:$("#noteDescription").value.trim(),contributor_name:$("#noteContributorName").value.trim(),instagram_handle:instagramHandle,file_path:path
