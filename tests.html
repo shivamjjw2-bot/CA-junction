@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mock Tests | CA Junction</title>
+<style>
+:root{--bg:#080b16;--panel:rgba(255,255,255,.045);--line:rgba(255,255,255,.11);--purple:#a78bfa;--text:#f4f4fb;--muted:#9ca3b8}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth;scroll-padding-top:85px}body{background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}
+a{color:inherit;text-decoration:none}button,input,select{font:inherit}.container{width:min(1060px,92%);margin:auto}
+header{position:sticky;top:0;background:rgba(8,11,22,.9);backdrop-filter:blur(18px);border-bottom:1px solid var(--line);z-index:5}.nav{min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:20px;font-weight:800}.brand b{color:var(--purple)}.nav a:last-child{color:#c4b5fd}
+.hero{padding:52px 0 30px}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#c4b5fd;font-weight:750}h1{font-size:clamp(34px,6vw,56px);line-height:1.1;letter-spacing:-2px;margin:7px 0 12px}.gradient{background:linear-gradient(100deg,#c4b5fd,#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent}p{color:var(--muted)}
+section{padding:26px 0}.section-head{margin-bottom:16px}.section-head h2{font-size:27px;margin:5px 0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}.card h3{font-size:17px;margin:6px 0}.card p{font-size:14px}.badge{display:inline-block;border-radius:18px;padding:3px 9px;font-size:11px;background:rgba(167,139,250,.13);color:#d5cbff}.badge.free{background:rgba(34,197,94,.13);color:#86efac}.btn{display:inline-flex;border:1px solid rgba(167,139,250,.28);border-radius:11px;padding:10px 14px;background:rgba(139,92,246,.14);color:#e2d9ff;font-weight:700;margin-top:12px}.notice{padding:14px;border-left:3px solid var(--purple);background:rgba(167,139,250,.08);border-radius:0 10px 10px 0;font-size:13px;color:#d4d7e5}
+.empty{grid-column:1/-1;border:1px dashed rgba(255,255,255,.2);border-radius:14px;padding:18px;color:var(--muted)}
+label{display:block;color:#cbd0df;font-size:13px;margin:12px 0 5px}input,select{width:100%;padding:11px;background:#111526;border:1px solid #30354b;border-radius:10px;color:white}
+.answer{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:11px;margin:8px 0}.answer input{width:auto;margin-top:5px}.status{min-height:24px;color:#c4b5fd;font-size:13px;margin-top:10px}.test-layout{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+footer{margin-top:30px;padding:24px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+:focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}
+@media(max-width:750px){.grid{grid-template-columns:1fr}.test-layout{grid-template-columns:1fr}.hero{padding-top:38px}}
+</style></head>
+<body data-page="tests">
+<header><div class="container nav"><a class="brand" href="index.html">CA <b>Junction</b></a><div><a href="study.html">Study Materials</a>　<a href="account.html">My Account</a>　<a href="index.html">Home</a></div></div></header>
+<main class="container">
+<div class="hero"><div class="eyebrow">Mock tests & practice</div><h1>Practise with a plan.<br><span class="gradient">Review your progress.</span></h1><p>Try official ICAI test series for free or sign in to access CA Junction member tests and evaluated answer scripts.</p></div>
+<section id="free-series">
+ <div class="section-head"><div class="eyebrow">Free · ICAI test series</div><h2>Official full-syllabus practice.</h2></div>
+ <div class="grid">
+  <article class="card"><span class="badge free">Free · Part 1</span><h3>ICAI full-syllabus test · Part 1</h3><p>Open ICAI’s latest test-series announcements and select the paper and attempt relevant to you.</p><a class="btn" href="https://icai.org/category/announcements" target="_blank" rel="noopener">Find ICAI test series ↗</a></article>
+  <article class="card"><span class="badge free">Free · Part 2</span><h3>ICAI full-syllabus test · Part 2</h3><p>Continue with the second part from ICAI’s official test-series resources.</p><a class="btn" href="https://boslive.icai.org/" target="_blank" rel="noopener">Open ICAI BoS portal ↗</a></article>
+  <article class="card"><span class="badge">CA Junction</span><h3>Chapter-wise MCQ practice</h3><p>Member quizzes published by the CA Junction admin will appear below.</p><a class="btn" href="#member-tests">View member tests ↓</a></article>
+ </div>
+</section>
+<section id="member-tests">
+ <div class="section-head"><div class="eyebrow">Member test library</div><h2>Available tests.</h2><p>Admin-published practice sets will appear here. Premium sets require an active membership or purchase.</p></div>
+ <div class="grid" id="testsGrid"><div class="empty">No CA Junction tests have been published yet.</div></div>
+ <p id="testsStatus" class="status" role="status" aria-live="polite"></p>
+</section>
+<section id="practice">
+ <div class="section-head"><div class="eyebrow">Online MCQ tests</div><h2>Attempt an available quiz.</h2><p>Scores are recorded to your account. Correct answers are not exposed before you submit.</p></div>
+ <div class="panel" id="quizPanel"><div class="notice">Sign in, then choose an available MCQ test from the member test library.</div><form id="quizForm" hidden><div id="questionArea"></div><button class="btn" type="submit">Submit test</button></form><p id="quizStatus" class="status" role="status" aria-live="polite"></p></div>
+</section>
+<section id="evaluated">
+ <div class="section-head"><div class="eyebrow">Written test evaluation</div><h2>Submit an answer script.</h2><p>Premium full-syllabus tests may include evaluation by an assigned reviewer. Your result is unlocked after the review is recorded.</p></div>
+ <div class="test-layout"><div class="panel"><form id="evaluationForm"><label for="evaluationTest">Choose an evaluated test</label><select id="evaluationTest" required><option value="">Loading available tests…</option></select><label for="answerPdf">Answer script PDF</label><input id="answerPdf" type="file" accept="application/pdf" required><button class="btn" type="submit">Submit for evaluation</button></form><p id="evaluationStatus" class="status" role="status" aria-live="polite"></p></div><div class="notice">Evaluation requests are private to your account. Only a CA Junction admin or assigned checker can view and score your submission.</div></div>
+</section>
+<section><div class="notice">Membership unlocks eligible quizzes and evaluated tests. Check your account for current plans and prices.</div><a class="btn" href="account.html#membership">View membership options →</a></section>
+</main>
+<footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js"></script>
+</body></html>
