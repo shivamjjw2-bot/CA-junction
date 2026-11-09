@@ -37,7 +37,7 @@
   const escapeAttr = value => safeText(value).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
   const timerStateKey="caJunctionStudyTimer";
-  function readTimerState(){try{const saved=JSON.parse(localStorage.getItem(timerStateKey)||"{}");return{elapsed:Number(saved.elapsed)||0,runningSince:Number(saved.runningSince)||null,minimized:Boolean(saved.minimized),focusMode:Boolean(saved.focusMode)}}catch{return{elapsed:0,runningSince:null,minimized:false,focusMode:false}}}
+  function readTimerState(){try{const saved=JSON.parse(localStorage.getItem(timerStateKey)||"{}");return{elapsed:Number(saved.elapsed)||0,runningSince:Number(saved.runningSince)||null,minimized:Boolean(saved.minimized),countdownMinimized:Boolean(saved.countdownMinimized),focusMode:Boolean(saved.focusMode)}}catch{return{elapsed:0,runningSince:null,minimized:false,focusMode:false}}}
   let studyTimer=readTimerState();
   function saveTimerState(){localStorage.setItem(timerStateKey,JSON.stringify(studyTimer));window.dispatchEvent(new Event("ca:timer-update"))}
   function currentTimerSeconds(){return studyTimer.elapsed+(studyTimer.runningSince?Math.max(0,Math.floor((Date.now()-studyTimer.runningSince)/1000)):0)}
@@ -52,8 +52,8 @@
   function startStudyTimer(){if(!studyTimer.runningSince){studyTimer.runningSince=Date.now();saveTimerState()}}
   function initTimerDock(){
     if(!document.getElementById("caTimerDockStyle")){const style=document.createElement("style");style.id="caTimerDockStyle";style.textContent=".ca-timer-dock{position:fixed;z-index:9999;right:16px;bottom:16px;display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid #d8b443;border-radius:13px;background:#111526;box-shadow:0 12px 36px #0009;color:#fff;font:600 13px/1.3 system-ui}.ca-timer-dock[hidden]{display:none}.ca-timer-dock strong{color:#f5c84c;font-variant-numeric:tabular-nums}.ca-timer-dock button,.ca-timer-dock a{border:0;border-radius:8px;padding:7px 9px;background:#282d42;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.ca-timer-dock a{background:#4f46e5}@media(max-width:600px){.ca-timer-dock{left:10px;right:10px;bottom:10px;justify-content:space-between}}";document.head.append(style)}
-    let dock=$("#caTimerDock");if(!dock){dock=document.createElement("aside");dock.id="caTimerDock";dock.className="ca-timer-dock";dock.setAttribute("aria-label","Minimized study timer");dock.innerHTML='<strong id="caTimerDockTime">00:00:00</strong><button id="caTimerDockToggle" type="button">Start</button><a href="tracker.html?timer=restore">Show timer</a>';document.body.append(dock)}
-    const update=()=>{studyTimer=readTimerState();dock.hidden=!studyTimer.minimized;$("#caTimerDockTime").textContent=timerClock(currentTimerSeconds());$("#caTimerDockToggle").textContent=studyTimer.runningSince?"Pause":(currentTimerSeconds()?"Resume":"Start");$("#caTimerDockToggle").onclick=()=>{if(studyTimer.runningSince)pauseStudyTimer();else startStudyTimer();update()}};
+    let dock=$("#caTimerDock");if(!dock){dock=document.createElement("aside");dock.id="caTimerDock";dock.className="ca-timer-dock";dock.setAttribute("aria-label","Minimized study timer");dock.innerHTML='<span id="caDockCountdown" style="color:#f5c84c;font-weight:800"></span><strong id="caTimerDockTime">00:00:00</strong><button id="caTimerDockToggle" type="button">Start</button><a href="tracker.html?timer=restore">Show tracker</a>';document.body.append(dock)}
+    const update=()=>{studyTimer=readTimerState();dock.hidden=!(studyTimer.minimized||studyTimer.countdownMinimized);const savedDate=localStorage.getItem("caJunctionExamDate")||"";const daysLabel=$("#caDockCountdown");if(savedDate){const [y,m,d]=savedDate.split("-").map(Number),target=new Date(y,m-1,d),today=new Date();target.setHours(0,0,0,0);today.setHours(0,0,0,0);const days=Math.round((target-today)/86400000);daysLabel.textContent=days>0?(days+" days left · "):(days===0?"Exam day · ":"")}else daysLabel.textContent="";$("#caTimerDockTime").textContent=timerClock(currentTimerSeconds());$("#caTimerDockToggle").textContent=studyTimer.runningSince?"Pause":(currentTimerSeconds()?"Resume":"Start");$("#caTimerDockToggle").onclick=()=>{if(studyTimer.runningSince)pauseStudyTimer();else startStudyTimer();update()}};
     window.addEventListener("ca:timer-update",update);setInterval(update,1000);update();
   }
 
@@ -497,7 +497,8 @@
   }
 
   function initPlanner(){
-    const date=$("#examDate"),daysDisplay=$("#countdownDays");
+    const date=$("#examDate"),daysDisplay=$("#countdownDays"),countdownPanel=$("#countdownPanel"),countdownMinimize=$("#countdownMinimize");
+    if(date){if(!date.value)date.value=localStorage.getItem("caJunctionExamDate")||"";date.addEventListener("change",()=>{localStorage.setItem("caJunctionExamDate",date.value);renderCountdown();window.dispatchEvent(new Event("ca:timer-update"))})}
     const renderCountdown=()=>{
       if(!date||!daysDisplay)return;
       if(!date.value){daysDisplay.hidden=true;msg("#countdownResult","Your days remaining will appear here.");return}
@@ -507,8 +508,10 @@
       else if(days===0){daysDisplay.textContent="EXAM DAY";msg("#countdownResult","Wishing you calm focus and confidence today.")}
       else{daysDisplay.hidden=true;msg("#countdownResult","That exam date has passed. Choose a future date.","error")}
     };
-    if(new URLSearchParams(location.search).get("timer")==="restore"){studyTimer=readTimerState();studyTimer.minimized=false;saveTimerState();}
-    date?.addEventListener("change",renderCountdown);$("#countdownButton")?.addEventListener("click",renderCountdown);renderCountdown();
+    if(new URLSearchParams(location.search).get("timer")==="restore"){studyTimer=readTimerState();studyTimer.minimized=false;studyTimer.countdownMinimized=false;saveTimerState();}
+    countdownMinimize?.addEventListener("click",()=>{studyTimer=readTimerState();studyTimer.countdownMinimized=true;saveTimerState();if(countdownPanel)countdownPanel.classList.add("is-minimized")});
+    window.addEventListener("ca:timer-update",()=>{studyTimer=readTimerState();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized)});
+    $("#countdownButton")?.addEventListener("click",renderCountdown);renderCountdown();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized);
     const display=$("#focusTimer"),startButton=$("#timerStart"),pauseButton=$("#timerPause"),resetButton=$("#timerReset"),minimizeButton=$("#timerMinimize"),focusButton=$("#timerFocus"),panel=$("#timerPanel");
     const renderTimer=()=>{studyTimer=readTimerState();if(display)display.textContent=timerClock(currentTimerSeconds());if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":(currentTimerSeconds()?"Resume session":"Start session");startButton.disabled=Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(minimizeButton)minimizeButton.disabled=studyTimer.focusMode;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Pause & exit focus":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
     startButton?.addEventListener("click",()=>{startStudyTimer();renderTimer();msg("#timerStatus","Session running. Your elapsed time is saved on this device.")});
