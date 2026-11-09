@@ -31,7 +31,7 @@ input,select{width:100%;padding:12px;background:#111526;border:1px solid #30354b
 .btn-blue:hover{background:linear-gradient(135deg,#60a5fa,#2563eb)}
 .notice{padding:14px;border-left:3px solid var(--purple);background:rgba(167,139,250,.08);border-radius:0 10px 10px 0;font-size:13px;color:#d4d7e5}
 .answer{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:11px;margin:8px 0}
-.answer input{width:auto;margin-top:5px}.status{min-height:24px;color:#c4b5fd;font-size:13px;margin-top:12px}
+.answer input{width:auto;margin-top:5px}.status{min-height:24px;color:#c4b5fd;font-size:13px;margin-top:12px}.mcq-review{margin-top:18px}.mcq-review-list{display:grid;gap:12px;margin-top:14px}.mcq-review-item{padding:14px;border:1px solid var(--line);border-left:4px solid #ef4444;border-radius:12px;background:rgba(255,255,255,.035)}.mcq-review-item.mcq-review-correct{border-left-color:#22c55e}.mcq-review-item h3{font-size:15px;margin-bottom:8px}.mcq-review-item p{margin:5px 0;font-size:13px}
 .prep-timer{font-size:13px;color:#86efac;margin-top:2px;font-variant-numeric:tabular-nums}
 footer{padding:22px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 :focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}
@@ -60,9 +60,15 @@ footer{padding:22px 0;border-top:1px solid var(--line);font-size:13px;color:var(
    <button class="btn btn-green" id="aiPracticeCheck" type="button">Check answer</button><div id="aiPracticeFeedback" class="notice" style="margin-top:12px" hidden></div>
    <button class="btn btn-blue" id="aiPracticeNext" type="button" hidden>Next question</button><p id="aiPracticeScore" class="status"></p>
   </div>
+  <section id="aiPracticeReview" class="panel mcq-review" aria-live="polite" hidden>
+   <h2>Practice score &amp; review</h2><p id="aiPracticeReviewSummary" class="status"></p>
+   <div id="aiPracticeReviewCaseStudy" class="notice" style="margin:12px 0" hidden></div>
+   <div id="aiPracticeReviewItems" class="mcq-review-list"></div>
+   <button class="btn btn-green" id="aiPracticeTryAgain" type="button">Practice another set</button>
+  </section>
  </div>
 </section>
 </main>
 <footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=ai-prep-timer-20261109"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=ai-mcq-marks-review-20261110"></script>
 </body></html>
