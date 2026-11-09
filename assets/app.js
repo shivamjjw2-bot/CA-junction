@@ -234,8 +234,9 @@
     const rawLinkedIn=$("#noteLinkedIn").value.trim();
     let linkedinUrl="";
     if(rawLinkedIn){
-      if(/^https:\/\//i.test(rawLinkedIn)){
-        try{const parsed=new URL(rawLinkedIn);if(parsed.protocol!=="https:"||!(parsed.hostname==="linkedin.com"||parsed.hostname.endsWith(".linkedin.com"))){msg("#uploadStatus","Enter a LinkedIn profile link or ID.","error");return}linkedinUrl=parsed.href}
+      const profileLink=/^(?:https:\/\/)?(?:(?:www|[a-z]{2})\.)?linkedin\.com\//i.test(rawLinkedIn);
+      if(profileLink){
+        try{const parsed=new URL(/^https:\/\//i.test(rawLinkedIn)?rawLinkedIn:"https://"+rawLinkedIn);if(parsed.protocol!=="https:"||!(parsed.hostname==="linkedin.com"||parsed.hostname.endsWith(".linkedin.com"))){msg("#uploadStatus","Enter a LinkedIn profile link or ID.","error");return}linkedinUrl=parsed.href}
         catch{msg("#uploadStatus","Enter a valid LinkedIn profile link or ID.","error");return}
       }else if(/^[A-Za-z0-9-]{3,100}$/.test(rawLinkedIn)){linkedinUrl="https://www.linkedin.com/in/"+encodeURIComponent(rawLinkedIn)+"/"}
       else{msg("#uploadStatus","Enter a LinkedIn profile link or ID.","error");return}
