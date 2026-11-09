@@ -655,7 +655,7 @@
       try{
         const {data:{session:authSession},error:authError}=await sb.auth.getSession();
         if(authError||!authSession?.access_token){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
-        const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+authSession.access_token},body:JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters,mix:$("#aiPracticeMode").value,format:"standard"})});
+        const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+authSession.access_token},body:JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters,mix:"separate",format:$("#aiPracticeFormat").value})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(result.error||"Could not start practice. Please try again.");
         if(!Array.isArray(result.questions)||result.questions.length!==10)throw new Error("The practice set was incomplete. Please try again.");
