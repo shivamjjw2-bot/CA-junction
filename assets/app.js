@@ -881,7 +881,7 @@
   function initCareer(){
     const careerSections=[...document.querySelectorAll("[data-career-tab]")],careerLinks=[...document.querySelectorAll("[data-career-tab-link]")];
     const activateCareerTab=()=>{
-      const requested=location.hash.slice(1),active=careerSections.some(section=>section.dataset.careerTab===requested)?requested:"resume";
+      const requested=location.hash.slice(1),active=careerSections.some(section=>section.dataset.careerTab===requested)?requested:(careerSections[0]?.dataset.careerTab||"resume");
       careerSections.forEach(section=>{section.hidden=section.dataset.careerTab!==active});
       careerLinks.forEach(link=>{if(link.dataset.careerTabLink===active)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
     };
