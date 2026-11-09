@@ -69,26 +69,10 @@
   function initHome() {
     const accountLink=$("#accountNavLink");
     if(accountLink&&ready())sb.auth.getUser().then(({data:{user}})=>{if(user){accountLink.href="platform.html";accountLink.textContent="My Dashboard";}});
-    const levelButtons = $(".level-card[data-level]");
     $("a").forEach(link => link.addEventListener("click", () => {
       if (!link.hash) return;
       const target = $(link.hash);
       if (target?.tagName === "DETAILS") target.open = true;
-    }));
-    const levelMsg = $("#levelMessage");
-    const saved = localStorage.getItem("caJunctionLevel");
-    if (saved) {
-      const savedButton = levelButtons.find(button => button.dataset.level === saved);
-      if (savedButton) {
-        savedButton.setAttribute("aria-pressed","true");
-        if (levelMsg) levelMsg.textContent = saved + " selected. Links will open at this level.";
-      }
-    }
-    levelButtons.forEach(button => button.addEventListener("click", () => {
-      levelButtons.forEach(x => x.setAttribute("aria-pressed", String(x === button)));
-      localStorage.setItem("caJunctionLevel", button.dataset.level);
-      if (levelMsg) levelMsg.textContent = button.dataset.level + " selected. Your next links will open at this level.";
-      $("#service-heads")?.scrollIntoView({behavior:"smooth",block:"start"});
     }));
     document.addEventListener("click", event => {
       const link = event.target.closest('a[href$=".html"],a[href*=".html#"]');
@@ -119,10 +103,6 @@
         first?.scrollIntoView({ behavior:"smooth", block:"center" });
       }
     });
-    if (!ready()) {
-      const status = $("#whatsappStatus");
-      if (status) status.textContent = "Add your WhatsApp number in assets/config.js to enable this link.";
-    }
     if (ready()) loadHomeHighlights();
   }
 
