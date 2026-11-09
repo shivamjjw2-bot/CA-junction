@@ -50,7 +50,8 @@ footer{padding:22px 0;border-top:1px solid var(--line);font-size:13px;color:var(
    <label for="aiPracticeSubject">Subject</label><input id="aiPracticeSubject" maxlength="100" required placeholder="For example: Accounting">
    <label for="aiPracticeChapters">Chapter name(s)</label><input id="aiPracticeChapters" maxlength="800" required placeholder="For example: Accounting for Depreciation">
    <p style="font-size:12px;margin-top:5px">Enter up to 8 chapter names, separated by commas.</p>
-   <label for="aiPracticeFormat">Question format</label><select id="aiPracticeFormat"><option value="standard">Challenging individual MCQs · 5 questions</option><option value="case-study">Case study · 4 linked MCQs</option></select>
+   <label for="aiPracticeFormat">Question format</label><select id="aiPracticeFormat"><option value="standard">Challenging individual MCQs · 5 questions</option><option value="case-study">Case study · 10 linked MCQs · 2 marks each</option></select>
+   <p class="source-note">Each set has 10 questions. Correct answers raise the difficulty; missed answers adjust the next question. Case-study questions are worth 2 marks, individual questions 1 mark.</p>
    <label for="aiPracticeMode">Question style</label><select id="aiPracticeMode"><option value="separate">Questions from the selected chapters</option><option value="combined">Combine concepts from different chapters</option></select>
    <button class="btn btn-green" id="aiPracticeStart" type="submit">Start practice</button>
   </form>
@@ -70,5 +71,5 @@ footer{padding:22px 0;border-top:1px solid var(--line);font-size:13px;color:var(
 </section>
 </main>
 <footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=ai-mcq-neuron-budget-20261110"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=ai-mcq-adaptive-ten-20261110"></script>
 </body></html>
