@@ -1046,6 +1046,7 @@
     ["submissionLevelFilter","submissionSubjectFilter","submissionChapterFilter","submissionAuthorFilter"].forEach(id=>$("#"+id)?.addEventListener("input",loadNoteSubmissions));
     ["studentLevelFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminStudents));
     $("#studentSearch")?.addEventListener("input",loadAdminStudents);
+    $("#adminRoleForm")?.addEventListener("submit",manageAdminRole);
     ["adminMindMapLevelFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminMindMaps));
     $("#adminMindMapSubjectFilter")?.addEventListener("input",loadAdminMindMaps);
     $("#resourceSubject")?.addEventListener("change",loadAdminResourceChapters);
@@ -1062,8 +1063,9 @@
     $("#virtualLibraryFoundationForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_foundation","Foundation Virtual Library study room","#virtualLibraryFoundationUrl","#virtualLibraryFoundationStatus"));
     $("#virtualLibraryIntermediateForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_intermediate","Intermediate Virtual Library study room","#virtualLibraryIntermediateUrl","#virtualLibraryIntermediateStatus"));
     $("#virtualLibraryFinalForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_final","Final Virtual Library study room","#virtualLibraryFinalUrl","#virtualLibraryFinalStatus"));
+    [["Foundation","virtual_library_foundation"],["Intermediate","virtual_library_intermediate"],["Final","virtual_library_final"]].forEach(([level,key])=>$("#virtualLibrary"+level+"Remove")?.addEventListener("click",()=>removeManagedLink(key,level)));
     $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
-    await Promise.all([loadAdminOverview(),loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadAdminJobs(),loadAdminStudents(),loadManagedLinks()]);window.setInterval(loadAdminOverview,30000);
+    await Promise.all([loadAdminOverview(),loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadAdminJobs(),loadAdminStudents(),loadAdminRoles(),loadManagedLinks()]);window.setInterval(loadAdminOverview,30000);
     async function loadAdminOverview(){
       const {data,error}=await sb.rpc("admin_platform_overview");
       const row=Array.isArray(data)?data[0]:data;
@@ -1140,6 +1142,24 @@
       msg("#mtpAdminStatus","Paper PDF uploaded.");
       loadAdminMtpPapers();
     }
+    async function deleteManagedMaterial(row,statusSelector,label){
+      if(!confirm("Delete “"+row.title+"” permanently, including its stored PDF?"))return;
+      let sourcePath=null;
+      if(row.student_submission_id){
+        const {data:submission,error}=await sb.from("student_note_submissions").select("file_path").eq("id",row.student_submission_id).maybeSingle();
+        if(error){msg(statusSelector,error.message,"error");return}sourcePath=submission?.file_path||null;
+      }
+      const {error}=await sb.from("materials").delete().eq("id",row.id);
+      if(error){msg(statusSelector,error.message,"error");return}
+      if(row.student_submission_id){
+        const {error:submissionError}=await sb.from("student_note_submissions").delete().eq("id",row.student_submission_id);
+        if(submissionError){msg(statusSelector,label+" removed, but contributor record cleanup failed: "+submissionError.message,"error");return}
+      }
+      const files=[];if(row.file_bucket&&row.file_path)files.push([row.file_bucket,row.file_path]);if(sourcePath)files.push(["student-notes",sourcePath]);
+      let cleanupError=null;
+      for(const [bucket,path] of files){const {error:storageError}=await sb.storage.from(bucket).remove([path]);if(storageError)cleanupError=storageError}
+      msg(statusSelector,cleanupError?label+" removed from the site, but a stored file could not be deleted: "+cleanupError.message:label+" and stored file deleted.",cleanupError?"error":"success");
+    }
     async function loadAdminMtpPapers(){
       const chapters=["mtp_question","mtp_suggested_answer","rtp_question","rtp_suggested_answer","previous_year_question","previous_year_solution","mock_test_question"];
       const {data,error}=await sb.from("materials").select("id,title,level,subject,chapter,is_published,file_bucket,file_path").eq("category","icai_link").in("chapter",chapters).order("created_at",{ascending:false}).limit(300);
@@ -1157,7 +1177,7 @@
         const visibility=document.createElement("button");visibility.className="btn";visibility.type="button";visibility.textContent=row.is_published?"Unpublish":"Publish";
         visibility.addEventListener("click",async()=>{visibility.disabled=true;const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#mtpAdminStatus",error?error.message:"Paper visibility updated.",error?"error":"success");loadAdminMtpPapers()});
         const remove=document.createElement("button");remove.className="btn danger";remove.type="button";remove.textContent="Delete";
-        remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” permanently?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#mtpAdminStatus",error.message,"error");remove.disabled=false;return}if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);msg("#mtpAdminStatus",storageError?"Paper record deleted; stored PDF cleanup failed: "+storageError.message:"Paper deleted.","success")}else msg("#mtpAdminStatus","Paper deleted.","success");loadAdminMtpPapers()});
+        remove.addEventListener("click",async()=>{remove.disabled=true;await deleteManagedMaterial(row,"#mtpAdminStatus","Paper");loadAdminMtpPapers()});
         actions.append(visibility,remove);item.append(info,actions);list.append(item);
       });
     }
@@ -1173,7 +1193,7 @@
         const actions=document.createElement("div");actions.className="row-actions";
         const access=document.createElement("button");access.className="btn";access.type="button";access.textContent=row.is_premium?"Set Free":"Set Premium";access.addEventListener("click",async()=>{access.disabled=true;const {error}=await sb.from("materials").update({is_premium:!row.is_premium}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:(row.is_premium?"Mind map is now free.":"Mind map is now premium and access-restricted."),error?"error":"success");loadAdminMindMaps()});
         const visibility=document.createElement("button");visibility.className="btn";visibility.type="button";visibility.textContent=row.is_published?"Unpublish":"Publish";visibility.addEventListener("click",async()=>{visibility.disabled=true;const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:"Mind map visibility updated.",error?"error":"success");loadAdminMindMaps()});
-        const remove=document.createElement("button");remove.className="btn danger";remove.type="button";remove.textContent="Delete";remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” permanently from CA Junction?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#mindMapAdminStatus",error.message,"error");remove.disabled=false;return}if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);msg("#mindMapAdminStatus",storageError?"Mind map record deleted; stored PDF cleanup failed: "+storageError.message:"Mind map deleted.","success")}else msg("#mindMapAdminStatus","Mind map deleted.","success");loadAdminMindMaps()});
+        const remove=document.createElement("button");remove.className="btn danger";remove.type="button";remove.textContent="Delete";remove.addEventListener("click",async()=>{remove.disabled=true;await deleteManagedMaterial(row,"#mindMapAdminStatus","Mind map");loadAdminMindMaps()});
         actions.append(access,visibility,remove);item.append(info,actions);list.append(item);
       });
     }
@@ -1187,24 +1207,42 @@
         const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=[row.level,row.subject,row.chapter,row.category,row.contributor_name?"By "+row.contributor_name:"",row.is_premium?"Premium":"Free",row.is_published?"Published":"Draft"].filter(Boolean).join(" · ");info.append(h,p);
         if(row.external_url){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
         const actions=document.createElement("div");actions.className="row-actions";const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#resourceStatus",error?error.message:"Resource status updated.",error?"error":"success");loadAdminResources()});
-        const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” from CA Junction?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#resourceStatus",error.message,"error");remove.disabled=false;return}if(row.student_submission_id)await sb.from("student_note_submissions").delete().eq("id",row.student_submission_id);if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);msg("#resourceStatus",storageError?"Resource removed from the site; file cleanup failed: "+storageError.message:"Resource deleted.","success")}else msg("#resourceStatus","Resource deleted.","success");loadAdminResources()});
+        const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{remove.disabled=true;await deleteManagedMaterial(row,"#resourceStatus","Resource");loadAdminResources()});
         actions.append(button,remove);item.append(info,actions);list.append(item);
       });
     }
         async function loadNoteSubmissions(){
-      const {data,error}=await sb.from("student_note_submissions").select("*").eq("status","pending").order("created_at");
-      const list=$("#noteSubmissions");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load submissions.":"No pending submissions.");return}
+      const {data,error}=await sb.from("student_note_submissions").select("*").in("status",["pending","approved","rejected"]).order("created_at",{ascending:false});
+      const list=$("#noteSubmissions");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load submissions.":"No contributor uploads yet.");return}
       const level=$("#submissionLevelFilter")?.value||"",subject=($("#submissionSubjectFilter")?.value||"").trim().toLowerCase(),chapter=($("#submissionChapterFilter")?.value||"").trim().toLowerCase(),author=($("#submissionAuthorFilter")?.value||"").trim().toLowerCase();
       const rows=data.filter(row=>(!level||row.level===level)&&(!subject||String(row.subject||"").toLowerCase().includes(subject))&&(!chapter||String(row.chapter||"").toLowerCase().includes(chapter))&&(!author||String(row.contributor_name||"").toLowerCase().includes(author)));
-      if(!rows.length){emptyRow(list,"No pending notes match these filters.");return}
-      rows.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=[row.level,row.subject,row.chapter,row.contributor_name?"By "+row.contributor_name:"",row.instagram_handle?"Instagram "+row.instagram_handle:"",row.linkedin_url?"LinkedIn provided":"",new Date(row.created_at).toLocaleDateString()].filter(Boolean).join(" · ");info.append(h,p);const actions=document.createElement("div");actions.className="row-actions";
-        const view=document.createElement("button");view.className="btn";view.textContent="Open PDF";view.addEventListener("click",async()=>{const {data:link,error}=await sb.storage.from("student-notes").createSignedUrl(row.file_path,120);if(error){msg("#submissionStatus",error.message,"error");return}window.open(link.signedUrl,"_blank","noopener")});
-        const approve=document.createElement("button");approve.className="btn";approve.textContent="Approve";approve.addEventListener("click",()=>approveNote(row));
-        const reject=document.createElement("button");reject.className="btn";reject.textContent="Reject";reject.addEventListener("click",async()=>{const {error}=await sb.from("student_note_submissions").update({status:"rejected",reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq("id",row.id);msg("#submissionStatus",error?error.message:"Submission rejected.",error?"error":"success");loadNoteSubmissions()});
-        const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{if(!confirm("Permanently delete this uploaded note?"))return;const {error}=await sb.from("student_note_submissions").delete().eq("id",row.id);if(error){msg("#submissionStatus",error.message,"error");return}const {error:storageError}=await sb.storage.from("student-notes").remove([row.file_path]);msg("#submissionStatus",storageError?"Submission removed; uploaded file cleanup failed: "+storageError.message:"Uploaded note deleted.","success");loadNoteSubmissions()});
-        actions.append(view,approve,reject,remove);item.append(info,actions);list.append(item)});
+      if(!rows.length){emptyRow(list,"No uploads match these filters.");return}
+      rows.forEach(row=>{
+        const item=document.createElement("div");item.className="data-row";const info=document.createElement("div"),h=document.createElement("strong"),p=document.createElement("p");
+        h.textContent=row.title;p.textContent=[row.status,row.level,row.subject,row.chapter,row.contributor_name?"By "+row.contributor_name:"",row.instagram_handle?"Instagram "+row.instagram_handle:"",row.linkedin_url?"LinkedIn provided":"",new Date(row.created_at).toLocaleDateString()].filter(Boolean).join(" · ");info.append(h,p);
+        const actions=document.createElement("div");actions.className="row-actions";
+        const view=document.createElement("button");view.className="btn";view.textContent="Open PDF";view.addEventListener("click",async()=>{const {data:link,error}=await sb.storage.from("student-notes").createSignedUrl(row.file_path,120);if(error){msg("#submissionStatus",error.message,"error");return}window.open(link.signedUrl,"_blank","noopener")});actions.append(view);
+        if(row.status==="pending"){
+          const approve=document.createElement("button");approve.className="btn";approve.textContent="Approve";approve.addEventListener("click",()=>approveNote(row));
+          const reject=document.createElement("button");reject.className="btn";reject.textContent="Reject";reject.addEventListener("click",async()=>{const {error}=await sb.from("student_note_submissions").update({status:"rejected",reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq("id",row.id);msg("#submissionStatus",error?error.message:"Submission rejected.",error?"error":"success");loadNoteSubmissions()});
+          actions.append(approve,reject)
+        }
+        const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{
+          if(row.status==="approved"){
+            const {data:material,error}=await sb.from("materials").select("id,title,file_bucket,file_path,student_submission_id").eq("student_submission_id",row.id).maybeSingle();
+            if(error){msg("#submissionStatus",error.message,"error");return}
+            if(material){await deleteManagedMaterial(material,"#submissionStatus","Student note");loadNoteSubmissions();loadAdminResources();return}
+          }
+          if(!confirm("Permanently delete this contributor upload and its stored PDF?"))return;
+          const {error}=await sb.from("student_note_submissions").delete().eq("id",row.id);
+          if(error){msg("#submissionStatus",error.message,"error");return}
+          const {error:storageError}=await sb.storage.from("student-notes").remove([row.file_path]);
+          msg("#submissionStatus",storageError?"Upload record deleted, but the stored PDF could not be removed: "+storageError.message:"Contributor upload and PDF deleted.",storageError?"error":"success");loadNoteSubmissions()
+        });
+        actions.append(remove);item.append(info,actions);list.append(item)
+      })
     }
-        async function approveNote(row){
+    async function approveNote(row){
       const newPath="community/"+crypto.randomUUID()+"_"+row.file_path.split("/").pop();
       const {data:file,error:downloadError}=await sb.storage.from("student-notes").download(row.file_path);
       if(downloadError){msg("#submissionStatus",downloadError.message,"error");return}
@@ -1249,6 +1287,12 @@
       const {error}=await sb.from("premium_resources").upsert({resource_key:key,label,resource_url:url,is_active:true,updated_at:new Date().toISOString()},{onConflict:"resource_key"});
       msg(statusSelector,error?error.message:"Link saved.",error?"error":"success");
     }
+    async function removeManagedLink(key,level){
+      if(!confirm("Remove the saved "+level+" Virtual Library link? Students will no longer be able to open that room."))return;
+      const {error}=await sb.from("premium_resources").delete().eq("resource_key",key);
+      msg("#virtualLibrary"+level+"Status",error?error.message:"Virtual Library link removed.",error?"error":"success");
+      if(!error)await loadManagedLinks()
+    }
     async function loadManagedLinks(){
       const keys=["virtual_library","virtual_library_foundation","virtual_library_intermediate","virtual_library_final","doubt_solving"];
       const {data,error}=await sb.from("premium_resources").select("resource_key,resource_url").in("resource_key",keys);
@@ -1257,6 +1301,7 @@
       if($("#virtualLibraryFoundationUrl"))$("#virtualLibraryFoundationUrl").value=links.virtual_library_foundation||links.virtual_library||"";
       if($("#virtualLibraryIntermediateUrl"))$("#virtualLibraryIntermediateUrl").value=links.virtual_library_intermediate||"";
       if($("#virtualLibraryFinalUrl"))$("#virtualLibraryFinalUrl").value=links.virtual_library_final||"";
+      [["Foundation","virtual_library_foundation"],["Intermediate","virtual_library_intermediate"],["Final","virtual_library_final"]].forEach(([level,key])=>{const button=$("#virtualLibrary"+level+"Remove");if(button)button.hidden=!links[key]});
       if($("#doubtSolvingUrl"))$("#doubtSolvingUrl").value=links.doubt_solving||"";
     }
     async function saveGroupLink(e){
@@ -1296,6 +1341,27 @@
       const {data,error}=await sb.from("courses").select("id,title,level,is_published").order("created_at",{ascending:false}).limit(100);
       const list=$("#adminCourses");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load courses.":"No courses yet.");return}
       data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+(row.is_published?"Published":"Draft");info.append(h,p);const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("courses").update({is_published:!row.is_published}).eq("id",row.id);msg("#courseStatus",error?error.message:"Course status updated.",error?"error":"success");loadAdminCourses()});item.append(info,button);list.append(item)});
+    }
+    async function manageAdminRole(e){
+      e.preventDefault();const email=$("#adminRoleEmail").value.trim();msg("#adminRoleStatus","Updating admin access…");
+      const {data,error}=await sb.rpc("admin_manage_admin",{target_email:email,grant_admin:true});
+      msg("#adminRoleStatus",error?error.message:(data||"Admin access granted."),error?"error":"success");
+      if(!error){e.target.reset();await loadAdminRoles()}
+    }
+    async function loadAdminRoles(){
+      const list=$("#adminRolesList");if(!list)return;list.replaceChildren();
+      const [{data:directory,error:directoryError},{data:roleRows,error:roleError}]=await Promise.all([sb.rpc("admin_student_directory"),sb.from("user_roles").select("user_id").eq("role","admin")]);
+      if(directoryError||roleError){emptyRow(list,(directoryError||roleError).message);return}
+      const byId=new Map((directory||[]).map(row=>[row.user_id,row]));
+      const admins=(roleRows||[]).map(role=>({role,...(byId.get(role.user_id)||{})}));
+      if(!admins.length){emptyRow(list,"No admin accounts were found.");return}
+      admins.forEach(row=>{
+        const item=document.createElement("div");item.className="data-row";const info=document.createElement("div"),name=document.createElement("strong"),detail=document.createElement("p");
+        name.textContent=row.full_name||row.email||"Admin account";detail.textContent=[row.email||"Email unavailable","ID: "+row.user_id].join(" · ");info.append(name,detail);
+        const remove=document.createElement("button");remove.className="btn danger";remove.type="button";remove.textContent="Remove admin";remove.disabled=row.user_id===user.id;remove.title=remove.disabled?"You cannot remove your own admin access.":"Remove admin access for this account.";
+        remove.addEventListener("click",async()=>{if(!confirm("Remove admin access from "+(row.email||"this account")+"? They will lose access to the admin panel."))return;remove.disabled=true;const {data,error}=await sb.rpc("admin_manage_admin",{target_email:row.email,grant_admin:false});msg("#adminRoleStatus",error?error.message:(data||"Admin access removed."),error?"error":"success");await loadAdminRoles()});
+        item.append(info,remove);list.append(item)
+      })
     }
     async function loadAdminStudents(){
       const {data,error}=await sb.rpc("admin_student_directory");
