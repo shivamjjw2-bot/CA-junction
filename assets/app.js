@@ -430,17 +430,17 @@
     if(!selectedLevel){showPage("level");return}
     if(!selectedType){
       showPage("type");
-      pageHeading.textContent="CA "+selectedLevel+" MTP Papers";
-      pageIntro.textContent="Choose Question Papers or Suggested Answers to open its own page.";
+      if(pageHeading)pageHeading.textContent="CA "+selectedLevel+" MTP Papers";
+      if(pageIntro)pageIntro.textContent="Choose Question Papers or Suggested Answers to open its own page.";
       levelTitle.textContent="Choose a paper type";
       return;
     }
     showPage("paper");
     const typeLabel=selectedType==="mtp_question"?"Question Papers":"Suggested Answers";
-    pageHeading.textContent="CA "+selectedLevel+" · "+typeLabel;
-    pageIntro.textContent="Papers uploaded by the CA Junction team will appear below.";
-    paperTitle.textContent="Available PDFs";
-    backTypes.href="mtp.html?level="+encodeURIComponent(selectedLevel);
+    if(pageHeading)pageHeading.textContent="CA "+selectedLevel+" · "+typeLabel;
+    if(pageIntro)pageIntro.textContent="Papers uploaded by the CA Junction team will appear below.";
+    if(paperTitle)paperTitle.textContent="Available PDFs";
+    if(backTypes)backTypes.href="mtp.html?level="+encodeURIComponent(selectedLevel);
     load();
 
     async function load(){
