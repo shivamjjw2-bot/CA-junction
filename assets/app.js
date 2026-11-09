@@ -453,7 +453,7 @@
       if(!data?.length){
         const empty=document.createElement("article");empty.className="card";
         const h=document.createElement("h3");h.textContent="Your next practice paper is on its way";
-        const resourceName=selectedType==="question"?(series==="previous_year"?"previous-year question paper":"question paper"):(series==="previous_year"?"solutions":"suggested answers");
+        const resourceName=selectedType==="question"?(series==="previous_year"?"previous-year question paper":"question paper"):(series==="previous_year"?"solution":"suggested answers");
         const p=document.createElement("p");p.textContent="No "+resourceName+" has been uploaded by the CA Junction team for "+selectedLevel+" yet. Keep preparing—your papers will appear here as soon as they are shared.";
         empty.append(h,p);list.append(empty);msg("#mtpStatus","");return
       }
