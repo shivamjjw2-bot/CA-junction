@@ -397,8 +397,8 @@
     const levelButtons=$$("[data-mtp-level]");
     const typeButtons=$$("[data-mtp-type]");
     const levelPage=$("#mtpLevelPage"),typePage=$("#mtpTypePage"),paperPage=$("#mtpPaperPage");
-    const levelTitle=$("#mtpTypeLevelTitle"),paperTitle=$("#mtpPaperTitle"),backTypes=$("#mtpBackToTypes");
-    const list=$("#mtpPapersList"),heading=$("#mtpPapersHeading");
+    const levelTitle=$("#mtpTypeLevelTitle"),paperTitle=$("#mtpPaperTitle"),backTypes=$("#mtpBackToTypes"),pageHeading=$("#mtpPageHeading"),pageIntro=$("#mtpPageIntro");
+    const list=$("#mtpPapersList");
     const params=new URLSearchParams(location.search);
     const paramLevel=params.get("level")||"";
     const storedLevel=localStorage.getItem("caJunctionLevel")||"";
@@ -430,14 +430,17 @@
     if(!selectedLevel){showPage("level");return}
     if(!selectedType){
       showPage("type");
-      levelTitle.textContent="CA "+selectedLevel+" · Choose a paper type";
+      pageHeading.textContent="CA "+selectedLevel+" MTP Papers";
+      pageIntro.textContent="Choose Question Papers or Suggested Answers to open its own page.";
+      levelTitle.textContent="Choose a paper type";
       return;
     }
     showPage("paper");
     const typeLabel=selectedType==="mtp_question"?"Question Papers":"Suggested Answers";
-    paperTitle.textContent="CA "+selectedLevel+" · "+typeLabel;
+    pageHeading.textContent="CA "+selectedLevel+" · "+typeLabel;
+    pageIntro.textContent="Papers uploaded by the CA Junction team will appear below.";
+    paperTitle.textContent="Available PDFs";
     backTypes.href="mtp.html?level="+encodeURIComponent(selectedLevel);
-    heading.textContent=typeLabel;
     load();
 
     async function load(){
