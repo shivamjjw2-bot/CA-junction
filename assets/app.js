@@ -539,48 +539,96 @@
     if(ready())sb.auth.getUser().then(({data})=>loadTodayHours(data.user?.id));else loadTodayHours();
     const builder=$("#plannerBuilderForm");
     if(builder){
-      const level=$("#plannerLevel"),subjectsInput=$("#plannerSubjects"),daysInput=$("#plannerDays"),results=$("#plannerBuilderResults"),createButton=$("#plannerCreateButton");
+      const level=$("#plannerLevel"),countInput=$("#plannerSubjectCount"),choices=$("#plannerSubjectOptions"),subjectsStatus=$("#plannerSubjectsStatus"),daysInput=$("#plannerDays"),results=$("#plannerBuilderResults"),createButton=$("#plannerCreateButton");
       const preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
       if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
+      let availableSubjects=[],loadingSubjects=false;
+      let savedPlan=null;
+      try{savedPlan=JSON.parse(localStorage.getItem("caJunctionCustomPlan")||"null")}catch{}
+      const selectedSubjects=()=>[...choices.querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value);
+      const updateSelection=()=>{
+        const selected=selectedSubjects(),target=Number(countInput.value)||0;
+        choices.querySelectorAll('input[type="checkbox"]').forEach(input=>{input.disabled=!input.checked&&selected.length>=target});
+        if(!availableSubjects.length)subjectsStatus.textContent=loadingSubjects?"Loading subjects from study materials…":"No published study materials with subject names were found for this level.";
+        else subjectsStatus.textContent="Selected "+selected.length+" of "+target+" subjects · "+availableSubjects.length+" subjects available from study materials.";
+        createButton.disabled=loadingSubjects||!availableSubjects.length||selected.length!==target;
+      };
+      const renderSubjectChoices=(restore=[])=>{
+        choices.replaceChildren();
+        const restoreSet=new Set(restore.map(name=>String(name).trim().toLowerCase()));
+        availableSubjects.forEach(item=>{
+          const label=document.createElement("label");label.className="subject-choice";
+          const input=document.createElement("input");input.type="checkbox";input.value=item.subject;input.checked=restoreSet.has(item.subject.toLowerCase());
+          const copy=document.createElement("span");
+          const name=document.createElement("strong");name.textContent=item.subject;
+          const detail=document.createElement("small");detail.textContent=item.resources.length+" published study resource"+(item.resources.length===1?"":"s");
+          copy.append(name,detail);label.append(input,copy);
+          input.addEventListener("change",()=>{const count=Number(countInput.value)||0;if(input.checked&&selectedSubjects().length>count)input.checked=false;updateSelection()});
+          choices.append(label);
+        });
+        updateSelection();
+      };
+      const loadMaterialSubjects=async(restore=[])=>{
+        choices.replaceChildren();availableSubjects=[];loadingSubjects=true;countInput.disabled=true;createButton.disabled=true;subjectsStatus.textContent="Loading subjects from study materials…";results.replaceChildren();
+        if(!level.value){loadingSubjects=false;subjectsStatus.textContent="Choose a CA level to load available subjects.";updateSelection();return}
+        if(!ready()){loadingSubjects=false;subjectsStatus.textContent=backendMessage;updateSelection();return}
+        const {data,error}=await sb.from("materials").select("subject,title,chapter,description,category,level").eq("is_published",true).in("level",[level.value,"All"]).not("subject","is",null).order("created_at",{ascending:false}).limit(500);
+        loadingSubjects=false;
+        if(error){subjectsStatus.textContent="Could not load published subjects from Study Materials. Please try again.";countInput.disabled=true;createButton.disabled=true;return}
+        const grouped=new Map();
+        (data||[]).forEach(row=>{
+          const subject=String(row.subject||"").trim();if(!subject)return;
+          const key=subject.toLowerCase();
+          if(!grouped.has(key))grouped.set(key,{subject,resources:[]});
+          grouped.get(key).resources.push({title:row.title||"",chapter:row.chapter||"",description:row.description||"",category:row.category||""});
+        });
+        availableSubjects=[...grouped.values()].slice(0,12);
+        if(!availableSubjects.length){subjectsStatus.textContent="No published study materials with subject names were found for "+level.value+" yet.";countInput.disabled=true;countInput.max="12";createButton.disabled=true;return}
+        countInput.disabled=false;countInput.max=String(Math.min(12,availableSubjects.length));
+        const restored=restore.filter(name=>availableSubjects.some(item=>item.subject.toLowerCase()===String(name).toLowerCase()));
+        const target=restored.length||Math.min(3,availableSubjects.length);
+        countInput.value=String(target);
+        renderSubjectChoices(restored);
+      };
       const renderSchedule=schedule=>{
         results.replaceChildren();
         schedule.forEach(item=>{
           const card=document.createElement("article");card.className="plan-day";
           const title=document.createElement("strong");title.textContent="Day "+item.day+" · "+item.subject;
+          const topic=document.createElement("small");topic.className="resource-focus";topic.textContent=item.topic?"Study material · "+item.topic:"";
           const activity=document.createElement("p");activity.textContent=item.activity||"Study concepts, solve questions, and revise.";
           const minutes=Number(item.study_minutes||150),time=document.createElement("small");time.textContent="Suggested study time · "+(Math.round(minutes/6)/10)+" hours";
-          card.append(title,activity,time);results.append(card);
+          card.append(title);if(item.topic)card.append(topic);card.append(activity,time);results.append(card);
         });
       };
-      try{
-        const saved=JSON.parse(localStorage.getItem("caJunctionCustomPlan")||"null");
-        if(saved?.subjects&&saved?.days){
-          subjectsInput.value=saved.subjects.join(", ");daysInput.value=saved.days;
-          if(["Foundation","Intermediate","Final"].includes(saved.level))level.value=saved.level;
-          if(Array.isArray(saved.schedule))renderSchedule(saved.schedule);
-          msg("#plannerBuilderStatus","Your saved plan is stored in this browser. Update the details to create another.");
-        }
-      }catch{}
+      if(savedPlan?.subjects&&savedPlan?.days){daysInput.value=savedPlan.days;if(["Foundation","Intermediate","Final"].includes(savedPlan.level))level.value=savedPlan.level;if(Array.isArray(savedPlan.schedule))renderSchedule(savedPlan.schedule)}
+      countInput.addEventListener("change",()=>{
+        const target=Number(countInput.value)||0;
+        const selected=[...choices.querySelectorAll('input[type="checkbox"]:checked')];
+        selected.slice(target).forEach(input=>{input.checked=false});
+        updateSelection();
+      });
+      level.addEventListener("change",()=>loadMaterialSubjects([]));
       builder.addEventListener("submit",async event=>{
         event.preventDefault();
-        const subjects=subjectsInput.value.split(/[,，\n]/).map(value=>value.trim()).filter(Boolean);
-        const days=Number(daysInput.value);
-        if(!subjects.length||subjects.length>12||subjects.some(subject=>subject.length>100)){msg("#plannerBuilderStatus","Enter between 1 and 12 subjects, each up to 100 characters.","error");return}
+        const subjects=selectedSubjects(),subjectCount=Number(countInput.value),days=Number(daysInput.value);
+        if(subjects.length!==subjectCount){msg("#plannerBuilderStatus","Select exactly "+subjectCount+" subjects from the study materials above.","error");return}
         if(!Number.isInteger(days)||days<1||days>180){msg("#plannerBuilderStatus","Choose a duration from 1 to 180 days.","error");return}
         if(!ready()){msg("#plannerBuilderStatus",backendMessage,"error");return}
-        createButton.disabled=true;createButton.textContent="Creating your AI plan…";results.replaceChildren();msg("#plannerBuilderStatus","AI is arranging your study, practice and revision days…");
+        createButton.disabled=true;createButton.textContent="Creating your AI plan…";results.replaceChildren();msg("#plannerBuilderStatus","AI is arranging a study and revision schedule using your selected study materials…");
         try{
           const {data:{session},error:authError}=await sb.auth.getSession();
           if(authError||!session?.access_token){msg("#plannerBuilderStatus","Please sign in to create an AI study plan.","error");return}
-          const response=await fetch("/api/ai-planner",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},body:JSON.stringify({level:level.value,subjects,days})});
+          const response=await fetch("/api/ai-planner",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},body:JSON.stringify({level:level.value,subjects,subject_count:subjectCount,days})});
           const result=await response.json().catch(()=>({}));
           if(!response.ok)throw new Error(result.error||"Could not create your plan. Please try again.");
-          const plan={level:level.value,subjects,days,schedule:result.schedule};
+          const plan={level:level.value,subjects,subject_count:subjectCount,days,schedule:result.schedule};
           localStorage.setItem("caJunctionCustomPlan",JSON.stringify(plan));renderSchedule(plan.schedule);
-          msg("#plannerBuilderStatus","Your "+days+"-day AI plan is ready and saved in this browser.");results.scrollIntoView({behavior:"smooth",block:"nearest"});
+          msg("#plannerBuilderStatus","Your "+days+"-day AI plan for "+subjectCount+" subjects is ready and saved in this browser.");results.scrollIntoView({behavior:"smooth",block:"nearest"});
         }catch(error){msg("#plannerBuilderStatus",error?.message||"Could not create your plan. Please try again.","error")}
-        finally{createButton.disabled=false;createButton.textContent="Create my AI plan"}
+        finally{createButton.textContent="Create my AI plan";updateSelection()}
       });
+      loadMaterialSubjects(savedPlan?.level===level.value?savedPlan.subjects||[]:[]);
     }
     const planList=$("#planList");
     async function loadPlans(){
