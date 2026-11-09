@@ -299,6 +299,7 @@
     const levelFilter=$("#levelFilter");
     const subjectFilter=$("#subjectFilter");
     const chapterFilter=$("#chapterFilter");
+    const authorFilter=$("#authorFilter");
     const studentGrid=$("#studentNotesGrid");
     const adminGrid=$("#adminResourcesGrid");
     const revisionLevelApps=$("#revisionLevelApps"),revisionResources=$("#revisionResources");
@@ -362,29 +363,37 @@
       });
     };
     const fillFilters=()=>{
-      if(!subjectFilter||!chapterFilter)return;
+      if(!subjectFilter||!chapterFilter||!authorFilter)return;
+      const studentRows=all.filter(row=>row.category==="student_note"&&matchesLevel(row));
       const currentSubject=subjectFilter.value;
-      const subjects=[...new Set(all.filter(row=>row.category==="student_note"&&matchesLevel(row)).map(row=>row.subject).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      const subjects=[...new Set(studentRows.map(row=>row.subject).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
       subjectFilter.replaceChildren(new Option("All subjects",""),...subjects.map(value=>new Option(value,value)));
       if(subjects.includes(currentSubject))subjectFilter.value=currentSubject;
       const currentChapter=chapterFilter.value;
-      const chapters=[...new Set(all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!subjectFilter.value||row.subject===subjectFilter.value)).map(row=>row.chapter).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      const chapterRows=studentRows.filter(row=>!subjectFilter.value||row.subject===subjectFilter.value);
+      const chapters=[...new Set(chapterRows.map(row=>row.chapter).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
       chapterFilter.replaceChildren(new Option("All chapters",""),...chapters.map(value=>new Option(value,value)));
       if(chapters.includes(currentChapter))chapterFilter.value=currentChapter;
       chapterFilter.disabled=chapters.length===0;
+      const currentAuthor=authorFilter.value;
+      const authorRows=chapterRows.filter(row=>!chapterFilter.value||row.chapter===chapterFilter.value);
+      const authors=[...new Set(authorRows.map(row=>row.contributor_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      authorFilter.replaceChildren(new Option("All authors",""),...authors.map(value=>new Option(value,value)));
+      if(authors.includes(currentAuthor))authorFilter.value=currentAuthor;
     };
     const render=()=>{
       fillFilters();
-      const students=all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!subjectFilter?.value||row.subject===subjectFilter.value)&&(!chapterFilter?.value||row.chapter===chapterFilter.value));
+      const students=all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!subjectFilter?.value||row.subject===subjectFilter.value)&&(!chapterFilter?.value||row.chapter===chapterFilter.value)&&(!authorFilter?.value||row.contributor_name===authorFilter.value));
       const admin=all.filter(row=>["revision","mind_map","formula"].includes(row.category)&&matchesLevel(row));
       if(levelLabel)levelLabel.textContent=studentGrid?(activeLevel()?"Showing "+activeLevel()+" student PDFs.":"Showing student PDFs across all levels."):(activeLevel()?"Showing "+activeLevel()+" resources.":"Choose your CA level on the homepage.");
-      const count=$("#studentPdfCount");if(count)count.textContent=students.length+" PDF"+(students.length===1?"":"s")+" available";
+      const count=$("#studentPdfCount");if(count)count.textContent=students.length+" PDF"+(students.length===1?"":"s");
       draw(studentGrid,students,activeLevel()?"Student contributions are on their way! No PDFs have been shared for this level yet. Be the first to help another CA student.":"Student contributions are on their way! No PDFs have been shared yet. Be the first to help another CA student.","#materialStatus");
       draw(adminGrid,admin,revisionLevelApps?"No resources published for this level yet.":"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
     };
-    levelFilter?.addEventListener("change",()=>{if(subjectFilter)subjectFilter.value="";if(chapterFilter)chapterFilter.value="";render()});
-    subjectFilter?.addEventListener("change",()=>{if(chapterFilter)chapterFilter.value="";render()});
-    chapterFilter?.addEventListener("change",render);
+    levelFilter?.addEventListener("change",()=>{if(subjectFilter)subjectFilter.value="";if(chapterFilter)chapterFilter.value="";if(authorFilter)authorFilter.value="";render()});
+    subjectFilter?.addEventListener("change",()=>{if(chapterFilter)chapterFilter.value="";if(authorFilter)authorFilter.value="";render()});
+    chapterFilter?.addEventListener("change",()=>{if(authorFilter)authorFilter.value="";render()});
+    authorFilter?.addEventListener("change",render);
     sb.from("materials").select("id,title,description,level,subject,chapter,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle,linkedin_url,student_submission_id,is_premium").eq("is_published",true).order("created_at",{ascending:false}).then(async({data,error})=>{
       if(error){msg("#materialStatus",error.message,"error");msg("#adminResourcesStatus",error.message,"error");return}
       const {data:{user}}=await sb.auth.getUser();currentUserId=user?.id||"";
