@@ -10,8 +10,8 @@
 header{position:sticky;top:0;background:rgba(8,11,22,.9);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}.nav{min-height:68px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:800;font-size:19px}.brand b{color:var(--purple)}.home{font-size:13px;color:#d6d4e4}
 main{padding:48px 0}.intro{text-align:center;margin-bottom:24px}.eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#c4b5fd;font-weight:750}.intro h1{font-size:clamp(30px,5vw,44px);line-height:1.12;margin:8px 0}.intro p,.muted{color:var(--muted);max-width:650px;margin:auto;font-size:14px}
 h2{font-size:20px;margin:22px 0 12px}.levels,.papers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.level,.card{padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.level h2{margin:0 0 4px;font-size:16px}.level p,.card p{color:var(--muted);font-size:13px}.level button{width:100%;margin-top:12px}.papers{grid-template-columns:repeat(2,minmax(0,1fr))}.card h3{font-size:16px;margin-bottom:5px}
-button{font:inherit}.btn,.type-tab{padding:10px 13px;border:1px solid rgba(167,139,250,.33);border-radius:10px;background:rgba(139,92,246,.15);color:#eeeaff;font-weight:700;cursor:pointer}.btn:hover,.type-tab:hover{background:rgba(139,92,246,.24)}.type-tabs{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}.type-tab[aria-pressed="true"],.level button[aria-pressed="true"]{border-color:#a78bfa;background:rgba(139,92,246,.3)}.status{min-height:24px;color:#c4b5fd;font-size:13px;margin:8px 0}.empty{grid-column:1/-1;padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}footer{margin-top:32px;text-align:center;color:var(--muted);font-size:12px}
-:focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}[hidden]{display:none!important}@media(max-width:650px){main{padding:34px 0}.levels{grid-template-columns:1fr}.papers{grid-template-columns:1fr}}
+button{font:inherit}.btn,.type-tab{padding:10px 13px;border:1px solid rgba(167,139,250,.33);border-radius:10px;background:rgba(139,92,246,.15);color:#eeeaff;font-weight:700;cursor:pointer}.btn:hover,.type-tab:hover{background:rgba(139,92,246,.24)}.type-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}.type-tab{min-height:108px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;text-align:left;border-radius:15px;background:var(--panel);border-color:var(--line);font-size:14px}.paper-icon{font-size:25px;line-height:1}.type-tab[aria-pressed="true"]{border-color:#a78bfa;background:rgba(139,92,246,.22);box-shadow:0 0 0 1px rgba(167,139,250,.24)}.type-tab[aria-pressed="true"],.level button[aria-pressed="true"]{border-color:#a78bfa;background:rgba(139,92,246,.3)}.status{min-height:24px;color:#c4b5fd;font-size:13px;margin:8px 0}.empty{grid-column:1/-1;padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}footer{margin-top:32px;text-align:center;color:var(--muted);font-size:12px}
+:focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}[hidden]{display:none!important}@media(max-width:650px){main{padding:34px 0}.levels{grid-template-columns:1fr}.type-tabs{grid-template-columns:1fr}.papers{grid-template-columns:1fr}}
 </style>
 </head>
 <body data-page="mtp">
@@ -25,13 +25,13 @@ button{font:inherit}.btn,.type-tab{padding:10px 13px;border:1px solid rgba(167,1
 <article class="level"><h2>CA Final</h2><p>Practice papers selected for Final students.</p><button class="btn" type="button" data-mtp-level="Final" aria-pressed="false">Open Final</button></article>
 </div>
 <section id="mtpPapersPanel" hidden>
-<h2 id="mtpPapersHeading">Question papers</h2>
-<div class="type-tabs" role="group" aria-label="Paper type"><button class="type-tab" type="button" data-mtp-type="mtp_question" aria-pressed="true">Question papers</button><button class="type-tab" type="button" data-mtp-type="mtp_suggested_answer" aria-pressed="false">Suggested answers</button></div>
+<h2 id="mtpPapersHeading">Choose a paper type</h2>
+<div class="type-tabs" role="group" aria-label="Paper type"><button class="type-tab" type="button" data-mtp-type="mtp_question" aria-pressed="false"><span class="paper-icon" aria-hidden="true">📄</span><span>Question papers</span></button><button class="type-tab" type="button" data-mtp-type="mtp_suggested_answer" aria-pressed="false"><span class="paper-icon" aria-hidden="true">✅</span><span>Suggested answers</span></button></div>
 <p id="mtpStatus" class="status" role="status" aria-live="polite"></p>
-<div id="mtpPapersList" class="papers"></div>
+<div id="mtpPapersList" class="papers" hidden></div>
 </section>
 <footer>CA Junction · MTP PDFs shared by the admin team appear here.</footer>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=mtp-20261109b"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=mtp-20261109c"></script>
 </body>
 </html>
