@@ -907,7 +907,6 @@
     }
     fields.forEach(id=>$("#"+id)?.addEventListener("input",refreshResume));
     const theme=$("#resumeTheme"),preview=$("#resumePreview");
-    theme?.addEventListener("change",()=>{if(preview)preview.dataset.theme=theme.value});
     $("#resumeForm")?.addEventListener("reset",()=>setTimeout(()=>{if(theme&&preview)preview.dataset.theme=theme.value;refreshResume()},0));
     $("#printResume")?.addEventListener("click",()=>window.print());
     let recommendedTheme="modern";
