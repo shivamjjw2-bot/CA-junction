@@ -97,7 +97,7 @@
       if (!level) return;
       const href = new URL(link.href,location.href);
       if (href.origin !== location.origin || !href.pathname.endsWith(".html")) return;
-      if (["/mtp.html","/rtp.html","/previous-papers.html"].some(path=>href.pathname.endsWith(path))) return;
+      if (["/mtp.html","/rtp.html","/previous-papers.html","/mock-test.html"].some(path=>href.pathname.endsWith(path))) return;
       href.searchParams.set("level",level);
       link.href = href.pathname.split("/").pop() + href.search + href.hash;
     }, true);
@@ -653,7 +653,8 @@
       const collection=$("#mtpCollection"),type=$("#mtpPaperType");if(!collection||!type)return;
       const current=type.value;
       type.replaceChildren(new Option("Question paper","question"));
-      type.add(new Option(collection.value==="previous_year"?"Solutions":"Suggested answers","suggested"));
+      if(collection.value==="previous_year")type.add(new Option("Solutions","suggested"));
+      else if(collection.value!=="mock_test")type.add(new Option("Suggested answers","suggested"));
       type.value=[...type.options].some(option=>option.value===current)?current:"question";
     }
     async function saveMtpPaper(e){
@@ -662,7 +663,7 @@
       const {data:{user}}=await sb.auth.getUser();
       const file=$("#mtpPdf").files[0],collection=$("#mtpCollection").value,paperType=$("#mtpPaperType").value;
       if(!file||file.type!=="application/pdf"||file.size>50*1024*1024){msg("#mtpAdminStatus","Choose a PDF no larger than 50 MB.","error");return}
-      const chapter=collection==="previous_year"?(paperType==="question"?"previous_year_question":"previous_year_solution"):collection+"_"+(paperType==="question"?"question":"suggested_answer");
+      const chapter=collection==="previous_year"?(paperType==="question"?"previous_year_question":"previous_year_solution"):collection==="mock_test"?"mock_test_question":collection+"_"+(paperType==="question"?"question":"suggested_answer");
       const path="admin/exam-papers/"+chapter+"/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
       const {error:uploadError}=await sb.storage.from("ca-materials").upload(path,file,{contentType:"application/pdf"});
       if(uploadError){msg("#mtpAdminStatus",uploadError.message,"error");return}
@@ -688,11 +689,11 @@
       loadAdminMtpPapers();
     }
     async function loadAdminMtpPapers(){
-      const chapters=["mtp_question","mtp_suggested_answer","rtp_question","rtp_suggested_answer","previous_year_question","previous_year_solution"];
+      const chapters=["mtp_question","mtp_suggested_answer","rtp_question","rtp_suggested_answer","previous_year_question","previous_year_solution","mock_test_question"];
       const {data,error}=await sb.from("materials").select("id,title,level,subject,chapter,is_published,file_bucket,file_path").eq("category","icai_link").in("chapter",chapters).order("created_at",{ascending:false}).limit(300);
       const list=$("#adminMtpPapers");if(!list)return;list.replaceChildren();
       if(error||!data?.length){emptyRow(list,error?"Could not load exam papers.":"No exam PDFs uploaded yet.");return}
-      const labels={mtp_question:"ICAI MTP · Question paper",mtp_suggested_answer:"ICAI MTP · Suggested answers",rtp_question:"ICAI RTP · Question paper",rtp_suggested_answer:"ICAI RTP · Suggested answers",previous_year_question:"Previous Year · Question paper",previous_year_solution:"Previous Year · Solutions"};
+      const labels={mtp_question:"ICAI MTP · Question paper",mtp_suggested_answer:"ICAI MTP · Suggested answers",rtp_question:"ICAI RTP · Question paper",rtp_suggested_answer:"ICAI RTP · Suggested answers",previous_year_question:"Previous Year · Question paper",previous_year_solution:"Previous Year · Solutions",mock_test_question:"Mock Test · Question paper"};
       data.forEach(row=>{
         const item=document.createElement("div");item.className="data-row";
         const info=document.createElement("div"),h=document.createElement("strong"),p=document.createElement("p");
