@@ -36,6 +36,27 @@
   const setHtml = (element, html) => { if (element) element.innerHTML = html; };
   const escapeAttr = value => safeText(value).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
+  const timerStateKey="caJunctionStudyTimer";
+  function readTimerState(){try{const saved=JSON.parse(localStorage.getItem(timerStateKey)||"{}");return{elapsed:Number(saved.elapsed)||0,runningSince:Number(saved.runningSince)||null,minimized:Boolean(saved.minimized),focusMode:Boolean(saved.focusMode)}}catch{return{elapsed:0,runningSince:null,minimized:false,focusMode:false}}}
+  let studyTimer=readTimerState();
+  function saveTimerState(){localStorage.setItem(timerStateKey,JSON.stringify(studyTimer));window.dispatchEvent(new Event("ca:timer-update"))}
+  function currentTimerSeconds(){return studyTimer.elapsed+(studyTimer.runningSince?Math.max(0,Math.floor((Date.now()-studyTimer.runningSince)/1000)):0)}
+  function timerClock(seconds){const h=String(Math.floor(seconds/3600)).padStart(2,"0"),m=String(Math.floor(seconds%3600/60)).padStart(2,"0"),s=String(seconds%60).padStart(2,"0");return h+":"+m+":"+s}
+  async function saveTimerChunk(seconds){
+    if(seconds<=0)return;let saved=false;
+    if(ready()){try{const {data:{user}}=await sb.auth.getUser();if(user){const {error}=await sb.from("study_sessions").insert({user_id:user.id,duration_seconds:seconds});if(!error)saved=true}}catch{}}
+    if(!saved){const key="caJunctionLocalStudySeconds";localStorage.setItem(key,String(Number(localStorage.getItem(key)||0)+seconds))}
+    document.querySelectorAll("#todayHours").forEach(async label=>{if(ready()){try{const {data:{user}}=await sb.auth.getUser();if(user){const start=new Date();start.setHours(0,0,0,0);const {data}=await sb.from("study_sessions").select("duration_seconds").eq("user_id",user.id).gte("started_at",start.toISOString());label.textContent=Math.round((data||[]).reduce((sum,row)=>sum+Number(row.duration_seconds||0),0)/60)+" minutes";return}}catch{}}label.textContent=Math.round(Number(localStorage.getItem("caJunctionLocalStudySeconds")||0)/60)+" minutes"});
+  }
+  function pauseStudyTimer(){if(!studyTimer.runningSince)return;const segment=Math.max(0,Math.floor((Date.now()-studyTimer.runningSince)/1000));studyTimer.elapsed+=segment;studyTimer.runningSince=null;studyTimer.focusMode=false;saveTimerState();if(segment)saveTimerChunk(segment)}
+  function startStudyTimer(){if(!studyTimer.runningSince){studyTimer.runningSince=Date.now();saveTimerState()}}
+  function initTimerDock(){
+    if(!document.getElementById("caTimerDockStyle")){const style=document.createElement("style");style.id="caTimerDockStyle";style.textContent=".ca-timer-dock{position:fixed;z-index:9999;right:16px;bottom:16px;display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid #d8b443;border-radius:13px;background:#111526;box-shadow:0 12px 36px #0009;color:#fff;font:600 13px/1.3 system-ui}.ca-timer-dock[hidden]{display:none}.ca-timer-dock strong{color:#f5c84c;font-variant-numeric:tabular-nums}.ca-timer-dock button,.ca-timer-dock a{border:0;border-radius:8px;padding:7px 9px;background:#282d42;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.ca-timer-dock a{background:#4f46e5}@media(max-width:600px){.ca-timer-dock{left:10px;right:10px;bottom:10px;justify-content:space-between}}";document.head.append(style)}
+    let dock=$("#caTimerDock");if(!dock){dock=document.createElement("aside");dock.id="caTimerDock";dock.className="ca-timer-dock";dock.setAttribute("aria-label","Minimized study timer");dock.innerHTML='<strong id="caTimerDockTime">00:00:00</strong><button id="caTimerDockToggle" type="button">Start</button><a href="tracker.html">Open timer</a>';document.body.append(dock)}
+    const update=()=>{studyTimer=readTimerState();dock.hidden=!studyTimer.minimized;$("#caTimerDockTime").textContent=timerClock(currentTimerSeconds());$("#caTimerDockToggle").textContent=studyTimer.runningSince?"Pause":"Resume";$("#caTimerDockToggle").onclick=()=>{if(studyTimer.runningSince)pauseStudyTimer();else startStudyTimer();update()}};
+    window.addEventListener("ca:timer-update",update);setInterval(update,1000);update();
+  }
+
   function initCommon() {
     const nav = $("#siteNav");
     const menu = $(".menu");
@@ -62,6 +83,7 @@
         link.title = "WhatsApp contact details have not been configured yet.";
       }
     });
+    initTimerDock();
     const year = $("#year");
     if (year) year.textContent = String(new Date().getFullYear());
   }
@@ -475,30 +497,27 @@
   }
 
   function initPlanner(){
-    const date=$("#examDate");
-    $("#countdownButton")?.addEventListener("click",()=>{
-      if(!date.value){msg("#countdownResult","Choose a date first.","error");return}
-      const target=new Date(date.value+"T00:00:00"),today=new Date();today.setHours(0,0,0,0);
-      const days=Math.ceil((target-today)/86400000);
-      msg("#countdownResult",days>0?days+" days until your selected exam date.":days===0?"Your selected date is today.":"That date has passed.");
-    });
-    let started=null,timer=null;
-    const display=$("#focusTimer");
-    const draw=()=>{if(!started||!display)return;const s=Math.floor((Date.now()-started)/1000),h=String(Math.floor(s/3600)).padStart(2,"0"),m=String(Math.floor(s%3600/60)).padStart(2,"0"),x=String(s%60).padStart(2,"0");display.textContent=h+":"+m+":"+x};
-    $("#timerStart")?.addEventListener("click",async()=>{
-      if(!started){started=Date.now();$("#timerStart").textContent="Stop and save";timer=setInterval(draw,1000);msg("#timerStatus","Session running.");return}
-      const seconds=Math.max(1,Math.floor((Date.now()-started)/1000));clearInterval(timer);timer=null;started=null;$("#timerStart").textContent="Start session";draw();
-      if(ready()){const {data:{user}}=await sb.auth.getUser();if(user){await sb.from("study_sessions").insert({user_id:user.id,duration_seconds:seconds});await loadTodayHours(user.id)}else addLocalStudySeconds(seconds)}else addLocalStudySeconds(seconds);
-      msg("#timerStatus","Session saved to your study-hours total.");
-    });
-    $("#timerReset")?.addEventListener("click",()=>{if(timer)clearInterval(timer);timer=null;started=null;display.textContent="00:00:00";$("#timerStart").textContent="Start session";msg("#timerStatus","Timer reset.")});
-    function addLocalStudySeconds(seconds){const key="caJunctionLocalStudySeconds";localStorage.setItem(key,String(Number(localStorage.getItem(key)||0)+seconds));loadTodayHours()}
-    async function loadTodayHours(userId){
-      const label=$("#todayHours");if(!label)return;
-      if(ready()&&userId){const start=new Date();start.setHours(0,0,0,0);const {data}=await sb.from("study_sessions").select("duration_seconds").eq("user_id",userId).gte("started_at",start.toISOString());const total=(data||[]).reduce((sum,row)=>sum+row.duration_seconds,0);label.textContent=Math.round(total/60)+" minutes";return}
-      label.textContent=Math.round(Number(localStorage.getItem("caJunctionLocalStudySeconds")||0)/60)+" minutes";
-    }
-    if(ready())sb.auth.getUser().then(({data})=>loadTodayHours(data.user?.id));else loadTodayHours();
+    const date=$("#examDate"),daysDisplay=$("#countdownDays");
+    const renderCountdown=()=>{
+      if(!date||!daysDisplay)return;
+      if(!date.value){daysDisplay.hidden=true;msg("#countdownResult","Your days remaining will appear here.");return}
+      const [year,month,day]=date.value.split("-").map(Number),target=new Date(year,month-1,day);target.setHours(0,0,0,0);
+      const today=new Date();today.setHours(0,0,0,0);const days=Math.round((target-today)/86400000);daysDisplay.hidden=false;
+      if(days>0){daysDisplay.textContent=days+" DAYS LEFT";msg("#countdownResult","Keep showing up. Every focused day brings you closer to your goal.")}
+      else if(days===0){daysDisplay.textContent="EXAM DAY";msg("#countdownResult","Wishing you calm focus and confidence today.")}
+      else{daysDisplay.hidden=true;msg("#countdownResult","That exam date has passed. Choose a future date.","error")}
+    };
+    date?.addEventListener("change",renderCountdown);$("#countdownButton")?.addEventListener("click",renderCountdown);renderCountdown();
+    const display=$("#focusTimer"),startButton=$("#timerStart"),pauseButton=$("#timerPause"),resetButton=$("#timerReset"),minimizeButton=$("#timerMinimize"),focusButton=$("#timerFocus"),panel=$("#timerPanel");
+    const renderTimer=()=>{studyTimer=readTimerState();if(display)display.textContent=timerClock(currentTimerSeconds());if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":"Resume session";startButton.disabled=Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Focus mode on":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
+    startButton?.addEventListener("click",()=>{startStudyTimer();renderTimer();msg("#timerStatus","Session running. Your elapsed time is saved on this device.")});
+    pauseButton?.addEventListener("click",()=>{pauseStudyTimer();renderTimer();msg("#timerStatus","Paused and saved. Resume to continue from this time.")});
+    resetButton?.addEventListener("click",()=>{if(studyTimer.runningSince)pauseStudyTimer();studyTimer=readTimerState();studyTimer.elapsed=0;studyTimer.runningSince=null;studyTimer.focusMode=false;saveTimerState();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});msg("#timerStatus","Session finished. All paused time remains in your study-hours total.")});
+    minimizeButton?.addEventListener("click",()=>{studyTimer=readTimerState();studyTimer.minimized=true;saveTimerState();renderTimer()});
+    focusButton?.addEventListener("click",async()=>{studyTimer=readTimerState();if(studyTimer.focusMode){studyTimer.focusMode=false;saveTimerState();if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});renderTimer();return}try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();studyTimer.focusMode=true;saveTimerState();msg("#timerStatus","Focus mode is on. Leaving this page will pause and save your session.")}catch{studyTimer.focusMode=false;saveTimerState();msg("#timerStatus","Fullscreen is unavailable in this browser. You can still use the timer normally.","error")}renderTimer()});
+    document.addEventListener("visibilitychange",()=>{studyTimer=readTimerState();if(document.visibilityState==="hidden"&&studyTimer.focusMode){pauseStudyTimer();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}});
+    window.addEventListener("ca:timer-update",renderTimer);setInterval(renderTimer,1000);renderTimer();
+    const loadHours=async()=>{const label=$("#todayHours");if(!label)return;if(ready()){try{const {data:{user}}=await sb.auth.getUser();if(user){const start=new Date();start.setHours(0,0,0,0);const {data}=await sb.from("study_sessions").select("duration_seconds").eq("user_id",user.id).gte("started_at",start.toISOString());label.textContent=Math.round((data||[]).reduce((sum,row)=>sum+Number(row.duration_seconds||0),0)/60)+" minutes";return}}catch{}}label.textContent=Math.round(Number(localStorage.getItem("caJunctionLocalStudySeconds")||0)/60)+" minutes"};
     const builder=$("#plannerBuilderForm");
     if(builder){
       const level=$("#plannerLevel"),countInput=$("#plannerSubjectCount"),choices=$("#plannerSubjectOptions"),subjectsStatus=$("#plannerSubjectsStatus"),daysInput=$("#plannerDays"),results=$("#plannerBuilderResults"),createButton=$("#plannerCreateButton");
