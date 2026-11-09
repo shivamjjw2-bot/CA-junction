@@ -588,13 +588,22 @@
       };
       const renderSchedule=schedule=>{
         results.replaceChildren();
-        schedule.forEach(item=>{
+        schedule.forEach(day=>{
           const card=document.createElement("article");card.className="plan-day";
-          const title=document.createElement("strong");title.textContent="Day "+item.day+" · "+item.subject;
-          const topic=document.createElement("small");topic.className="resource-focus";topic.textContent=item.topic||item.subject||"";
-          const activity=document.createElement("p");activity.textContent=item.activity||"Study concepts, solve questions, and revise.";
-          const minutes=Number(item.study_minutes||150),time=document.createElement("small");time.textContent="Suggested study time · "+(Math.round(minutes/6)/10)+" hours";
-          card.append(title);if(item.topic||item.subject)card.append(topic);card.append(activity);if(item.source_url){const source=document.createElement("a");source.className="resource-focus";source.href=item.source_url;source.target="_blank";source.rel="noopener noreferrer";source.textContent="Open official ICAI study material";card.append(source)}card.append(time);results.append(card);
+          const sessions=Array.isArray(day.sessions)?day.sessions:(day.subject?[day]:[]);
+          const title=document.createElement("strong");title.textContent="Day "+day.day+" · "+sessions.length+" subject session"+(sessions.length===1?"":"s");
+          const list=document.createElement("div");list.className="day-sessions";
+          sessions.forEach(session=>{
+            const block=document.createElement("section");block.className="study-session";
+            const subject=document.createElement("strong");subject.textContent=session.subject||"Subject";
+            const chapter=document.createElement("small");chapter.className="resource-focus";chapter.textContent=session.chapter?"Chapter · "+session.chapter:(session.topic||"Chapter-wise study");
+            const activity=document.createElement("p");activity.textContent=session.activity||"Study this chapter and complete matching ICAI practice questions.";
+            const minutes=Number(session.study_minutes||120),time=document.createElement("small");time.className="session-time";time.textContent="Time · "+minutes+" minutes";
+            block.append(subject,chapter,activity,time);
+            if(session.source_url){const source=document.createElement("a");source.className="resource-focus";source.href=session.source_url;source.target="_blank";source.rel="noopener noreferrer";source.textContent="Open ICAI material";block.append(source)}
+            list.append(block);
+          });
+          card.append(title,list);results.append(card);
         });
       };
       if(savedPlan?.subjects&&savedPlan?.days){daysInput.value=savedPlan.days;if(["Foundation","Intermediate","Final"].includes(savedPlan.level))level.value=savedPlan.level;if(Array.isArray(savedPlan.schedule))renderSchedule(savedPlan.schedule)}
@@ -611,7 +620,7 @@
         if(subjects.length!==subjectCount){msg("#plannerBuilderStatus","Select exactly "+subjectCount+" subjects from the official ICAI list above.","error");return}
         if(!Number.isInteger(days)||days<1||days>180){msg("#plannerBuilderStatus","Choose a duration from 1 to 180 days.","error");return}
         if(!ready()){msg("#plannerBuilderStatus",backendMessage,"error");return}
-        createButton.disabled=true;createButton.textContent="Creating your AI plan…";results.replaceChildren();msg("#plannerBuilderStatus","AI is checking ICAI’s official course and study-material pages, then arranging your schedule…");
+        createButton.disabled=true;createButton.textContent="Creating your AI plan…";results.replaceChildren();msg("#plannerBuilderStatus","AI is checking ICAI chapter lists and assigning a chapter and time to each subject session…");
         try{
           const {data:{session},error:authError}=await sb.auth.getSession();
           if(authError||!session?.access_token){msg("#plannerBuilderStatus","Please sign in to create an AI study plan.","error");return}
