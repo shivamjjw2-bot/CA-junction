@@ -393,8 +393,8 @@
   }
 
   function initMtp(){
-    const levelButtons=$("[data-mtp-level]");
-    const typeButtons=$("[data-mtp-type]");
+    const levelButtons=$$("[data-mtp-level]");
+    const typeButtons=$$("[data-mtp-type]");
     const panel=$("#mtpPapersPanel"),heading=$("#mtpPapersHeading"),list=$("#mtpPapersList");
     let selectedLevel="",selectedType="mtp_question";
     const setType=type=>{
