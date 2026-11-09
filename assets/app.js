@@ -498,12 +498,55 @@
   function initAiMcqPractice(){
     const form=$("#aiPracticeForm");if(!form)return;
     const level=$("#aiPracticeLevel"),preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
-    const subject=$("#aiPracticeSubject"),chapterInput=$("#aiPracticeChapters"),materialLink=$("#aiPracticeMaterialLink");
+    const subject=$("#aiPracticeSubject"),chapterSelect=$("#aiPracticeChapterSelect"),addChapter=$("#aiPracticeAddChapter"),selectedChaptersBox=$("#aiPracticeSelectedChapters"),chapterHelp=$("#aiPracticeChapterHelp"),materialLink=$("#aiPracticeMaterialLink");
+    const selectedChapters=[];
     const subjectsByLevel={
       Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
       Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
       Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
     };
+    const chapterSubjectAliases={
+      "Taxation — Income-tax Law":"Taxation",
+      "Taxation — Goods and Services Tax":"Taxation",
+      "Financial Management":"Financial Management and Strategic Management",
+      "Strategic Management":"Financial Management and Strategic Management",
+      "Integrated Business Solutions":"Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"
+    };
+    const renderSelectedChapters=()=>{
+      selectedChaptersBox.replaceChildren();
+      selectedChapters.forEach((name,index)=>{
+        const chip=document.createElement("span");chip.className="chapter-chip";chip.append(document.createTextNode(name));
+        const remove=document.createElement("button");remove.type="button";remove.setAttribute("aria-label","Remove "+name);remove.textContent="×";
+        remove.addEventListener("click",()=>{selectedChapters.splice(index,1);renderSelectedChapters();updateChapterControls()});
+        chip.append(remove);selectedChaptersBox.append(chip);
+      });
+      chapterHelp.textContent=selectedChapters.length+" of 8 chapters selected. Chapter titles are loaded from the ICAI study material listing.";
+    };
+    const updateChapterControls=()=>{addChapter.disabled=!chapterSelect.value||selectedChapters.length>=8||selectedChapters.includes(chapterSelect.value)};
+    const resetChapters=placeholder=>{
+      selectedChapters.splice(0);selectedChaptersBox.replaceChildren();chapterSelect.replaceChildren(new Option(placeholder,""));chapterSelect.disabled=true;addChapter.disabled=true;chapterHelp.textContent="Choose a subject to load chapter titles from ICAI material. Add up to 8 chapters.";
+    };
+    const loadChapters=async()=>{
+      resetChapters("Loading ICAI chapters…");
+      if(!subject.value||!level.value){chapterSelect.options[0].textContent="Choose a subject first";return}
+      const lookupSubject=chapterSubjectAliases[subject.value]||subject.value;
+      try{
+        const query=new URLSearchParams({mode:"chapters",level:level.value,subjects:lookupSubject});
+        const response=await fetch("/api/ai-planner?"+query.toString(),{headers:{accept:"application/json"}});
+        const result=await response.json().catch(()=>({}));
+        const outline=Array.isArray(result.outlines)?result.outlines.find(item=>item.subject?.toLowerCase()===lookupSubject.toLowerCase()):null;
+        const chapters=Array.isArray(outline?.chapters)?[...new Set(outline.chapters.map(name=>String(name).trim()).filter(Boolean))]:[];
+        if(!response.ok||!chapters.length)throw new Error(result.error||"ICAI chapter titles are temporarily unavailable. Please open the official material link.");
+        chapterSelect.replaceChildren(new Option("Choose a chapter",""),...chapters.map(name=>new Option(name,name)));
+        chapterSelect.disabled=false;chapterHelp.textContent="Chapter titles loaded from ICAI material for "+subject.value+". Add up to 8.";
+      }catch(error){resetChapters(error?.message||"Could not load ICAI chapters. Please try again.");chapterHelp.textContent=error?.message||"Could not load ICAI chapters. Please try again."}
+      updateChapterControls();
+    };
+    addChapter.addEventListener("click",()=>{
+      const name=chapterSelect.value;if(!name||selectedChapters.includes(name)||selectedChapters.length>=8)return;
+      selectedChapters.push(name);renderSelectedChapters();updateChapterControls();
+    });
+    chapterSelect.addEventListener("change",updateChapterControls);
     const materialUrls={
       Foundation:"https://boslive.icai.org/study_material_new_paper_details.php?c=foundation&language=English",
       Intermediate:"https://boslive.icai.org/study_material_new_paper_details.php?c=intermediate&language=English",
@@ -514,14 +557,14 @@
       subject.replaceChildren(new Option(level.value?"Choose a subject":"Choose a level first",""),...subjects.map(name=>new Option(name,name)));
       subject.disabled=!level.value;
       if(subjects.includes(current))subject.value=current;
-      chapterInput.disabled=!subject.value;
-      chapterInput.placeholder=subject.value?"Enter chapter name(s) as listed by ICAI":"Choose a subject first";
+      resetChapters(subject.value?"Loading ICAI chapters…":"Choose a subject first");
+      if(subject.value)loadChapters();
       if(materialLink){materialLink.hidden=!level.value;if(level.value)materialLink.href=materialUrls[level.value]}
     };
     if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
     updateMaterialChoices();
-    level.addEventListener("change",()=>{subject.value="";chapterInput.value="";updateMaterialChoices()});
-    subject.addEventListener("change",()=>{chapterInput.disabled=!subject.value;chapterInput.placeholder=subject.value?"Enter chapter name(s) as listed by ICAI":"Choose a subject first"});
+    level.addEventListener("change",()=>{subject.value="";resetChapters("Choose a subject first");updateMaterialChoices()});
+    subject.addEventListener("change",loadChapters);
     const session=$("#aiPracticeSession"),box=$("#aiPracticeQuestion"),caseStudy=$("#aiPracticeCaseStudy"),start=$("#aiPracticeStart"),feedback=$("#aiPracticeFeedback"),next=$("#aiPracticeNext"),check=$("#aiPracticeCheck");
     const review=$("#aiPracticeReview"),reviewSummary=$("#aiPracticeReviewSummary"),reviewCase=$("#aiPracticeReviewCaseStudy"),reviewItems=$("#aiPracticeReviewItems");
     let questions=[],score=0,answers=[],reviewOrder=[],marksEach=1,currentDifficulty=1,currentQuestionIndex=-1,preparationTimer=null,preparationStarted=0,caseStudyText="";
@@ -567,9 +610,9 @@
     };
     form.addEventListener("submit",async event=>{
       event.preventDefault();if(!ready()){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
-      const chapters=$("#aiPracticeChapters").value.split(",").map(v=>v.trim()).filter(Boolean);
+      const chapters=[...selectedChapters];
       if(chapters.length>8){msg("#aiPracticeStatus","Enter no more than 8 chapters.","error");return}
-      if(!chapters.length){msg("#aiPracticeStatus","Enter at least one chapter name.","error");return}
+      if(!chapters.length){msg("#aiPracticeStatus","Select at least one ICAI chapter.","error");return}
       start.disabled=true;session.hidden=true;review.hidden=true;caseStudy.hidden=true;msg("#aiPracticeStatus","Preparing your 10 questions…");preparationStarted=Date.now();updatePreparationTimer();$("#aiPracticeTimer").hidden=false;preparationTimer=setInterval(updatePreparationTimer,1000);
       try{
         const {data:{session:authSession},error:authError}=await sb.auth.getSession();
