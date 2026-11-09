@@ -8,7 +8,7 @@ export async function onRequestPost({request,env}) {
   if(!env.AI)return json({error:"The free AI planner is being connected. Please try again later."},503);
   if(!(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return json({error:"Send a valid planner request."},415);
   if(Number(request.headers.get("content-length")||0)>16000)return json({error:"That planner request is too large."},413);
-  const token=(request.headers.get("authorization")||"").match(/^Bearer\\s+(.+)$/i)?.[1];
+  const token=(request.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];
   if(!token||token.length>5000)return json({error:"Please sign in to create an AI study plan."},401);
   try {
     const auth=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token}});
@@ -23,8 +23,8 @@ export async function onRequestPost({request,env}) {
   if(!LEVELS.has(level))return json({error:"Choose Foundation, Intermediate or Final."},400);
   if(!subjects.length||subjects.length>12||subjects.some(s=>s.length>100))return json({error:"Enter between 1 and 12 subjects, each no longer than 100 characters."},400);
   if(!Number.isInteger(days)||days<1||days>180)return json({error:"Choose a duration from 1 to 180 days."},400);
-  const subjectList=subjects.map((subject,index)=>index+" = "+subject).join("\\n");
-  const prompt=["Create a practical CA study plan with exactly "+days+" daily entries.","CA level: "+level,"Subjects and their required zero-based indexes:\\n"+subjectList,"Choose one main subject for each day; rotate subjects fairly and include concept study, question practice, recap, and periodic self-testing. Gradually shift the final days toward revision and timed mixed practice.","Use only the supplied subject names. Do not invent chapter titles, syllabus details, or claims about exact ICAI papers. Describe the day's work in one concise, actionable activity under 140 characters.","Suggest a balanced total study target of 90 to 240 minutes per day. Output exactly one entry for every numbered day from 1 through "+days+" with day, subject_index, activity, and study_minutes. subject_index must match the supplied index list; minutes must be between 90 and 240.","Return only JSON matching the schema."].join("\\n");
+  const subjectList=subjects.map((subject,index)=>index+" = "+subject).join("\n");
+  const prompt=["Create a practical CA study plan with exactly "+days+" daily entries.","CA level: "+level,"Subjects and their required zero-based indexes:\n"+subjectList,"Choose one main subject for each day; rotate subjects fairly and include concept study, question practice, recap, and periodic self-testing. Gradually shift the final days toward revision and timed mixed practice.","Use only the supplied subject names. Do not invent chapter titles, syllabus details, or claims about exact ICAI papers. Describe the day's work in one concise, actionable activity under 140 characters.","Suggest a balanced total study target of 90 to 240 minutes per day. Output exactly one entry for every numbered day from 1 through "+days+" with day, subject_index, activity, and study_minutes. subject_index must match the supplied index list; minutes must be between 90 and 240.","Return only JSON matching the schema."].join("\n");
   const schema={type:"object",additionalProperties:false,properties:{schedule:{type:"array",items:{type:"object",additionalProperties:false,properties:{
     day:{type:"integer"},subject_index:{type:"integer"},activity:{type:"string"},study_minutes:{type:"integer"}
   },required:["day","subject_index","activity","study_minutes"]}}},required:["schedule"]};
