@@ -300,6 +300,11 @@
     const subjectFilter=$("#subjectFilter");
     const chapterFilter=$("#chapterFilter");
     const authorFilter=$("#authorFilter");
+    const subjectsByLevel={
+      Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
+      Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
+      Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
+    };
     const studentGrid=$("#studentNotesGrid");
     const adminGrid=$("#adminResourcesGrid");
     const revisionLevelApps=$("#revisionLevelApps"),revisionResources=$("#revisionResources");
@@ -366,7 +371,8 @@
       if(!subjectFilter||!chapterFilter||!authorFilter)return;
       const studentRows=all.filter(row=>row.category==="student_note"&&matchesLevel(row));
       const currentSubject=subjectFilter.value;
-      const subjects=[...new Set(studentRows.map(row=>row.subject).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      const levels=levelFilter?.value?[levelFilter.value]:Object.keys(subjectsByLevel);
+      const subjects=[...new Set(levels.flatMap(level=>subjectsByLevel[level]||[]))];
       subjectFilter.replaceChildren(new Option("All subjects",""),...subjects.map(value=>new Option(value,value)));
       if(subjects.includes(currentSubject))subjectFilter.value=currentSubject;
       const currentChapter=chapterFilter.value;
