@@ -26,18 +26,15 @@ export async function onRequestPost({request,env}) {
   catch { return json({error:"The practice request could not be read."},400); }
   const level=String(body.level||""),subject=String(body.subject||"").trim();
   const chapters=Array.isArray(body.chapters)?body.chapters.map(v=>String(v).trim()).filter(Boolean):[];
-  const mix=body.mix==="combined"?"combined":"separate";
-  const format=body.format==="case-study"?"case-study":"standard";
   const questionCount=10;
   if(!LEVELS.has(level))return json({error:"Choose Foundation, Intermediate or Final."},400);
   if(!subject||subject.length>100)return json({error:"Enter a subject name (up to 100 characters)."},400);
   if(!chapters.length||chapters.length>8||chapters.some(c=>c.length>100))return json({error:"Enter between 1 and 8 chapter names, each up to 100 characters."},400);
-  const style=mix==="combined"?"Connect concepts from multiple supplied chapters where suitable.":"Keep questions focused on the supplied chapter or chapters.";
-  const formatInstruction=format==="case-study"?"Write one concise case study of about 100–180 words, containing every fact needed, followed by exactly ten related MCQs tied to that scenario.":"Write exactly ten standalone MCQs. Set case_study to an empty string.";
-  const userPrompt=["Create challenging but fair original CA practice questions.","CA level: "+level,"Subject: "+subject,"Chapters: "+chapters.join("; "),formatInstruction,style,"Test application, calculations, or multi-step reasoning where appropriate. Use plausible distractors based on common student errors; avoid obscure trivia and ambiguous wording.","Follow the CA syllabus and common ICAI exam patterns. These are original practice questions, not verified past questions. Never claim an item appeared in an ICAI exam; do not copy or closely paraphrase known exam questions.","Create exactly two questions at each difficulty level from 1 to 5, ordered from easier to harder. Each question must include its integer difficulty (1=easier, 5=hardest), exactly four clear options, exactly one correct answer, and a concise explanation."].join("\n");
+  const formatInstruction="Write exactly 5 standalone individual MCQs first, then one concise case study of 100–180 words, then exactly 5 MCQs linked to that single case. The first five questions must have kind individual and be answerable without the case. The final five must have kind case-linked and use only facts in the case. Keep the case study hidden until question 6 is shown.";
+  const userPrompt=["Create challenging but fair original CA practice questions.","CA level: "+level,"Subject: "+subject,"Chapters: "+chapters.join("; "),formatInstruction,style,"Test application, calculations, or multi-step reasoning where appropriate. Use plausible distractors based on common student errors; avoid obscure trivia and ambiguous wording.","Follow the CA syllabus and common ICAI exam patterns. These are original practice questions, not verified past questions. Never claim an item appeared in an ICAI exam; do not copy or closely paraphrase known exam questions.","Create exactly two questions at each difficulty level from 1 to 5 across the full set, progressively ordered from easier to harder. Individual questions are worth 1 mark each; case-linked questions are worth 2 marks each. Every item must have exactly four clear options, exactly one correct answer, and a concise explanation."].join("\n");
   const schema={type:"object",additionalProperties:false,properties:{case_study:{type:"string"},questions:{type:"array",items:{type:"object",additionalProperties:false,properties:{
-    question:{type:"string"},options:{type:"array",items:{type:"string"}},correct_index:{type:"integer"},explanation:{type:"string"},difficulty:{type:"integer"}
-  },required:["question","options","correct_index","explanation","difficulty"]}}},required:["case_study","questions"]};
+    question:{type:"string"},kind:{type:"string",enum:["individual","case-linked"]},marks:{type:"integer"},options:{type:"array",items:{type:"string"}},correct_index:{type:"integer"},explanation:{type:"string"},difficulty:{type:"integer"}
+  },required:["question","kind","marks","options","correct_index","explanation","difficulty"]}}},required:["case_study","questions"]};
   const quota=await reserveAiNeurons(token,2000);
   if(!quota.ok)return json({error:"The free AI limit could not be checked, so no AI request was sent. Please try again later."},503);
   if(!quota.allowed)return json({error:"Today's shared free AI budget is used up. Please try again after the daily reset."},429);
@@ -54,11 +51,11 @@ export async function onRequestPost({request,env}) {
     const questions=parsed?.questions;
     const difficultyCounts=[0,0,0,0,0,0];
     if(Array.isArray(questions))questions.forEach(q=>{if(Number.isInteger(q?.difficulty)&&q.difficulty>=1&&q.difficulty<=5)difficultyCounts[q.difficulty]++});
-    const valid=typeof parsed.case_study==="string"&&(format==="case-study"?parsed.case_study.length>=100&&parsed.case_study.length<=2300:parsed.case_study==="")&&Array.isArray(questions)&&questions.length===questionCount&&difficultyCounts.slice(1).every(count=>count===2)&&questions.every(q=>
-      typeof q.question==="string"&&q.question.length<=1200&&Array.isArray(q.options)&&q.options.length===4&&q.options.every(o=>typeof o==="string"&&o.length<=500)&&
+    const valid=typeof parsed.case_study==="string"&&parsed.case_study.length>=100&&parsed.case_study.length<=2300&&Array.isArray(questions)&&questions.length===questionCount&&difficultyCounts.slice(1).every(count=>count===2)&&questions.every((q,index)=>
+      typeof q.question==="string"&&q.question.length<=1200&&q.kind===(index<5?"individual":"case-linked")&&q.marks===(index<5?1:2)&&Array.isArray(q.options)&&q.options.length===4&&q.options.every(o=>typeof o==="string"&&o.length<=500)&&
       Number.isInteger(q.correct_index)&&q.correct_index>=0&&q.correct_index<=3&&typeof q.explanation==="string"&&q.explanation.length<=1500&&Number.isInteger(q.difficulty)&&q.difficulty>=1&&q.difficulty<=5);
     if(!valid)return json({error:"The question set did not pass checks. Please generate a new set."},502);
-    return json({questions,case_study:parsed.case_study,marks_per_question:format==="case-study"?2:1,max_marks:questionCount*(format==="case-study"?2:1),question_count:questionCount});
+    return json({questions,case_study:parsed.case_study,max_marks:15,question_count:questionCount});
   } catch(error) {
     const detail=String(error?.message||"").toLowerCase();
     if(/daily.*(limit|allowance)|neuron.*(limit|allowance)|quota.*(exceed|limit)|limit.*(exceed|reached)|429/.test(detail))
