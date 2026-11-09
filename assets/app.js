@@ -650,6 +650,30 @@
 
   async function initResourceLink(){
     const link=$("#resourceLink"),status=$("#resourceStatus"),key=document.body.dataset.resourceKey;
+    if(key==="virtual_library"){
+      const levels=[
+        {key:"virtual_library_foundation",name:"Foundation",tab:"#libraryTabFoundation"},
+        {key:"virtual_library_intermediate",name:"Intermediate",tab:"#libraryTabIntermediate"},
+        {key:"virtual_library_final",name:"Final",tab:"#libraryTabFinal"}
+      ];
+      const title=$("#libraryLevelTitle");
+      let links={};
+      if(ready()){
+        const {data}=await sb.from("premium_resources").select("resource_key,resource_url").in("resource_key",levels.map(level=>level.key).concat("virtual_library")).eq("is_active",true);
+        links=Object.fromEntries((data||[]).map(row=>[row.resource_key,row.resource_url]));
+        if(!links.virtual_library_foundation&&links.virtual_library)links.virtual_library_foundation=links.virtual_library;
+      }
+      const activate=level=>{
+        levels.forEach(item=>$(item.tab)?.setAttribute("aria-selected",String(item.key===level.key)));
+        if(title)title.textContent=level.name+" Virtual Library";
+        if(links[level.key]){link.href=links[level.key];link.hidden=false;status.textContent="Your "+level.name+" study room is ready. The meeting opens in a new tab, so CA Junction stays available here."}
+        else{link.hidden=true;status.textContent="The "+level.name+" study room link has not been added yet. Please check again soon."}
+      };
+      levels.forEach(level=>$(level.tab)?.addEventListener("click",()=>activate(level)));
+      const requested=(new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"Foundation").toLowerCase();
+      activate(levels.find(level=>level.name.toLowerCase()===requested||("final"===requested&&level.name==="Final"))||levels[0]);
+      return;
+    }
     if(!ready()){if(status)status.textContent="This link has not been added yet.";return}
     const {data,error}=await sb.from("premium_resources").select("resource_url").eq("resource_key",key).eq("is_active",true).maybeSingle();
     if(error||!data){if(status)status.textContent="This link has not been added yet.";return}
@@ -703,7 +727,9 @@
     $("#adminProductForm")?.addEventListener("submit",saveProduct);
     $("#adminCourseForm")?.addEventListener("submit",saveCourse);
     $("#groupLinkForm")?.addEventListener("submit",saveGroupLink);
-    $("#virtualLibraryForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library","Virtual Library study room","#virtualLibraryUrl","#virtualLibraryStatus"));
+    $("#virtualLibraryFoundationForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_foundation","Foundation Virtual Library study room","#virtualLibraryFoundationUrl","#virtualLibraryFoundationStatus"));
+    $("#virtualLibraryIntermediateForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_intermediate","Intermediate Virtual Library study room","#virtualLibraryIntermediateUrl","#virtualLibraryIntermediateStatus"));
+    $("#virtualLibraryFinalForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_final","Final Virtual Library study room","#virtualLibraryFinalUrl","#virtualLibraryFinalStatus"));
     $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
     await Promise.all([loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
     async function saveMaterial(e){
@@ -834,8 +860,14 @@
       msg(statusSelector,error?error.message:"Link saved.",error?"error":"success");
     }
     async function loadManagedLinks(){
-      const {data,error}=await sb.from("premium_resources").select("resource_key,resource_url").in("resource_key",["virtual_library","doubt_solving"]);
-      if(error)return;(data||[]).forEach(row=>{if(row.resource_key==="virtual_library"&&$("#virtualLibraryUrl"))$("#virtualLibraryUrl").value=row.resource_url;if(row.resource_key==="doubt_solving"&&$("#doubtSolvingUrl"))$("#doubtSolvingUrl").value=row.resource_url});
+      const keys=["virtual_library","virtual_library_foundation","virtual_library_intermediate","virtual_library_final","doubt_solving"];
+      const {data,error}=await sb.from("premium_resources").select("resource_key,resource_url").in("resource_key",keys);
+      if(error)return;
+      const links=Object.fromEntries((data||[]).map(row=>[row.resource_key,row.resource_url]));
+      if($("#virtualLibraryFoundationUrl"))$("#virtualLibraryFoundationUrl").value=links.virtual_library_foundation||links.virtual_library||"";
+      if($("#virtualLibraryIntermediateUrl"))$("#virtualLibraryIntermediateUrl").value=links.virtual_library_intermediate||"";
+      if($("#virtualLibraryFinalUrl"))$("#virtualLibraryFinalUrl").value=links.virtual_library_final||"";
+      if($("#doubtSolvingUrl"))$("#doubtSolvingUrl").value=links.doubt_solving||"";
     }
     async function saveGroupLink(e){
       e.preventDefault();const url=$("#groupUrl").value.trim();
