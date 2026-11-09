@@ -594,7 +594,7 @@
           const topic=document.createElement("small");topic.className="resource-focus";topic.textContent=item.topic||item.subject||"";
           const activity=document.createElement("p");activity.textContent=item.activity||"Study concepts, solve questions, and revise.";
           const minutes=Number(item.study_minutes||150),time=document.createElement("small");time.textContent="Suggested study time · "+(Math.round(minutes/6)/10)+" hours";
-          card.append(title);if(item.topic||item.subject)card.append(topic);card.append(activity,time);if(item.source_url){const source=document.createElement("a");source.className="resource-focus";source.href=item.source_url;source.target="_blank";source.rel="noopener noreferrer";source.textContent="Open official ICAI study material";card.append(source)}card.append(time);results.append(card);
+          card.append(title);if(item.topic||item.subject)card.append(topic);card.append(activity);if(item.source_url){const source=document.createElement("a");source.className="resource-focus";source.href=item.source_url;source.target="_blank";source.rel="noopener noreferrer";source.textContent="Open official ICAI study material";card.append(source)}card.append(time);results.append(card);
         });
       };
       if(savedPlan?.subjects&&savedPlan?.days){daysInput.value=savedPlan.days;if(["Foundation","Intermediate","Final"].includes(savedPlan.level))level.value=savedPlan.level;if(Array.isArray(savedPlan.schedule))renderSchedule(savedPlan.schedule)}
