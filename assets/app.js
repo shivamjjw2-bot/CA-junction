@@ -1149,16 +1149,20 @@
         const {data:submission,error}=await sb.from("student_note_submissions").select("file_path").eq("id",row.student_submission_id).maybeSingle();
         if(error){msg(statusSelector,error.message,"error");return}sourcePath=submission?.file_path||null;
       }
+      const files=[],fileKeys=new Set();
+      const addFile=(bucket,path)=>{if(!bucket||!path)return;const key=bucket+"\\n"+path;if(!fileKeys.has(key)){fileKeys.add(key);files.push([bucket,path])}};
+      addFile(row.file_bucket,row.file_path);addFile("student-notes",sourcePath);
+      for(const [bucket,path] of files){
+        const {error:storageError}=await sb.storage.from(bucket).remove([path]);
+        if(storageError){msg(statusSelector,"Could not delete the stored file. The item remains listed so you can retry: "+storageError.message,"error");return}
+      }
       const {error}=await sb.from("materials").delete().eq("id",row.id);
-      if(error){msg(statusSelector,error.message,"error");return}
+      if(error){msg(statusSelector,"The PDF was removed, but its resource record could not be deleted: "+error.message,"error");return}
       if(row.student_submission_id){
         const {error:submissionError}=await sb.from("student_note_submissions").delete().eq("id",row.student_submission_id);
-        if(submissionError){msg(statusSelector,label+" removed, but contributor record cleanup failed: "+submissionError.message,"error");return}
+        if(submissionError){msg(statusSelector,label+" file and resource were removed, but its contributor record could not be deleted: "+submissionError.message,"error");return}
       }
-      const files=[];if(row.file_bucket&&row.file_path)files.push([row.file_bucket,row.file_path]);if(sourcePath)files.push(["student-notes",sourcePath]);
-      let cleanupError=null;
-      for(const [bucket,path] of files){const {error:storageError}=await sb.storage.from(bucket).remove([path]);if(storageError)cleanupError=storageError}
-      msg(statusSelector,cleanupError?label+" removed from the site, but a stored file could not be deleted: "+cleanupError.message:label+" and stored file deleted.",cleanupError?"error":"success");
+      msg(statusSelector,label+" and stored file deleted.","success");
     }
     async function loadAdminMtpPapers(){
       const chapters=["mtp_question","mtp_suggested_answer","rtp_question","rtp_suggested_answer","previous_year_question","previous_year_solution","mock_test_question"];
@@ -1234,10 +1238,10 @@
             if(material){await deleteManagedMaterial(material,"#submissionStatus","Student note");loadNoteSubmissions();loadAdminResources();return}
           }
           if(!confirm("Permanently delete this contributor upload and its stored PDF?"))return;
-          const {error}=await sb.from("student_note_submissions").delete().eq("id",row.id);
-          if(error){msg("#submissionStatus",error.message,"error");return}
           const {error:storageError}=await sb.storage.from("student-notes").remove([row.file_path]);
-          msg("#submissionStatus",storageError?"Upload record deleted, but the stored PDF could not be removed: "+storageError.message:"Contributor upload and PDF deleted.",storageError?"error":"success");loadNoteSubmissions()
+          if(storageError){msg("#submissionStatus","Could not delete the stored PDF. The upload remains listed so you can retry: "+storageError.message,"error");return}
+          const {error}=await sb.from("student_note_submissions").delete().eq("id",row.id);
+          msg("#submissionStatus",error?"The PDF was deleted, but its upload record could not be removed: "+error.message:"Contributor upload and PDF deleted.",error?"error":"success");loadNoteSubmissions()
         });
         actions.append(remove);item.append(info,actions);list.append(item)
       })
