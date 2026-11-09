@@ -906,11 +906,12 @@
       previewText("previewHobbies","resumeHobbies","Your interests will appear here.");
     }
     fields.forEach(id=>$("#"+id)?.addEventListener("input",refreshResume));
-    const theme=$("#resumeTheme"),preview=$("#resumePreview");
-    $("#resumeForm")?.addEventListener("reset",()=>setTimeout(()=>{if(theme&&preview)preview.dataset.theme=theme.value;refreshResume()},0));
+    const theme=$("#resumeTheme"),layout=$("#resumePageLayout"),preview=$("#resumePreview");
+    $("#resumeForm")?.addEventListener("reset",()=>setTimeout(()=>{if(theme&&preview){preview.dataset.theme=theme.value==="auto"?recommendedTheme:theme.value;preview.dataset.layout=layout?.value||"single-column"}refreshResume()},0));
     $("#printResume")?.addEventListener("click",()=>window.print());
     let recommendedTheme="modern";
     theme?.addEventListener("change",()=>{if(preview)preview.dataset.theme=theme.value==="auto"?recommendedTheme:theme.value});
+    layout?.addEventListener("change",()=>{if(preview)preview.dataset.layout=layout.value});
     $("#generateResumeDraft")?.addEventListener("click",async()=>{
       const role=fieldValue("resumeRole");
       if(!role){msg("#resumeStatus","Tell us the role you want so AI can tailor your resume.","error");$("#resumeRole")?.focus();return}
