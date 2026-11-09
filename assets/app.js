@@ -458,38 +458,65 @@
     const level=$("#aiPracticeLevel"),preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
     if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
     const session=$("#aiPracticeSession"),box=$("#aiPracticeQuestion"),caseStudy=$("#aiPracticeCaseStudy"),start=$("#aiPracticeStart"),feedback=$("#aiPracticeFeedback"),next=$("#aiPracticeNext"),check=$("#aiPracticeCheck");
-    let questions=[],index=0,score=0,answered=false,preparationTimer=null,preparationStarted=0;
+    const review=$("#aiPracticeReview"),reviewSummary=$("#aiPracticeReviewSummary"),reviewCase=$("#aiPracticeReviewCaseStudy"),reviewItems=$("#aiPracticeReviewItems");
+    let questions=[],index=0,score=0,answers=[],marksEach=1,preparationTimer=null,preparationStarted=0,caseStudyText="";
     const stopPreparationTimer=()=>{if(preparationTimer)clearInterval(preparationTimer);preparationTimer=null;$("#aiPracticeTimer").hidden=true};
     const updatePreparationTimer=()=>{const elapsed=Math.floor((Date.now()-preparationStarted)/1000),minutes=String(Math.floor(elapsed/60)).padStart(2,"0"),seconds=String(elapsed%60).padStart(2,"0");$("#aiPracticeTimer").textContent="Preparing questions · "+minutes+":"+seconds};
+    const maxMarks=()=>questions.length*marksEach;
     const showQuestion=()=>{
       const q=questions[index];if(!q)return;answered=false;feedback.hidden=true;next.hidden=true;check.hidden=false;box.replaceChildren();
-      const legend=document.createElement("legend");legend.textContent=(index+1)+". "+q.question;legend.style.fontWeight="700";box.append(legend);
+      const legend=document.createElement("legend");legend.textContent=(index+1)+". "+q.question+" ("+marksEach+" "+(marksEach===1?"mark":"marks")+")";legend.style.fontWeight="700";box.append(legend);
       q.options.forEach((option,i)=>{const label=document.createElement("label");label.className="answer";const radio=document.createElement("input");radio.type="radio";radio.name="aiPracticeAnswer";radio.value=String(i);const span=document.createElement("span");span.textContent=option;label.append(radio,span);box.append(label)});
-      $("#aiPracticeProgress").textContent="Question "+(index+1)+" of "+questions.length;$("#aiPracticeScore").textContent="Your score: "+score+" / "+questions.length;
+      $("#aiPracticeProgress").textContent="Question "+(index+1)+" of "+questions.length+" · "+marksEach+" "+(marksEach===1?"mark":"marks");
+      $("#aiPracticeScore").textContent="Score so far: "+score+" / "+maxMarks()+" marks";
+    };
+    const renderReview=()=>{
+      if(!reviewItems||!reviewSummary)return;
+      reviewItems.replaceChildren();
+      const maximum=maxMarks(),percent=maximum?Math.round(score/maximum*100):0;
+      reviewSummary.textContent="Final score: "+score+" / "+maximum+" marks ("+percent+"%).";
+      reviewCase.textContent=caseStudyText;reviewCase.hidden=!caseStudyText;
+      questions.forEach((q,i)=>{
+        const answer=answers[i]||{selectedIndex:-1,correct:false};
+        const card=document.createElement("article");card.className="mcq-review-item "+(answer.correct?"mcq-review-correct":"mcq-review-incorrect");
+        const heading=document.createElement("h3");heading.textContent="Question "+(i+1)+" · "+(answer.correct?marksEach+" "+(marksEach===1?"mark":"marks"):"0 marks");
+        const question=document.createElement("p");question.textContent=q.question;
+        const student=document.createElement("p");student.textContent="Your answer: "+(answer.selectedIndex>=0?q.options[answer.selectedIndex]:"No answer");
+        const correct=document.createElement("p");correct.textContent="Correct answer: "+q.options[q.correct_index];
+        const explanation=document.createElement("p");explanation.textContent="Review: "+q.explanation;
+        card.append(heading,question,student,correct,explanation);reviewItems.append(card);
+      });
+      review.hidden=false;review.scrollIntoView({behavior:"smooth",block:"start"});
     };
     form.addEventListener("submit",async event=>{
       event.preventDefault();if(!ready()){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
       const chapters=$("#aiPracticeChapters").value.split(",").map(v=>v.trim()).filter(Boolean);
       if(chapters.length>8){msg("#aiPracticeStatus","Enter no more than 8 chapters.","error");return}
       if(!chapters.length){msg("#aiPracticeStatus","Enter at least one chapter name.","error");return}
-      start.disabled=true;session.hidden=true;caseStudy.hidden=true;msg("#aiPracticeStatus","Preparing your questions…");preparationStarted=Date.now();updatePreparationTimer();$("#aiPracticeTimer").hidden=false;preparationTimer=setInterval(updatePreparationTimer,1000);
+      start.disabled=true;session.hidden=true;review.hidden=true;caseStudy.hidden=true;msg("#aiPracticeStatus","Preparing your questions…");preparationStarted=Date.now();updatePreparationTimer();$("#aiPracticeTimer").hidden=false;preparationTimer=setInterval(updatePreparationTimer,1000);
       try{
         const {data:{session:authSession},error:authError}=await sb.auth.getSession();
         if(authError||!authSession?.access_token){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
         const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+authSession.access_token},body:JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters,mix:$("#aiPracticeMode").value,format:$("#aiPracticeFormat").value})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(result.error||"Could not start practice. Please try again.");
-        questions=result.questions;index=0;score=0;caseStudy.textContent=result.case_study||"";caseStudy.hidden=!result.case_study;session.hidden=false;showQuestion();msg("#aiPracticeStatus","Your practice set is ready.");session.scrollIntoView({behavior:"smooth",block:"center"});
+        questions=result.questions;index=0;score=0;answers=[];caseStudyText=result.case_study||"";marksEach=caseStudyText?2:1;caseStudy.textContent=caseStudyText;caseStudy.hidden=!caseStudyText;session.hidden=false;showQuestion();$("#aiPracticeScore").textContent="Score so far: 0 / "+maxMarks()+" marks";msg("#aiPracticeStatus","Your practice set is ready.");session.scrollIntoView({behavior:"smooth",block:"center"});
       }catch(error){msg("#aiPracticeStatus",error?.message||"Could not start practice. Please try again.","error")}
       finally{stopPreparationTimer();start.disabled=false}
     });
     check.addEventListener("click",()=>{
-      if(answered)return;const selected=$('input[name="aiPracticeAnswer"]:checked',box);
+      if(answers[index])return;const selected=$('input[name="aiPracticeAnswer"]:checked',box);
       if(!selected){msg("#aiPracticeStatus","Choose an answer first.","error");return}
-      answered=true;const q=questions[index],correct=Number(selected.value)===q.correct_index;if(correct)score++;
-      feedback.textContent=(correct?"Correct. ":"Not quite. The right answer is "+q.options[q.correct_index]+". ")+q.explanation;feedback.hidden=false;check.hidden=true;next.hidden=false;next.textContent=index===questions.length-1?"Finish practice":"Next question";$("#aiPracticeScore").textContent="Your score: "+score+" / "+questions.length;msg("#aiPracticeStatus",correct?"Well done!":"Keep going—you’re learning with every question.",correct?"success":"info");
+      const q=questions[index],selectedIndex=Number(selected.value),correct=selectedIndex===q.correct_index;
+      answers[index]={selectedIndex,correct};if(correct)score+=marksEach;
+      feedback.textContent=(correct?"Correct · +"+marksEach+" "+(marksEach===1?"mark. ":"marks. "):"Not quite · 0 marks. The right answer is "+q.options[q.correct_index]+". ")+q.explanation;
+      feedback.hidden=false;check.hidden=true;next.hidden=false;next.textContent=index===questions.length-1?"Finish practice":"Next question";$("#aiPracticeScore").textContent="Score so far: "+score+" / "+maxMarks()+" marks";msg("#aiPracticeStatus",correct?"Well done!":"Keep going—you’re learning with every question.",correct?"success":"info");
     });
-    next.addEventListener("click",()=>{if(index>=questions.length-1){session.hidden=true;msg("#aiPracticeStatus","Practice complete: "+score+" out of "+questions.length+". Choose another chapter or start a fresh set.","success");return}index++;showQuestion()});
+    next.addEventListener("click",()=>{
+      if(index>=questions.length-1){session.hidden=true;renderReview();msg("#aiPracticeStatus","Practice complete. Your score and answer review are below.","success");return}
+      index++;showQuestion();
+    });
+    $("#aiPracticeTryAgain")?.addEventListener("click",()=>{review.hidden=true;form.scrollIntoView({behavior:"smooth",block:"start"})});
   }
 
   function initTests(){
