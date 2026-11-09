@@ -549,8 +549,8 @@
       const updateSelection=()=>{
         const selected=selectedSubjects(),target=Number(countInput.value)||0;
         choices.querySelectorAll('input[type="checkbox"]').forEach(input=>{input.disabled=!input.checked&&selected.length>=target});
-        if(!availableSubjects.length)subjectsStatus.textContent=loadingSubjects?"Loading subjects from study materials…":subjectsMessage||"No published study materials with subject names were found for this level.";
-        else subjectsStatus.textContent="Selected "+selected.length+" of "+target+" subjects · "+availableSubjects.length+" subjects available from study materials.";
+        if(!availableSubjects.length)subjectsStatus.textContent=loadingSubjects?"Loading official ICAI subjects…":subjectsMessage||"Choose a CA level to load its official subjects.";
+        else subjectsStatus.textContent="Selected "+selected.length+" of "+target+" subjects · "+availableSubjects.length+" official ICAI subjects available.";
         createButton.disabled=loadingSubjects||!availableSubjects.length||selected.length!==target;
       };
       const renderSubjectChoices=(restore=[])=>{
@@ -561,7 +561,7 @@
           const input=document.createElement("input");input.type="checkbox";input.value=item.subject;input.checked=restoreSet.has(item.subject.toLowerCase());
           const copy=document.createElement("span");
           const name=document.createElement("strong");name.textContent=item.subject;
-          const detail=document.createElement("small");detail.textContent=item.resources.length+" published study resource"+(item.resources.length===1?"":"s");
+          const detail=document.createElement("small");detail.textContent="ICAI official study material";
           copy.append(name,detail);label.append(input,copy);
           input.addEventListener("change",()=>{const count=Number(countInput.value)||0;if(input.checked&&selectedSubjects().length>count)input.checked=false;updateSelection()});
           choices.append(label);
@@ -569,36 +569,32 @@
         updateSelection();
       };
       const loadMaterialSubjects=async(restore=[])=>{
-        choices.replaceChildren();availableSubjects=[];loadingSubjects=true;subjectsMessage="";countInput.disabled=true;createButton.disabled=true;subjectsStatus.textContent="Loading subjects from study materials…";results.replaceChildren();
-        if(!level.value){loadingSubjects=false;subjectsMessage="Choose a CA level to load available subjects.";updateSelection();return}
-        if(!ready()){loadingSubjects=false;subjectsMessage=backendMessage;updateSelection();return}
-        const {data,error}=await sb.from("materials").select("subject,title,chapter,description,category,level").eq("is_published",true).in("level",[level.value,"All"]).not("subject","is",null).order("created_at",{ascending:false}).limit(500);
-        loadingSubjects=false;
-        if(error){subjectsMessage="Could not load published subjects from Study Materials. Please try again.";updateSelection();countInput.disabled=true;createButton.disabled=true;return}
-        const grouped=new Map();
-        (data||[]).forEach(row=>{
-          const subject=String(row.subject||"").trim();if(!subject)return;
-          const key=subject.toLowerCase();
-          if(!grouped.has(key))grouped.set(key,{subject,resources:[]});
-          grouped.get(key).resources.push({title:row.title||"",chapter:row.chapter||"",description:row.description||"",category:row.category||""});
-        });
-        availableSubjects=[...grouped.values()].slice(0,12);
-        if(!availableSubjects.length){subjectsMessage="No published study materials with subject names were found for "+level.value+" yet. Ask the admin to publish resources with a subject name.";updateSelection();countInput.disabled=true;countInput.max="12";createButton.disabled=true;return}
-        countInput.disabled=false;countInput.max=String(Math.min(12,availableSubjects.length));
-        const restored=restore.filter(name=>availableSubjects.some(item=>item.subject.toLowerCase()===String(name).toLowerCase()));
-        const target=restored.length||Math.min(3,availableSubjects.length);
-        countInput.value=String(target);
-        renderSubjectChoices(restored);
+        choices.replaceChildren();availableSubjects=[];loadingSubjects=true;subjectsMessage="";countInput.disabled=true;createButton.disabled=true;subjectsStatus.textContent="Loading official ICAI subjects…";results.replaceChildren();
+        if(!level.value){loadingSubjects=false;subjectsMessage="Choose a CA level to load its official subjects.";updateSelection();return}
+        try{
+          const response=await fetch("/api/ai-planner?mode=subjects&level="+encodeURIComponent(level.value),{headers:{accept:"application/json"}});
+          const result=await response.json().catch(()=>({}));
+          if(!response.ok||!Array.isArray(result.subjects))throw new Error(result.error||"Could not load the ICAI subject list. Please try again.");
+          availableSubjects=result.subjects.filter(item=>item&&typeof item.subject==="string").slice(0,12);
+          loadingSubjects=false;
+          if(!availableSubjects.length){subjectsMessage="The official ICAI subject list could not be loaded. Please try again shortly.";updateSelection();countInput.disabled=true;return}
+          countInput.disabled=false;countInput.max=String(availableSubjects.length);
+          const restored=restore.filter(name=>availableSubjects.some(item=>item.subject.toLowerCase()===String(name).toLowerCase()));
+          const target=restored.length||Math.min(3,availableSubjects.length);
+          countInput.value=String(target);
+          renderSubjectChoices(restored);
+          subjectsMessage=result.source==="icai"?"Subjects loaded from ICAI’s official course listing.":"Showing the current ICAI course subject list.";
+        }catch(error){loadingSubjects=false;subjectsMessage=error?.message||"Could not load the ICAI subject list. Please try again.";updateSelection();countInput.disabled=true;countInput.max="12";createButton.disabled=true}
       };
       const renderSchedule=schedule=>{
         results.replaceChildren();
         schedule.forEach(item=>{
           const card=document.createElement("article");card.className="plan-day";
           const title=document.createElement("strong");title.textContent="Day "+item.day+" · "+item.subject;
-          const topic=document.createElement("small");topic.className="resource-focus";topic.textContent=item.topic?"Study material · "+item.topic:"";
+          const topic=document.createElement("small");topic.className="resource-focus";topic.textContent=item.topic||item.subject||"";
           const activity=document.createElement("p");activity.textContent=item.activity||"Study concepts, solve questions, and revise.";
           const minutes=Number(item.study_minutes||150),time=document.createElement("small");time.textContent="Suggested study time · "+(Math.round(minutes/6)/10)+" hours";
-          card.append(title);if(item.topic)card.append(topic);card.append(activity,time);results.append(card);
+          card.append(title);if(item.topic||item.subject)card.append(topic);card.append(activity,time);if(item.source_url){const source=document.createElement("a");source.className="resource-focus";source.href=item.source_url;source.target="_blank";source.rel="noopener noreferrer";source.textContent="Open official ICAI study material";card.append(source)}card.append(time);results.append(card);
         });
       };
       if(savedPlan?.subjects&&savedPlan?.days){daysInput.value=savedPlan.days;if(["Foundation","Intermediate","Final"].includes(savedPlan.level))level.value=savedPlan.level;if(Array.isArray(savedPlan.schedule))renderSchedule(savedPlan.schedule)}
@@ -612,10 +608,10 @@
       builder.addEventListener("submit",async event=>{
         event.preventDefault();
         const subjects=selectedSubjects(),subjectCount=Number(countInput.value),days=Number(daysInput.value);
-        if(subjects.length!==subjectCount){msg("#plannerBuilderStatus","Select exactly "+subjectCount+" subjects from the study materials above.","error");return}
+        if(subjects.length!==subjectCount){msg("#plannerBuilderStatus","Select exactly "+subjectCount+" subjects from the official ICAI list above.","error");return}
         if(!Number.isInteger(days)||days<1||days>180){msg("#plannerBuilderStatus","Choose a duration from 1 to 180 days.","error");return}
         if(!ready()){msg("#plannerBuilderStatus",backendMessage,"error");return}
-        createButton.disabled=true;createButton.textContent="Creating your AI plan…";results.replaceChildren();msg("#plannerBuilderStatus","AI is arranging a study and revision schedule using your selected study materials…");
+        createButton.disabled=true;createButton.textContent="Creating your AI plan…";results.replaceChildren();msg("#plannerBuilderStatus","AI is checking ICAI’s official course and study-material pages, then arranging your schedule…");
         try{
           const {data:{session},error:authError}=await sb.auth.getSession();
           if(authError||!session?.access_token){msg("#plannerBuilderStatus","Please sign in to create an AI study plan.","error");return}
