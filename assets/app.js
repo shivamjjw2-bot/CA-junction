@@ -396,15 +396,17 @@
     const levelButtons=$$("[data-mtp-level]");
     const typeButtons=$$("[data-mtp-type]");
     const panel=$("#mtpPapersPanel"),heading=$("#mtpPapersHeading"),list=$("#mtpPapersList");
-    let selectedLevel="",selectedType="mtp_question";
+    let selectedLevel="",selectedType="";
     const setType=type=>{
       selectedType=type;
       typeButtons.forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.mtpType===type)));
       heading.textContent=type==="mtp_question"?"Question papers":"Suggested answers";
+      if(list)list.hidden=false;
+      msg("#mtpStatus","");
       load();
     };
     const load=async()=>{
-      if(!selectedLevel||!list)return;
+      if(!selectedLevel||!selectedType||!list)return;
       list.replaceChildren();
       if(!ready()){msg("#mtpStatus",backendMessage,"error");return}
       msg("#mtpStatus","Loading "+(selectedType==="mtp_question"?"question papers":"suggested answers")+"…");
@@ -423,6 +425,10 @@
     };
     levelButtons.forEach(button=>button.addEventListener("click",()=>{
       selectedLevel=button.dataset.mtpLevel;
+      selectedType="";
+      typeButtons.forEach(x=>x.setAttribute("aria-pressed","false"));
+      heading.textContent="Choose a paper type";
+      if(list){list.hidden=true;list.replaceChildren()}
       localStorage.setItem("caJunctionLevel",selectedLevel);
       levelButtons.forEach(x=>x.setAttribute("aria-pressed",String(x===button)));
       if(panel)panel.hidden=false;
