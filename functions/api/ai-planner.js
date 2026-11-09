@@ -8,7 +8,7 @@ const MATERIAL_URL={Foundation:"https://boslive.icai.org/study_material_new_pape
 const SLUG={Foundation:"foundation",Intermediate:"intermediate",Final:"final"},LEVELS=new Set(Object.keys(CATALOG));
 function htmlText(html){return String(html||"").replace(/<(script|style|noscript)[^>]*>[\s\S]*?<\/\1>/gi," ").replace(/<!--[^]*?-->/g," ").replace(/<br\s*\/?>/gi,"\n").replace(/<\/(p|li|tr|h[1-6]|section|article|div)>/gi,"\n").replace(/<[^>]+>/g," ").replace(/&nbsp;|&#160;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&ndash;/gi,"–").replace(/&mdash;/gi,"—").replace(/[ \t\f\v]+/g," ").replace(/\n[ \t]+/g,"\n").replace(/\n{2,}/g,"\n").trim()}
 async function fetchHtml(url){try{const r=await fetch(url,{headers:{"accept":"text/html,application/xhtml+xml","user-agent":"CA-Junction-Study-Planner/1.0"},signal:AbortSignal.timeout(8000)});if(!r.ok)return "";const h=await r.text();return h.length<=1800000?h:""}catch{return ""}}
-function links(html){const out=[];for(const m of String(html||"").matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){const href=m[1].match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];if(!href)continue;try{const u=new URL(href.replace(/&amp;/gi,"&"),"https://www.icai.org");if(u.protocol==="https:"&&u.hostname==="www.icai.org"&&u.pathname.startsWith("/post/"))out.push({url:u.href,text:htmlText(m[2]).replace(/\s+/g," ").trim()})}catch{}}return out}
+function links(html){const out=[];for(const m of String(html||"").matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){const href=m[1].match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];if(!href)continue;try{const u=new URL(href.replace(/&amp;/gi,"&"),"https://www.icai.org");if(u.protocol==="https:"&&u.hostname==="www.icai.org"&&u.pathname.startsWith("/post/"))out.push({url:u.href,text:htmlText(m[2]).replace(/\s+/g," ").trim(),context:htmlText(String(html||"").slice(Math.max(0,m.index-650),m.index)).slice(-220)})}catch{}}return out}
 function chapterLines(html){const lines=htmlText(html).split("\n").map(x=>x.trim()).filter(x=>/^(chapter|ch\.)\s*(?:no\.?\s*)?\d+[a-z]?\s*[:.–-]?\s*\S/i.test(x)),out=[],seen=new Set();for(const line of lines){const x=line.replace(/\s+/g," ").slice(0,190),k=x.toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}return out.slice(0,80)}
 async function getOutline(level,subject){
  const i=CATALOG[level].findIndex(x=>x.toLowerCase()===subject.toLowerCase());if(i<0)return{subject,chapters:[],url:MATERIAL_URL[level]};
@@ -23,7 +23,7 @@ async function getOutline(level,subject){
   const matches=links(listings[index]).filter(link=>new RegExp("paper\\s*-?\\s*"+n+"\\b","i").test(link.text)||
    (level==="Intermediate"&&n===3&&/section [ab]|income.tax|goods and services tax|gst/i.test(link.text))||
    (level==="Intermediate"&&n===6&&/financial management|strategic management/i.test(link.text)));
-  if(matches.length)candidates.push(matches[0]);
+  if(matches.length){const editionScore=link=>{const context=link.context||"",year=Number(context.match(/20\d{2}/)?.[0]||0);return year*100+(/onwards/i.test(context)?50:0)};candidates.push(matches.sort((a,b)=>editionScore(b)-editionScore(a))[0])}
  }
  const detailUrls=[...new Set(candidates.map(link=>link.url).filter(url=>!pagesToCheck.includes(url)))].slice(0,6);
  const details=await Promise.all(detailUrls.map(fetchHtml));
