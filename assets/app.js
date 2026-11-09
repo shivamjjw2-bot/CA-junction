@@ -651,13 +651,15 @@
     subject.addEventListener("change",loadChapters);
     const session=$("#aiPracticeSession"),box=$("#aiPracticeQuestion"),caseStudy=$("#aiPracticeCaseStudy"),start=$("#aiPracticeStart"),feedback=$("#aiPracticeFeedback"),next=$("#aiPracticeNext"),check=$("#aiPracticeCheck");
     const review=$("#aiPracticeReview"),reviewSummary=$("#aiPracticeReviewSummary"),reviewCase=$("#aiPracticeReviewCaseStudy"),reviewItems=$("#aiPracticeReviewItems");
-    let questions=[],score=0,answers=[],reviewOrder=[],marksEach=1,currentDifficulty=1,currentQuestionIndex=-1,preparationTimer=null,preparationStarted=0,caseStudyText="";
+    let questions=[],score=0,answers=[],reviewOrder=[],currentDifficulty=1,currentQuestionIndex=-1,preparationTimer=null,preparationStarted=0,caseStudyText="";
     const stopPreparationTimer=()=>{if(preparationTimer)clearInterval(preparationTimer);preparationTimer=null;$("#aiPracticeTimer").hidden=true};
     const updatePreparationTimer=()=>{const elapsed=Math.floor((Date.now()-preparationStarted)/1000),minutes=String(Math.floor(elapsed/60)).padStart(2,"0"),seconds=String(elapsed%60).padStart(2,"0");$("#aiPracticeTimer").textContent="Preparing your questions · this can take up to 1 minute · "+minutes+":"+seconds};
-    const maxMarks=()=>questions.length*marksEach;
+    const marksForQuestion=q=>Number(q?.marks)===2?2:1;
+    const maxMarks=()=>questions.reduce((sum,q)=>sum+marksForQuestion(q),0);
     const difficultyLabel=value=>["","Warm-up","Core","Applied","Advanced","Expert"][value]||"Adaptive";
     const chooseNextQuestion=()=>{
-      const available=questions.map((q,i)=>({q,i})).filter(item=>!answers[item.i]);
+      const nextKind=reviewOrder.length<5?"individual":"case-linked";
+      const available=questions.map((q,i)=>({q,i})).filter(item=>!answers[item.i]&&item.q.kind===nextKind);
       if(!available.length)return-1;
       available.sort((a,b)=>{
         const distance=Math.abs(a.q.difficulty-currentDifficulty)-Math.abs(b.q.difficulty-currentDifficulty);
@@ -668,8 +670,9 @@
     };
     const showQuestion=()=>{
       currentQuestionIndex=chooseNextQuestion();const q=questions[currentQuestionIndex];if(!q)return;
+      caseStudy.textContent=q.kind==="case-linked"?caseStudyText:"";caseStudy.hidden=q.kind!=="case-linked";
       feedback.hidden=true;next.hidden=true;check.hidden=false;box.replaceChildren();
-      const legend=document.createElement("legend");legend.textContent=(reviewOrder.length+1)+". "+q.question+" ("+marksEach+" "+(marksEach===1?"mark":"marks")+")";legend.style.fontWeight="700";box.append(legend);
+      const legend=document.createElement("legend");legend.textContent=(reviewOrder.length+1)+". "+(q.kind==="case-linked"?"Case-linked · ":"Individual · ")+q.question+" ("+marksForQuestion(q)+" "+(marksForQuestion(q)===1?"mark":"marks")+")";legend.style.fontWeight="700";box.append(legend);
       q.options.forEach((option,i)=>{const label=document.createElement("label");label.className="answer";const radio=document.createElement("input");radio.type="radio";radio.name="aiPracticeAnswer";radio.value=String(i);const span=document.createElement("span");span.textContent=option;label.append(radio,span);box.append(label)});
       $("#aiPracticeProgress").textContent="Question "+(reviewOrder.length+1)+" of "+questions.length+" · "+difficultyLabel(q.difficulty)+" challenge ("+q.difficulty+"/5)";
       $("#aiPracticeScore").textContent="Score so far: "+score+" / "+maxMarks()+" marks";
@@ -683,7 +686,7 @@
       reviewOrder.forEach((questionIndex,reviewIndex)=>{
         const q=questions[questionIndex],answer=answers[questionIndex]||{selectedIndex:-1,correct:false};
         const card=document.createElement("article");card.className="mcq-review-item "+(answer.correct?"mcq-review-correct":"mcq-review-incorrect");
-        const heading=document.createElement("h3");heading.textContent="Question "+(reviewIndex+1)+" · "+difficultyLabel(q.difficulty)+" · "+(answer.correct?marksEach+" "+(marksEach===1?"mark":"marks"):"0 marks");
+        const questionMarks=marksForQuestion(q);const heading=document.createElement("h3");heading.textContent="Question "+(reviewIndex+1)+" · "+(q.kind==="case-linked"?"Case-linked":"Individual")+" · "+difficultyLabel(q.difficulty)+" · "+(answer.correct?questionMarks+" "+(questionMarks===1?"mark":"marks"):"0 marks");
         const question=document.createElement("p");question.textContent=q.question;
         const student=document.createElement("p");student.textContent="Your answer: "+(answer.selectedIndex>=0?q.options[answer.selectedIndex]:"No answer");
         const correct=document.createElement("p");correct.textContent="Correct answer: "+q.options[q.correct_index];
@@ -701,11 +704,11 @@
       try{
         const {data:{session:authSession},error:authError}=await sb.auth.getSession();
         if(authError||!authSession?.access_token){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
-        const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+authSession.access_token},body:JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters,mix:"separate",format:$("#aiPracticeFormat").value})});
+        const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+authSession.access_token},body:JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(result.error||"Could not start practice. Please try again.");
         if(!Array.isArray(result.questions)||result.questions.length!==10)throw new Error("The practice set was incomplete. Please try again.");
-        questions=result.questions;score=0;answers=[];reviewOrder=[];currentDifficulty=1;currentQuestionIndex=-1;caseStudyText=result.case_study||"";marksEach=Number(result.marks_per_question)===2?2:1;caseStudy.textContent=caseStudyText;caseStudy.hidden=!caseStudyText;session.hidden=false;showQuestion();$("#aiPracticeScore").textContent="Score so far: 0 / "+maxMarks()+" marks";msg("#aiPracticeStatus","Your 10-question adaptive practice is ready.");session.scrollIntoView({behavior:"smooth",block:"center"});
+        questions=result.questions;score=0;answers=[];reviewOrder=[];currentDifficulty=1;currentQuestionIndex=-1;caseStudyText=result.case_study||"";caseStudy.hidden=true;session.hidden=false;showQuestion();$("#aiPracticeScore").textContent="Score so far: 0 / "+maxMarks()+" marks";msg("#aiPracticeStatus","Your 10-question adaptive practice is ready.");session.scrollIntoView({behavior:"smooth",block:"center"});
       }catch(error){msg("#aiPracticeStatus",error?.message||"Could not start practice. Please try again.","error")}
       finally{stopPreparationTimer();start.disabled=false}
     });
@@ -714,10 +717,10 @@
       const selected=$('input[name="aiPracticeAnswer"]:checked',box);
       if(!selected){msg("#aiPracticeStatus","Choose an answer first.","error");return}
       const q=questions[currentQuestionIndex],selectedIndex=Number(selected.value),correct=selectedIndex===q.correct_index;
-      answers[currentQuestionIndex]={selectedIndex,correct};reviewOrder.push(currentQuestionIndex);if(correct)score+=marksEach;
+      answers[currentQuestionIndex]={selectedIndex,correct};reviewOrder.push(currentQuestionIndex);const questionMarks=marksForQuestion(q);if(correct)score+=questionMarks;
       currentDifficulty=correct?Math.min(5,q.difficulty+1):Math.max(1,q.difficulty-1);
       const nextHint=correct?(q.difficulty<5?" The next challenge will be harder.":" You are at the highest challenge level."):" The next challenge will adjust to your answer.";
-      feedback.textContent=(correct?"Correct · +"+marksEach+" "+(marksEach===1?"mark. ":"marks. "):"Not quite · 0 marks. The right answer is "+q.options[q.correct_index]+". ")+q.explanation+nextHint;
+      feedback.textContent=(correct?"Correct · +"+questionMarks+" "+(questionMarks===1?"mark. ":"marks. "):"Not quite · 0 marks. The right answer is "+q.options[q.correct_index]+". ")+q.explanation+nextHint;
       feedback.hidden=false;check.hidden=true;next.hidden=false;next.textContent=reviewOrder.length===questions.length?"Finish practice":"Next question";$("#aiPracticeScore").textContent="Score so far: "+score+" / "+maxMarks()+" marks";msg("#aiPracticeStatus",correct?"Well done!":"Keep going—you’re learning with every question.",correct?"success":"info");
     });
     next.addEventListener("click",()=>{
