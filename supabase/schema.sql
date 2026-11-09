@@ -587,14 +587,14 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $admin$
   select u.id, u.email::text, coalesce(p.full_name, ''), coalesce(p.ca_level, 'Foundation'), u.created_at
   from auth.users u
   left join public.profiles p on p.user_id = u.id
   where public.is_admin(auth.uid())
   order by u.created_at desc
   limit 1000;
-$;
+$admin$;
 
 revoke all on function public.admin_student_directory() from public, anon, authenticated;
 grant execute on function public.admin_student_directory() to authenticated;
