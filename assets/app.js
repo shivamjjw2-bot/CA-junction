@@ -886,7 +886,7 @@
       $("#previewName").textContent=fieldValue("resumeName")||"Your name";
       $("#previewContact").textContent=[fieldValue("resumeEmail"),fieldValue("resumePhone"),fieldValue("resumeLocation")].filter(Boolean).join(" · ")||"Email · Phone · Location";
       const links=$("#previewLinks"),linkedIn=fieldValue("resumeLinkedIn");
-      if(links){links.replaceChildren();if(linkedIn){const anchor=document.createElement("a");anchor.href=linkedIn;anchor.target="_blank";anchor.rel="noopener";anchor.textContent="LinkedIn profile";links.append(anchor)}}
+      if(links){links.replaceChildren();if(linkedIn){try{const url=new URL(linkedIn);if(url.protocol==="https:"){const anchor=document.createElement("a");anchor.href=url.href;anchor.target="_blank";anchor.rel="noopener";anchor.textContent="LinkedIn profile";links.append(anchor)}}catch{}}}
       previewText("previewObjective","resumeObjective","Your tailored career objective will appear here.");
       previewText("previewEducation","resumeEducation","Your educational qualification will appear here.");
       previewText("previewProfessional","resumeProfessional","Your CA and professional qualifications will appear here.");
