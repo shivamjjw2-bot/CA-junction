@@ -21,15 +21,15 @@ const LEVELS=new Set(Object.keys(CATALOG));
 
 function plainText(html) {
   return String(html||"")
-    .replace(/<(script|style|noscript)[^>]*>[\\s\\S]*?<\\/\\1>/gi," ")
+    .replace(/<(script|style|noscript)[^>]*>[\s\S]*?<\/\1>/gi," ")
     .replace(/<!--[^]*?-->/g," ")
-    .replace(/<br\\s*\\/?>(?=.)/gi,"\\n")
-    .replace(/<\\/(p|li|tr|h[1-6]|section|article|div)>/gi,"\\n")
+    .replace(/<br\s*\/?>(?=.)/gi,"\n")
+    .replace(/<\/(p|li|tr|h[1-6]|section|article|div)>/gi,"\n")
     .replace(/<[^>]+>/g," ")
     .replace(/&nbsp;|&#160;/gi," ")
     .replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'")
     .replace(/&ndash;/gi,"–").replace(/&mdash;/gi,"—")
-    .replace(/\\s+/g," ").trim();
+    .replace(/\s+/g," ").trim();
 }
 async function fetchOfficialPage(url) {
   try {
@@ -41,13 +41,13 @@ async function fetchOfficialPage(url) {
 }
 async function officialContext(level,subjects) {
   const pages=await Promise.all([fetchOfficialPage(COURSE_URL[level]),fetchOfficialPage(MATERIAL_URL[level])]);
-  const full=pages.filter(Boolean).join("\\n\\n");
+  const full=pages.filter(Boolean).join("\n\n");
   const snippets=[];
   for(const subject of subjects) {
     const at=full.toLowerCase().indexOf(subject.toLowerCase());
     snippets.push(subject+": "+(at>=0?full.slice(Math.max(0,at-250),Math.min(full.length,at+1800)):"No matching chapter text was readable on the live ICAI pages."));
   }
-  return {text:snippets.join("\\n\\n").slice(0,12000),source:pages.some(Boolean)};
+  return {text:snippets.join("\n\n").slice(0,12000),source:pages.some(Boolean)};
 }
 
 async function listSubjects(level) {
@@ -64,7 +64,7 @@ export async function onRequestPost({request,env}) {
   if(!env.AI)return json({error:"The free AI planner is being connected. Please try again later."},503);
   if(!(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return json({error:"Send a valid planner request."},415);
   if(Number(request.headers.get("content-length")||0)>16000)return json({error:"That planner request is too large."},413);
-  const token=(request.headers.get("authorization")||"").match(/^Bearer\\s+(.+)$/i)?.[1];
+  const token=(request.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];
   if(!token||token.length>5000)return json({error:"Please sign in to create an AI study plan."},401);
   try {
     const auth=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token}});
@@ -90,14 +90,14 @@ export async function onRequestPost({request,env}) {
   const prompt=[
     "Create a clear, realistic CA study timetable with exactly "+days+" daily entries.",
     "CA level: "+level+". The student selected exactly "+subjectCount+" subjects:",
-    subjects.map((subject,index)=>index+": "+subject).join("\\n"),
+    subjects.map((subject,index)=>index+": "+subject).join("\n"),
     planSource,
     evidence.text,
     "Balance study time fairly across the selected subjects. Use a progressive rhythm: learning and question practice early, a cumulative review or self-test about once per week, and the final 20 percent of days for revision, weak areas, and timed practice.",
     "Give each day one specific, doable study activity, such as reading a focused portion of the official material, making concise notes, solving practice questions, active recall, reviewing errors, or a timed test. Make activities varied and practical.",
     "Set topic to an exact selected subject name. Do not invent chapter names, chapter numbers, official exam questions, or material not explicitly present in the supplied ICAI page excerpts. When no chapter detail is supplied, plan at subject level.",
     "Suggest 90 to 240 minutes per day. Output days in exact order 1 to "+days+"."
-  ].join("\\n");
+  ].join("\n");
   const schema={type:"object",additionalProperties:false,properties:{schedule:{type:"array",items:{type:"object",additionalProperties:false,properties:{
     day:{type:"integer"},subject_index:{type:"integer"},activity:{type:"string"},study_minutes:{type:"integer"}
   },required:["day","subject_index","activity","study_minutes"]}}},required:["schedule"]};
