@@ -8,7 +8,7 @@ export async function onRequestPost({request,env}) {
   if(!env.AI)return json({error:"Free AI practice is being connected. Please try again later."},503);
   if(!(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return json({error:"Send a valid practice request."},415);
   if(Number(request.headers.get("content-length")||0)>12000)return json({error:"That request is too large. Shorten the chapter list and try again."},413);
-  const token=(request.headers.get("authorization")||"").match(/^Bearer\\s+(.+)$/i)?.[1];
+  const token=(request.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];
   if(!token||token.length>5000)return json({error:"Please sign in to start AI practice."},401);
   try {
     const auth=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token}});
@@ -24,7 +24,7 @@ export async function onRequestPost({request,env}) {
   if(!subject||subject.length>100)return json({error:"Enter a subject name (up to 100 characters)."},400);
   if(!chapters.length||chapters.length>8||chapters.some(c=>c.length>100))return json({error:"Enter between 1 and 8 chapter names, each up to 100 characters."},400);
   const style=mix==="combined"?"Write questions that connect concepts from multiple supplied chapters where suitable.":"Keep each question focused on one supplied chapter and spread the set across the chapters.";
-  const userPrompt=["Create exactly five original CA multiple-choice practice questions.","CA level: "+level,"Subject: "+subject,"Chapters: "+chapters.join("; "),style,"Match the expected conceptual difficulty. Do not claim the questions are official ICAI questions or copy known exam questions.","Each question needs four clear options, one correct answer, and a concise explanation. Avoid ambiguity."].join("\\n");
+  const userPrompt=["Create exactly five original CA multiple-choice practice questions.","CA level: "+level,"Subject: "+subject,"Chapters: "+chapters.join("; "),style,"Match the expected conceptual difficulty. Do not claim the questions are official ICAI questions or copy known exam questions.","Each question needs four clear options, one correct answer, and a concise explanation. Avoid ambiguity."].join("\n");
   const schema={type:"object",additionalProperties:false,properties:{questions:{type:"array",items:{type:"object",additionalProperties:false,properties:{
     question:{type:"string"},options:{type:"array",items:{type:"string"}},correct_index:{type:"integer"},explanation:{type:"string"}
   },required:["question","options","correct_index","explanation"]}}},required:["questions"]};
