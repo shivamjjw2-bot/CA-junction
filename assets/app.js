@@ -1013,9 +1013,15 @@
     const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
     if(!role){msg("#adminStatus","This account does not have the admin role.","error");$("#adminSetup").hidden=false;$("#adminSetup").textContent="Only the account you manually promote in Supabase can use this panel.";return}
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
+    const adminSubjectsByLevel={
+      Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
+      Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
+      Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
+    };
+    const adminChapterAliases={"Taxation — Income-tax Law":"Taxation","Taxation — Goods and Services Tax":"Taxation","Financial Management":"Financial Management and Strategic Management","Strategic Management":"Financial Management and Strategic Management","Integrated Business Solutions":"Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"};
+    const adminCanonical=subject=>adminChapterAliases[subject]||subject;
     $("#resourceLevel")?.addEventListener("change",loadAdminResourceSubjects);
     $("#resourceSubject")?.addEventListener("change",loadAdminResourceChapters);
-    loadAdminResourceSubjects();
     $("#adminMaterialForm")?.addEventListener("submit",saveMaterial);
     $("#adminMindMapForm")?.addEventListener("submit",saveMindMap);
     $("#adminMtpForm")?.addEventListener("submit",saveMtpPaper);
@@ -1030,14 +1036,7 @@
     $("#virtualLibraryIntermediateForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_intermediate","Intermediate Virtual Library study room","#virtualLibraryIntermediateUrl","#virtualLibraryIntermediateStatus"));
     $("#virtualLibraryFinalForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_final","Final Virtual Library study room","#virtualLibraryFinalUrl","#virtualLibraryFinalStatus"));
     $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
-    await Promise.all([loadAdminResourceSubjects(),loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
-    const adminSubjectsByLevel={
-      Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
-      Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
-      Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
-    };
-    const adminChapterAliases={"Taxation — Income-tax Law":"Taxation","Taxation — Goods and Services Tax":"Taxation","Financial Management":"Financial Management and Strategic Management","Strategic Management":"Financial Management and Strategic Management","Integrated Business Solutions":"Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"};
-    const adminCanonical=subject=>adminChapterAliases[subject]||subject;
+    await Promise.all([loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
     async function loadAdminResourceSubjects(){
       const level=$("#resourceLevel"),subject=$("#resourceSubject"),chapter=$("#resourceChapter");if(!level||!subject||!chapter)return;
       const current=subject.value,levels=level.value==="All"?Object.keys(adminSubjectsByLevel):[level.value];
@@ -1056,6 +1055,7 @@
       chapter.replaceChildren(new Option(chapters.length?"Choose an ICAI chapter":"No ICAI chapters available",""),...chapters.map(name=>new Option(name,name)));
       chapter.disabled=!chapters.length;
     }
+    loadAdminResourceSubjects();
     async function saveMaterial(e){
       e.preventDefault();msg("#resourceStatus","Saving resource…");const {data:{user}}=await sb.auth.getUser();let path=null,bucket=null;const file=$("#resourcePdf").files[0];
       if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#resourceStatus","Choose a PDF no larger than 50 MB.","error");return}bucket="ca-materials";path="admin/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from(bucket).upload(path,file,{contentType:"application/pdf"});if(error){msg("#resourceStatus",error.message,"error");return}}
