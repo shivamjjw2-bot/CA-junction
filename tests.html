@@ -17,7 +17,7 @@ header{position:sticky;top:0;background:rgba(8,11,22,.9);backdrop-filter:blur(18
 .hero{padding:58px 0 22px}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#c4b5fd;font-weight:750}
 h1{font-size:clamp(34px,6vw,54px);line-height:1.1;letter-spacing:-2px;margin:8px 0 12px}
 .gradient{background:linear-gradient(100deg,#c4b5fd,#60a5fa);-webkit-background-clip:text;background-clip:text;color:transparent}
-p{color:var(--muted)}
+p{color:var(--muted)}\n.source-note{font-size:12px;margin-top:10px;color:#b5bbcf}
 section{padding:18px 0 44px}.section-head{margin-bottom:18px}.section-head h2{font-size:25px;margin:5px 0}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,4vw,28px)}
 label{display:block;color:#cbd0df;font-size:13px;margin:14px 0 6px}
@@ -37,7 +37,7 @@ footer{padding:22px 0;border-top:1px solid var(--line);font-size:13px;color:var(
 <body data-page="tests">
 <header><div class="container nav"><a class="brand" href="index.html">CA <b>Junction</b></a><div><a href="study.html">Study Materials</a>　<a href="account.html">My Account</a>　<a href="index.html">Home</a></div></div></header>
 <main class="container">
-<div class="hero"><div class="eyebrow">AI MCQ practice</div><h1>Practice at your pace.<br><span class="gradient">One chapter at a time.</span></h1><p>Choose your CA level, subject and chapter. Get five practice questions with clear explanations. Free use has a shared daily limit; if it runs out, try again after it resets.</p></div>
+<div class="hero"><div class="eyebrow">AI MCQ practice</div><h1>Practice at your pace.<br><span class="gradient">One chapter at a time.</span></h1><p>Choose your CA level, subject and chapter. Get challenging MCQs based on CA syllabus and ICAI exam patterns. Free use has a shared daily limit; if it runs out, try again after it resets.</p><p class="source-note">Questions are original practice, not verified or reproduced past ICAI exam questions.</p></div>
 <section id="ai-practice">
  <div class="section-head"><div class="eyebrow">Build your practice set</div><h2>What would you like to practise?</h2><p>Choose questions from selected chapters or combine concepts across chapters.</p></div>
  <div class="panel">
@@ -46,11 +46,11 @@ footer{padding:22px 0;border-top:1px solid var(--line);font-size:13px;color:var(
    <label for="aiPracticeSubject">Subject</label><input id="aiPracticeSubject" maxlength="100" required placeholder="For example: Accounting">
    <label for="aiPracticeChapters">Chapter name(s)</label><input id="aiPracticeChapters" maxlength="800" required placeholder="For example: Accounting for Depreciation">
    <p style="font-size:12px;margin-top:5px">Enter up to 8 chapter names, separated by commas.</p>
-   <label for="aiPracticeMode">Question style</label><select id="aiPracticeMode"><option value="separate">Questions from the selected chapters</option><option value="combined">Combine concepts from different chapters</option></select>
+   <label for="aiPracticeFormat">Question format</label><select id="aiPracticeFormat"><option value="standard">Challenging individual MCQs · 5 questions</option><option value="case-study">Case study · 4 linked MCQs</option></select>\n   <label for="aiPracticeMode">Question style</label><select id="aiPracticeMode"><option value="separate">Questions from the selected chapters</option><option value="combined">Combine concepts from different chapters</option></select>
    <button class="btn btn-green" id="aiPracticeStart" type="submit">Start practice</button>
   </form>
   <p id="aiPracticeStatus" class="status" role="status" aria-live="polite"></p>
-  <div id="aiPracticeSession" hidden><div class="notice" id="aiPracticeProgress"></div><fieldset id="aiPracticeQuestion" style="border:0;margin:14px 0"></fieldset>
+  <div id="aiPracticeSession" hidden><div class="notice" id="aiPracticeCaseStudy" style="margin:14px 0" hidden></div><div class="notice" id="aiPracticeProgress"></div><fieldset id="aiPracticeQuestion" style="border:0;margin:14px 0"></fieldset>
    <button class="btn" id="aiPracticeCheck" type="button">Check answer</button><div id="aiPracticeFeedback" class="notice" style="margin-top:12px" hidden></div>
    <button class="btn" id="aiPracticeNext" type="button" hidden>Next question</button><p id="aiPracticeScore" class="status"></p>
   </div>
