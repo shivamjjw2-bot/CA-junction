@@ -879,7 +879,6 @@
   }
 
   function initCareer(){
-function initCareer(){
     const careerSections=[...document.querySelectorAll("[data-career-tab]")],careerLinks=[...document.querySelectorAll("[data-career-tab-link]")];
     const activateCareerTab=()=>{
       const requested=location.hash.slice(1),active=careerSections.some(section=>section.dataset.careerTab===requested)?requested:"resume";
