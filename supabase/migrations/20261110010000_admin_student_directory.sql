@@ -22,7 +22,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $admin$
   select
     (select count(*) from auth.users),
     (select count(*) from auth.users where created_at >= now() - interval '7 days'),
@@ -33,7 +33,7 @@ as $
     (select count(*) from public.jobs where is_published),
     (select count(*) from public.service_requests where status in ('new','contacted','scheduled'))
   where public.is_admin(auth.uid());
-$;
+$admin$;
 
 revoke all on function public.admin_platform_overview() from public, anon, authenticated;
 grant execute on function public.admin_platform_overview() to authenticated;
