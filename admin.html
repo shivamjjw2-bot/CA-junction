@@ -21,10 +21,28 @@ footer{margin-top:25px;border-top:1px solid var(--line);padding:20px 0;color:var
 <div class="hero"><div class="eyebrow">Restricted access</div><h1>Admin panel</h1><p class="muted">Manage study notes, mind maps, tests, opportunities, student submissions and study group links. Access is granted to accounts marked admin in Supabase.</p><p id="adminStatus" class="status" role="status" aria-live="polite">Checking admin access…</p></div>
 <div id="adminSetup" class="warning" hidden></div>
 <div id="adminPanel" hidden>
-<nav class="tabs" aria-label="Admin sections"><a href="#admin-notes">Notes</a><a href="#admin-mind-maps">Mind Maps</a><a href="#admin-tests">Tests</a><a href="#admin-jobs">Career</a><a href="#admin-courses">Courses</a><a href="#admin-students">Students</a><a href="#admin-requests">Requests</a><a href="#admin-premium">Study group</a><a href="#admin-platform-links">Platform links</a></nav>
+<nav class="tabs" aria-label="Admin sections"><a href="#admin-notes">Notes</a><a href="#admin-mtp-papers">ICAI MTP Papers</a><a href="#admin-mind-maps">Mind Maps</a><a href="#admin-tests">Tests</a><a href="#admin-jobs">Career</a><a href="#admin-courses">Courses</a><a href="#admin-students">Students</a><a href="#admin-requests">Requests</a><a href="#admin-premium">Study group</a><a href="#admin-platform-links">Platform links</a></nav>
 <section class="grid">
  <div class="panel" id="admin-notes"><h2>Publish CA Junction notes</h2><p class="muted">Upload admin revision notes, mind maps, formulas or approved student notes.</p><form id="adminMaterialForm"><label for="resourceTitle">Title</label><input id="resourceTitle" required maxlength="160"><label for="resourceDescription">Description</label><textarea id="resourceDescription" maxlength="800"></textarea><label for="resourceLevel">Level</label><select id="resourceLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option><option>All</option></select><label for="resourceSubject">Subject</label><input id="resourceSubject" maxlength="100"><label for="resourceCategory">Category</label><select id="resourceCategory"><option value="revision">Revision notes</option><option value="mind_map">Mind map</option><option value="formula">Formula sheet</option><option value="student_note">Student note</option></select><label for="resourcePdf">PDF (optional for an ICAI external link)</label><input id="resourcePdf" type="file" accept="application/pdf"><label for="resourceExternal">External URL (optional)</label><input id="resourceExternal" type="url" placeholder="https://..."><label class="check"><input id="resourcePublished" type="checkbox" checked> Publish now</label><button class="btn" type="submit">Save resource</button></form><p id="resourceStatus" class="status" role="status" aria-live="polite"></p><div id="adminResources" class="data-list"></div></div>
  <div class="panel"><h2>Review student note uploads</h2><p class="muted">Approve a PDF to publish it in the CA Junction library, or reject it with a note.</p><div id="noteSubmissions" class="data-list"></div><p id="submissionStatus" class="status" role="status" aria-live="polite"></p></div>
+</section>
+<section id="admin-mtp-papers">
+ <div class="panel">
+  <h2>Upload ICAI MTP papers</h2>
+  <p class="muted">Upload one or more PDFs for each level and paper type. Published PDFs appear on the student MTP page. Files are limited to 50 MB.</p>
+  <form id="adminMtpForm">
+   <label for="mtpTitle">PDF title</label><input id="mtpTitle" required maxlength="160" placeholder="Example: May 2026 Foundation Paper 1">
+   <label for="mtpDescription">Description (optional)</label><textarea id="mtpDescription" maxlength="800" placeholder="Add a short note about this paper"></textarea>
+   <label for="mtpLevel">CA level</label><select id="mtpLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option></select>
+   <label for="mtpPaperType">Paper type</label><select id="mtpPaperType"><option value="mtp_question">Question paper</option><option value="mtp_suggested_answer">Suggested answers</option></select>
+   <label for="mtpSubject">Subject (optional)</label><input id="mtpSubject" maxlength="100" placeholder="Paper or subject name">
+   <label for="mtpPdf">PDF file (up to 50 MB)</label><input id="mtpPdf" type="file" accept="application/pdf" required>
+   <label class="check"><input id="mtpPublished" type="checkbox" checked> Publish now</label>
+   <button class="btn" type="submit">Upload MTP PDF</button>
+  </form>
+  <p id="mtpAdminStatus" class="status" role="status" aria-live="polite"></p>
+  <div id="adminMtpPapers" class="data-list"></div>
+ </div>
 </section>
 <section id="admin-mind-maps">
  <div class="panel">
