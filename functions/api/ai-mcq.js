@@ -3,9 +3,9 @@ const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
 const LEVELS=new Set(["Foundation","Intermediate","Final"]);
 const AI_MODEL="@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-async function reserveAiGeneration(token){
+async function reserveAiNeurons(token,neurons){
   try{
-    const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_generation",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:"{}"});
+    const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_neurons",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:JSON.stringify({p_neurons:neurons})});
     if(!response.ok)return{ok:false,allowed:false};
     return{ok:true,allowed:(await response.json())===true};
   }catch{return{ok:false,allowed:false}}
@@ -38,9 +38,9 @@ export async function onRequestPost({request,env}) {
   const schema={type:"object",additionalProperties:false,properties:{case_study:{type:"string"},questions:{type:"array",items:{type:"object",additionalProperties:false,properties:{
     question:{type:"string"},options:{type:"array",items:{type:"string"}},correct_index:{type:"integer"},explanation:{type:"string"}
   },required:["question","options","correct_index","explanation"]}}},required:["case_study","questions"]};
-  const quota=await reserveAiGeneration(token);
+  const quota=await reserveAiNeurons(token,1500);
   if(!quota.ok)return json({error:"The free AI limit could not be checked, so no AI request was sent. Please try again later."},503);
-  if(!quota.allowed)return json({error:"Today's free AI practice limit is reached. Please try again after the daily reset."},429);
+  if(!quota.allowed)return json({error:"Today's shared free AI budget is used up. Please try again after the daily reset."},429);
   try {
     const result=await env.AI.run(AI_MODEL,{
       messages:[{role:"system",content:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema."},{role:"user",content:userPrompt}],
