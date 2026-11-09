@@ -1016,6 +1016,22 @@
     const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
     if(!role){msg("#adminStatus","This account does not have the admin role.","error");$("#adminSetup").hidden=false;$("#adminSetup").textContent="Only the account you manually promote in Supabase can use this panel.";return}
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
+    const adminViewButtons=[...document.querySelectorAll("#adminPanel [data-admin-nav]")];
+    const adminViewPanels=[...document.querySelectorAll("#adminPanel [data-admin-view]")];
+    const adminViewSections=[...document.querySelectorAll("#adminPanel .admin-main > section:not(#adminOverview):not([data-admin-view])")];
+    const showAdminView=view=>{
+      $("#adminOverview").hidden=view!=="overview";
+      adminViewPanels.forEach(panel=>panel.hidden=panel.dataset.adminView!==view);
+      adminViewSections.forEach(section=>{const panels=[...section.querySelectorAll(":scope > .panel[data-admin-view]")];if(panels.length)section.hidden=panels.every(panel=>panel.hidden)});
+      adminViewButtons.forEach(button=>{const active=button.dataset.adminNav===view;button.classList.toggle("active",active);button.setAttribute("aria-current",active?"page":"false")});
+    };
+    adminViewButtons.forEach(button=>button.addEventListener("click",()=>showAdminView(button.dataset.adminNav)));
+    showAdminView("overview");
+    document.querySelectorAll("#adminPanel [data-library-tab]").forEach(button=>button.addEventListener("click",()=>{
+      const level=button.dataset.libraryTab;
+      document.querySelectorAll("#adminPanel [data-library-tab]").forEach(tab=>tab.classList.toggle("active",tab===button));
+      document.querySelectorAll("#adminPanel [data-library-level]").forEach(card=>card.hidden=card.dataset.libraryLevel!==level);
+    }));
     const adminSubjectsByLevel={
       Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
       Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
@@ -1024,6 +1040,14 @@
     const adminChapterAliases={"Taxation — Income-tax Law":"Taxation","Taxation — Goods and Services Tax":"Taxation","Financial Management":"Financial Management and Strategic Management","Strategic Management":"Financial Management and Strategic Management","Integrated Business Solutions":"Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"};
     const adminCanonical=subject=>adminChapterAliases[subject]||subject;
     $("#resourceLevel")?.addEventListener("change",loadAdminResourceSubjects);
+    ["adminResourceLevelFilter","adminResourceCategoryFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminResources));
+    $("#adminResourceSearch")?.addEventListener("input",loadAdminResources);
+    ["adminMtpCollectionFilter","adminMtpLevelFilter","adminMtpTypeFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminMtpPapers));
+    ["submissionLevelFilter","submissionSubjectFilter","submissionChapterFilter","submissionAuthorFilter"].forEach(id=>$("#"+id)?.addEventListener("input",loadNoteSubmissions));
+    ["studentLevelFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminStudents));
+    $("#studentSearch")?.addEventListener("input",loadAdminStudents);
+    ["adminMindMapLevelFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminMindMaps));
+    $("#adminMindMapSubjectFilter")?.addEventListener("input",loadAdminMindMaps);
     $("#resourceSubject")?.addEventListener("change",loadAdminResourceChapters);
     $("#adminMaterialForm")?.addEventListener("submit",saveMaterial);
     $("#adminMindMapForm")?.addEventListener("submit",saveMindMap);
@@ -1039,7 +1063,17 @@
     $("#virtualLibraryIntermediateForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_intermediate","Intermediate Virtual Library study room","#virtualLibraryIntermediateUrl","#virtualLibraryIntermediateStatus"));
     $("#virtualLibraryFinalForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_final","Final Virtual Library study room","#virtualLibraryFinalUrl","#virtualLibraryFinalStatus"));
     $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
-    await Promise.all([loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
+    await Promise.all([loadAdminOverview(),loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadAdminJobs(),loadAdminStudents(),loadManagedLinks()]);window.setInterval(loadAdminOverview,30000);
+    async function loadAdminOverview(){
+      const {data,error}=await sb.rpc("admin_platform_overview");
+      const row=Array.isArray(data)?data[0]:data;
+      if(error||!row){["overviewStudents","overviewNewStudents","overviewStudyHours","overviewStudySessions","overviewMaterials","overviewPendingNotes","overviewJobs","overviewRequests"].forEach(id=>{const element=$("#"+id);if(element)element.textContent="—"});return}
+      const set=(id,value)=>{const element=$("#"+id);if(element)element.textContent=Number(value||0).toLocaleString("en-IN")};
+      set("overviewStudents",row.student_count);set("overviewNewStudents",row.new_students_7d);
+      const hours=$("#overviewStudyHours");if(hours)hours.textContent=(Number(row.study_seconds_30d||0)/3600).toFixed(1);
+      set("overviewStudySessions",row.study_sessions_30d);set("overviewMaterials",row.published_materials);
+      set("overviewPendingNotes",row.pending_notes);set("overviewJobs",row.published_opportunities);set("overviewRequests",row.open_requests);
+    }
     async function loadAdminResourceSubjects(){
       const level=$("#resourceLevel"),subject=$("#resourceSubject"),chapter=$("#resourceChapter");if(!level||!subject||!chapter)return;
       const current=subject.value,levels=level.value==="All"?Object.keys(adminSubjectsByLevel):[level.value];
@@ -1053,7 +1087,7 @@
       const subjectName=subject.value;if(!subjectName){chapter.replaceChildren(new Option("Choose a subject first",""));chapter.disabled=true;return}
       const canonical=adminCanonical(subjectName),levels=(level.value==="All"?Object.keys(adminSubjectsByLevel):[level.value]).filter(name=>(adminSubjectsByLevel[name]||[]).some(item=>adminCanonical(item)===canonical));
       chapter.replaceChildren(new Option("Loading ICAI chapters…",""));chapter.disabled=true;
-      const outlines=await Promise.all(levels.map(async name=>{try{const params=new URLSearchParams({mode:"chapters",level:name,subjects:canonical});const response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}});const result=await response.json().catch(()=>({}));return response.ok&&Array.isArray(result.outlines)?result.outlines.flatMap(item=>item.chapters||[]):[]}catch{return[]}}));
+      const outlines=await Promise.all(levels.map(async name=>{try{const params=new URLSearchParams({mode:"chapters",level:name,subject:canonical});const response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}});const result=await response.json().catch(()=>({}));return response.ok&&Array.isArray(result.outlines)?result.outlines.flatMap(item=>item.chapters||[]):[]}catch{return[]}}));
       const chapters=[...new Set(outlines.flat().map(item=>String(item).trim()).filter(Boolean))];
       chapter.replaceChildren(new Option(chapters.length?"Choose an ICAI chapter":"No ICAI chapters available",""),...chapters.map(name=>new Option(name,name)));
       chapter.disabled=!chapters.length;
@@ -1110,45 +1144,67 @@
       const chapters=["mtp_question","mtp_suggested_answer","rtp_question","rtp_suggested_answer","previous_year_question","previous_year_solution","mock_test_question"];
       const {data,error}=await sb.from("materials").select("id,title,level,subject,chapter,is_published,file_bucket,file_path").eq("category","icai_link").in("chapter",chapters).order("created_at",{ascending:false}).limit(300);
       const list=$("#adminMtpPapers");if(!list)return;list.replaceChildren();
-      if(error||!data?.length){emptyRow(list,error?"Could not load exam papers.":"No exam PDFs uploaded yet.");return}
-      const labels={mtp_question:"ICAI MTP · Question paper",mtp_suggested_answer:"ICAI MTP · Suggested answers",rtp_question:"ICAI RTP · Question paper",rtp_suggested_answer:"ICAI RTP · Suggested answers",previous_year_question:"Previous Year · Question paper",previous_year_solution:"Previous Year · Solutions",mock_test_question:"Mock Test · Question paper"};
-      data.forEach(row=>{
-        const item=document.createElement("div");item.className="data-row";
-        const info=document.createElement("div"),h=document.createElement("strong"),p=document.createElement("p");
-        h.textContent=row.title;
-        p.textContent=row.level+" · "+(labels[row.chapter]||row.chapter)+(row.subject?" · "+row.subject:"")+" · "+(row.is_published?"Published":"Draft");
-        info.append(h,p);
+      if(error||!data?.length){emptyRow(list,error?"Could not load test papers.":"No test papers uploaded yet.");return}
+      const family=$("#adminMtpCollectionFilter")?.value||"",level=$("#adminMtpLevelFilter")?.value||"",kind=$("#adminMtpTypeFilter")?.value||"";
+      const familyKey=family?({mtp_question:"mtp_",rtp_question:"rtp_",previous_year_question:"previous_year_",mock_test_question:"mock_test_"}[family]||""):"";
+      const filtered=data.filter(row=>(!level||row.level===level)&&(!familyKey||row.chapter.startsWith(familyKey))&&(!kind||(kind==="question"?row.chapter.endsWith("_question"):/(suggested_answer|_solution)$/.test(row.chapter))));
+      if(!filtered.length){emptyRow(list,"No papers match these filters.");return}
+      const labels={mtp_question:"ICAI MTP · Question paper",mtp_suggested_answer:"ICAI MTP · Suggested answers",rtp_question:"ICAI RTP · Question paper",rtp_suggested_answer:"ICAI RTP · Suggested answers",previous_year_question:"Previous year · Question paper",previous_year_solution:"Previous year · Solutions",mock_test_question:"Mock test · Question paper"};
+      filtered.forEach(row=>{
+        const item=document.createElement("div");item.className="data-row";const info=document.createElement("div"),h=document.createElement("strong"),p=document.createElement("p");
+        h.textContent=row.title;p.textContent=row.level+" · "+(labels[row.chapter]||row.chapter)+(row.subject?" · "+row.subject:"")+" · "+(row.is_published?"Published":"Draft");info.append(h,p);
         const actions=document.createElement("div");actions.className="row-actions";
         const visibility=document.createElement("button");visibility.className="btn";visibility.type="button";visibility.textContent=row.is_published?"Unpublish":"Publish";
         visibility.addEventListener("click",async()=>{visibility.disabled=true;const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#mtpAdminStatus",error?error.message:"Paper visibility updated.",error?"error":"success");loadAdminMtpPapers()});
         const remove=document.createElement("button");remove.className="btn danger";remove.type="button";remove.textContent="Delete";
-        remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” permanently?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#mtpAdminStatus",error.message,"error");remove.disabled=false;return}if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);if(storageError)msg("#mtpAdminStatus","Paper deleted, but its PDF file could not be removed: "+storageError.message,"error");else msg("#mtpAdminStatus","Paper deleted.","success")}else msg("#mtpAdminStatus","Paper deleted.","success");loadAdminMtpPapers()});
+        remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” permanently?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#mtpAdminStatus",error.message,"error");remove.disabled=false;return}if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);msg("#mtpAdminStatus",storageError?"Paper record deleted; stored PDF cleanup failed: "+storageError.message:"Paper deleted.","success")}else msg("#mtpAdminStatus","Paper deleted.","success");loadAdminMtpPapers()});
         actions.append(visibility,remove);item.append(info,actions);list.append(item);
       });
     }
-    async function loadAdminMindMaps(){
+        async function loadAdminMindMaps(){
       const {data,error}=await sb.from("materials").select("id,title,level,subject,is_premium,is_published,file_bucket,file_path,external_url").eq("category","mind_map").order("created_at",{ascending:false}).limit(200);
       const list=$("#adminMindMaps");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load mind maps.":"No mind maps uploaded yet.");return}
-      data.forEach(row=>{
+      const level=$("#adminMindMapLevelFilter")?.value||"",subject=($("#adminMindMapSubjectFilter")?.value||"").trim().toLowerCase();
+      const rows=data.filter(row=>(!level||row.level===level||row.level==="All")&&(!subject||(row.subject||"").toLowerCase().includes(subject)));
+      if(!rows.length){emptyRow(list,"No mind maps match these filters.");return}
+      rows.forEach(row=>{
         const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+(row.subject||"No subject")+" · "+(row.is_premium?"Premium":"Free")+" · "+(row.is_published?"Published":"Draft");info.append(h,p);
+        if(row.external_url){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
         const actions=document.createElement("div");actions.className="row-actions";
         const access=document.createElement("button");access.className="btn";access.type="button";access.textContent=row.is_premium?"Set Free":"Set Premium";access.addEventListener("click",async()=>{access.disabled=true;const {error}=await sb.from("materials").update({is_premium:!row.is_premium}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:(row.is_premium?"Mind map is now free.":"Mind map is now premium and access-restricted."),error?"error":"success");loadAdminMindMaps()});
         const visibility=document.createElement("button");visibility.className="btn";visibility.type="button";visibility.textContent=row.is_published?"Unpublish":"Publish";visibility.addEventListener("click",async()=>{visibility.disabled=true;const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:"Mind map visibility updated.",error?"error":"success");loadAdminMindMaps()});
-        const remove=document.createElement("button");remove.className="btn danger";remove.type="button";remove.textContent="Delete";remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” permanently from CA Junction?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#mindMapAdminStatus",error.message,"error");remove.disabled=false;return}if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);if(storageError)msg("#mindMapAdminStatus","Mind map deleted, but its stored PDF could not be cleaned up: "+storageError.message,"error");else msg("#mindMapAdminStatus","Mind map deleted.","success")}else msg("#mindMapAdminStatus","Mind map deleted.","success");loadAdminMindMaps()});
+        const remove=document.createElement("button");remove.className="btn danger";remove.type="button";remove.textContent="Delete";remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” permanently from CA Junction?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#mindMapAdminStatus",error.message,"error");remove.disabled=false;return}if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);msg("#mindMapAdminStatus",storageError?"Mind map record deleted; stored PDF cleanup failed: "+storageError.message:"Mind map deleted.","success")}else msg("#mindMapAdminStatus","Mind map deleted.","success");loadAdminMindMaps()});
         actions.append(access,visibility,remove);item.append(info,actions);list.append(item);
       });
     }
-    async function loadAdminResources(){
-      const {data}=await sb.from("materials").select("id,title,level,subject,chapter,category,is_premium,is_published").neq("category","icai_link").order("created_at",{ascending:false}).limit(100);
-      const list=$("#adminResources");if(!list)return;list.replaceChildren();if(!data?.length){emptyRow(list,"No resources yet.");return}
-      data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=[row.level,row.subject,row.chapter,row.category,row.is_premium?"Premium":"Free",row.is_published?"Published":"Draft"].filter(Boolean).join(" · ");info.append(h,p);const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#resourceStatus",error?error.message:"Resource status updated.",error?"error":"success");loadAdminResources()});item.append(info,button);list.append(item)});
+        async function loadAdminResources(){
+      const {data,error}=await sb.from("materials").select("id,title,level,subject,chapter,category,is_premium,is_published,file_bucket,file_path,student_submission_id,contributor_name,external_url").neq("category","icai_link").order("created_at",{ascending:false}).limit(500);
+      const list=$("#adminResources");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load resources.":"No resources yet.");return}
+      const level=$("#adminResourceLevelFilter")?.value||"",category=$("#adminResourceCategoryFilter")?.value||"",search=($("#adminResourceSearch")?.value||"").trim().toLowerCase();
+      const rows=data.filter(row=>(!level||row.level===level||row.level==="All")&&(!category||row.category===category)&&(!search||[row.title,row.subject,row.chapter,row.contributor_name].some(value=>String(value||"").toLowerCase().includes(search))));
+      if(!rows.length){emptyRow(list,"No resources match these filters.");return}
+      rows.forEach(row=>{
+        const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=[row.level,row.subject,row.chapter,row.category,row.contributor_name?"By "+row.contributor_name:"",row.is_premium?"Premium":"Free",row.is_published?"Published":"Draft"].filter(Boolean).join(" · ");info.append(h,p);
+        if(row.external_url){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
+        const actions=document.createElement("div");actions.className="row-actions";const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#resourceStatus",error?error.message:"Resource status updated.",error?"error":"success");loadAdminResources()});
+        const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” from CA Junction?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#resourceStatus",error.message,"error");remove.disabled=false;return}if(row.student_submission_id)await sb.from("student_note_submissions").delete().eq("id",row.student_submission_id);if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);msg("#resourceStatus",storageError?"Resource removed from the site; file cleanup failed: "+storageError.message:"Resource deleted.","success")}else msg("#resourceStatus","Resource deleted.","success");loadAdminResources()});
+        actions.append(button,remove);item.append(info,actions);list.append(item);
+      });
     }
-    async function loadNoteSubmissions(){
+        async function loadNoteSubmissions(){
       const {data,error}=await sb.from("student_note_submissions").select("*").eq("status","pending").order("created_at");
-      const list=$("#noteSubmissions");list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load submissions.":"No pending submissions.");return}
-      data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+row.subject+" · "+row.user_id;info.append(h,p);const actions=document.createElement("div");actions.className="row-actions";const view=document.createElement("button");view.className="btn";view.textContent="Open PDF";view.addEventListener("click",async()=>{const {data:link,error}=await sb.storage.from("student-notes").createSignedUrl(row.file_path,120);if(error){msg("#submissionStatus",error.message,"error");return}window.open(link.signedUrl,"_blank","noopener")});const approve=document.createElement("button");approve.className="btn";approve.textContent="Approve";approve.addEventListener("click",()=>approveNote(row));const reject=document.createElement("button");reject.className="btn danger";reject.textContent="Reject";reject.addEventListener("click",async()=>{const {error}=await sb.from("student_note_submissions").update({status:"rejected",reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq("id",row.id);msg("#submissionStatus",error?error.message:"Submission rejected.",error?"error":"success");loadNoteSubmissions()});actions.append(view,approve,reject);item.append(info,actions);list.append(item)});
+      const list=$("#noteSubmissions");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load submissions.":"No pending submissions.");return}
+      const level=$("#submissionLevelFilter")?.value||"",subject=($("#submissionSubjectFilter")?.value||"").trim().toLowerCase(),chapter=($("#submissionChapterFilter")?.value||"").trim().toLowerCase(),author=($("#submissionAuthorFilter")?.value||"").trim().toLowerCase();
+      const rows=data.filter(row=>(!level||row.level===level)&&(!subject||String(row.subject||"").toLowerCase().includes(subject))&&(!chapter||String(row.chapter||"").toLowerCase().includes(chapter))&&(!author||String(row.contributor_name||"").toLowerCase().includes(author)));
+      if(!rows.length){emptyRow(list,"No pending notes match these filters.");return}
+      rows.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=[row.level,row.subject,row.chapter,row.contributor_name?"By "+row.contributor_name:"",row.instagram_handle?"Instagram "+row.instagram_handle:"",row.linkedin_url?"LinkedIn provided":"",new Date(row.created_at).toLocaleDateString()].filter(Boolean).join(" · ");info.append(h,p);const actions=document.createElement("div");actions.className="row-actions";
+        const view=document.createElement("button");view.className="btn";view.textContent="Open PDF";view.addEventListener("click",async()=>{const {data:link,error}=await sb.storage.from("student-notes").createSignedUrl(row.file_path,120);if(error){msg("#submissionStatus",error.message,"error");return}window.open(link.signedUrl,"_blank","noopener")});
+        const approve=document.createElement("button");approve.className="btn";approve.textContent="Approve";approve.addEventListener("click",()=>approveNote(row));
+        const reject=document.createElement("button");reject.className="btn";reject.textContent="Reject";reject.addEventListener("click",async()=>{const {error}=await sb.from("student_note_submissions").update({status:"rejected",reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq("id",row.id);msg("#submissionStatus",error?error.message:"Submission rejected.",error?"error":"success");loadNoteSubmissions()});
+        const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{if(!confirm("Permanently delete this uploaded note?"))return;const {error}=await sb.from("student_note_submissions").delete().eq("id",row.id);if(error){msg("#submissionStatus",error.message,"error");return}const {error:storageError}=await sb.storage.from("student-notes").remove([row.file_path]);msg("#submissionStatus",storageError?"Submission removed; uploaded file cleanup failed: "+storageError.message:"Uploaded note deleted.","success");loadNoteSubmissions()});
+        actions.append(view,approve,reject,remove);item.append(info,actions);list.append(item)});
     }
-    async function approveNote(row){
+        async function approveNote(row){
       const newPath="community/"+crypto.randomUUID()+"_"+row.file_path.split("/").pop();
       const {data:file,error:downloadError}=await sb.storage.from("student-notes").download(row.file_path);
       if(downloadError){msg("#submissionStatus",downloadError.message,"error");return}
@@ -1231,21 +1287,25 @@
       data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+row.test_type+" · "+row.access_tier+" · "+(row.is_published?"Published":"Draft");info.append(h,p);const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("study_tests").update({is_published:!row.is_published}).eq("id",row.id);msg("#testAdminStatus",error?error.message:"Test status updated.",error?"error":"success");loadAdminTests()});item.append(info,button);list.append(item)});
     }
     async function loadAdminJobs(){
-      const {data,error}=await sb.from("jobs").select("id,title,organization,job_type,is_published").order("created_at",{ascending:false}).limit(100);
+      const {data,error}=await sb.from("jobs").select("id,title,organization,job_type,location,description,application_url,is_published").order("created_at",{ascending:false}).limit(100);
       const list=$("#adminJobs");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load opportunities.":"No opportunities yet.");return}
-      data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.organization+" · "+row.job_type+" · "+(row.is_published?"Published":"Draft");info.append(h,p);const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("jobs").update({is_published:!row.is_published}).eq("id",row.id);msg("#jobAdminStatus",error?error.message:"Opportunity status updated.",error?"error":"success");loadAdminJobs()});item.append(info,button);list.append(item)});
+      data.forEach(row=>{const item=document.createElement("div");item.className="data-row job-glass";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title+" · "+row.organization;const p=document.createElement("p");p.textContent=[row.job_type,row.location,row.is_published?"Published":"Draft"].filter(Boolean).join(" · ");const desc=document.createElement("p");desc.textContent=row.description||"";info.append(h,p,desc);if(row.application_url){const a=document.createElement("a");a.href=row.application_url;a.target="_blank";a.rel="noopener";a.textContent="Open apply link ↗";info.append(a)}
+        const actions=document.createElement("div");actions.className="row-actions";const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("jobs").update({is_published:!row.is_published}).eq("id",row.id);msg("#jobAdminStatus",error?error.message:"Opportunity status updated.",error?"error":"success");loadAdminJobs()});const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{if(!confirm("Delete the opportunity “"+row.title+"”?"))return;const {error}=await sb.from("jobs").delete().eq("id",row.id);msg("#jobAdminStatus",error?error.message:"Opportunity deleted.",error?"error":"success");loadAdminJobs()});actions.append(button,remove);item.append(info,actions);list.append(item)});
     }
-    async function loadAdminCourses(){
+        async function loadAdminCourses(){
       const {data,error}=await sb.from("courses").select("id,title,level,is_published").order("created_at",{ascending:false}).limit(100);
       const list=$("#adminCourses");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load courses.":"No courses yet.");return}
       data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+(row.is_published?"Published":"Draft");info.append(h,p);const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("courses").update({is_published:!row.is_published}).eq("id",row.id);msg("#courseStatus",error?error.message:"Course status updated.",error?"error":"success");loadAdminCourses()});item.append(info,button);list.append(item)});
     }
     async function loadAdminStudents(){
-      const {data,error}=await sb.from("profiles").select("user_id,full_name,ca_level,phone,created_at").order("created_at",{ascending:false}).limit(100);
-      const list=$("#adminStudents");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load student profiles.":"No student accounts yet.");return}
-      data.forEach(row=>addRow(list,(row.full_name||"Student")+" · "+row.ca_level,row.phone||row.user_id));
+      const {data,error}=await sb.rpc("admin_student_directory");
+      const list=$("#adminStudents");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Run the admin student directory migration in Supabase to show names, emails and IDs.":"No student accounts yet.");return}
+      const level=$("#studentLevelFilter")?.value||"",search=($("#studentSearch")?.value||"").trim().toLowerCase();
+      const rows=data.filter(row=>(!level||row.ca_level===level)&&(!search||[row.full_name,row.email,row.user_id].some(value=>String(value||"").toLowerCase().includes(search))));
+      if(!rows.length){emptyRow(list,"No students match these filters.");return}
+      rows.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.full_name||"Student";const p=document.createElement("p");p.textContent=[row.email||"No email on record",row.ca_level,"ID: "+row.user_id,"Joined "+new Date(row.created_at).toLocaleDateString()].join(" · ");info.append(h,p);item.append(info);list.append(item)});
     }
-    async function loadPendingPayments(){
+        async function loadPendingPayments(){
       const {data,error}=await sb.from("payment_orders").select("id,user_id,product_id,amount_inr,status,upi_reference,created_at,products(title)").eq("status","pending_review").order("created_at");
       const list=$("#pendingPayments");list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load payment requests.":"No payments waiting for review.");return}
       data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const body=document.createElement("div");const h=document.createElement("strong");h.textContent=(row.products?.title||"Purchase")+" · "+window.caFormatINR(row.amount_inr);const p=document.createElement("p");p.textContent="User "+row.user_id+" · UTR "+(row.upi_reference||"missing")+" · Order "+row.id;body.append(h,p);const actions=document.createElement("div");actions.className="row-actions";const approve=document.createElement("button");approve.className="btn";approve.textContent="Verify & unlock";approve.addEventListener("click",async()=>{if(!row.upi_reference){msg("#paymentAdminStatus","No UTR entered; cannot approve.","error");return}if(!confirm("Confirm you matched this UTR and exact amount in the receiving account record?"))return;const {error}=await sb.from("payment_orders").update({status:"paid",verified_by:user.id}).eq("id",row.id).eq("status","pending_review");msg("#paymentAdminStatus",error?error.message:"Payment verified; purchased access has been granted.",error?"error":"success");loadPendingPayments()});const reject=document.createElement("button");reject.className="btn danger";reject.textContent="Reject";reject.addEventListener("click",async()=>{const {error}=await sb.from("payment_orders").update({status:"rejected",verified_by:user.id}).eq("id",row.id).eq("status","pending_review");msg("#paymentAdminStatus",error?error.message:"Payment request rejected.",error?"error":"success");loadPendingPayments()});actions.append(approve,reject);item.append(body,actions);list.append(item)});
