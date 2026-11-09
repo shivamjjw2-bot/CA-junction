@@ -22,7 +22,7 @@ as $$
 declare
   reserved_total integer;
 begin
-  if auth.uid() is null or p_neurons not in (1500, 2000) then
+  if auth.uid() is null or p_neurons is null or p_neurons not in (1500, 2000) then
     return false;
   end if;
 
