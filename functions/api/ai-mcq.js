@@ -31,10 +31,10 @@ export async function onRequestPost({request,env}) {
         type:"object",additionalProperties:false,properties:{questions:{type:"array",items:{
           type:"object",additionalProperties:false,properties:{
             question:{type:"string"},options:{type:"array",items:{type:"string"}},
-            correct_index:{type:"integer",minimum:0,maximum:3},explanation:{type:"string"}
+            correct_index:{type:"integer"},explanation:{type:"string"}
           },required:["question","options","correct_index","explanation"]
         }}},required:["questions"]
-      }},max_output_tokens:3000
+      }}},max_output_tokens:3000
     })});
     const data=await response.json();
     if(!response.ok)return json({error:"The AI question service is temporarily unavailable. Please try again shortly."},502);
