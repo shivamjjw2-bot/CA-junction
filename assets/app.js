@@ -529,7 +529,7 @@
   function initAiMcqPractice(){
     const form=$("#aiPracticeForm");if(!form)return;
     const level=$("#aiPracticeLevel"),preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
-    const subject=$("#aiPracticeSubject"),chapterSelect=$("#aiPracticeChapterSelect"),addChapter=$("#aiPracticeAddChapter"),selectedChaptersBox=$("#aiPracticeSelectedChapters"),chapterHelp=$("#aiPracticeChapterHelp"),materialLink=$("#aiPracticeMaterialLink");
+    const subject=$("#aiPracticeSubject"),chapterSelect=$("#aiPracticeChapterSelect"),selectedChaptersBox=$("#aiPracticeSelectedChapters"),chapterHelp=$("#aiPracticeChapterHelp"),materialLink=$("#aiPracticeMaterialLink");
     const selectedChapters=[];
     const subjectsByLevel={
       Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
@@ -548,14 +548,14 @@
       selectedChapters.forEach((name,index)=>{
         const chip=document.createElement("span");chip.className="chapter-chip";chip.append(document.createTextNode(name));
         const remove=document.createElement("button");remove.type="button";remove.setAttribute("aria-label","Remove "+name);remove.textContent="×";
-        remove.addEventListener("click",()=>{selectedChapters.splice(index,1);renderSelectedChapters();updateChapterControls()});
+        remove.addEventListener("click",()=>{selectedChapters.splice(index,1);const option=[...chapterSelect.options].find(item=>item.value===name);if(option)option.disabled=false;renderSelectedChapters();updateChapterControls()});
         chip.append(remove);selectedChaptersBox.append(chip);
       });
-      chapterHelp.textContent=selectedChapters.length+" of 8 chapters selected. Chapter titles are loaded from the ICAI study material listing.";
+      chapterHelp.textContent=selectedChapters.length+" of 8 chapters selected. Tap another chapter to add it; tap × to remove one.";
     };
-    const updateChapterControls=()=>{addChapter.disabled=!chapterSelect.value||selectedChapters.length>=8||selectedChapters.includes(chapterSelect.value)};
+    const updateChapterControls=()=>{chapterSelect.disabled=selectedChapters.length>=8;};
     const resetChapters=placeholder=>{
-      selectedChapters.splice(0);selectedChaptersBox.replaceChildren();chapterSelect.replaceChildren(new Option(placeholder,""));chapterSelect.disabled=true;addChapter.disabled=true;chapterHelp.textContent="Choose a subject to load chapter titles from ICAI material. Add up to 8 chapters.";
+      selectedChapters.splice(0);selectedChaptersBox.replaceChildren();chapterSelect.replaceChildren(new Option(placeholder,""));chapterSelect.disabled=true;chapterHelp.textContent="Choose a subject to load ICAI chapters. Tap a chapter to select it.";
     };
     const loadChapters=async()=>{
       resetChapters("Loading ICAI chapters…");
@@ -569,15 +569,22 @@
         const chapters=Array.isArray(outline?.chapters)?[...new Set(outline.chapters.map(name=>String(name).trim()).filter(Boolean))]:[];
         if(!response.ok||!chapters.length)throw new Error(result.error||"ICAI chapter titles are temporarily unavailable. Please open the official material link.");
         chapterSelect.replaceChildren(new Option("Choose a chapter",""),...chapters.map(name=>new Option(name,name)));
-        chapterSelect.disabled=false;chapterHelp.textContent="Chapter titles loaded from ICAI material for "+subject.value+". Add up to 8.";
+        chapterSelect.disabled=false;chapterHelp.textContent="Chapter titles loaded from ICAI material for "+subject.value+". Tap a chapter to select it; up to 8.";
       }catch(error){resetChapters(error?.message||"Could not load ICAI chapters. Please try again.");chapterHelp.textContent=error?.message||"Could not load ICAI chapters. Please try again."}
       updateChapterControls();
     };
-    addChapter.addEventListener("click",()=>{
-      const name=chapterSelect.value;if(!name||selectedChapters.includes(name)||selectedChapters.length>=8)return;
-      selectedChapters.push(name);renderSelectedChapters();updateChapterControls();
+    chapterSelect.addEventListener("change",()=>{
+      const name=chapterSelect.value;
+      if(!name)return;
+      if(!selectedChapters.includes(name)&&selectedChapters.length<8){
+        selectedChapters.push(name);
+        const option=[...chapterSelect.options].find(item=>item.value===name);
+        if(option)option.disabled=true;
+        renderSelectedChapters();
+      }
+      chapterSelect.value="";
+      updateChapterControls();
     });
-    chapterSelect.addEventListener("change",updateChapterControls);
     const materialUrls={
       Foundation:"https://boslive.icai.org/study_material_new_paper_details.php?c=foundation&language=English",
       Intermediate:"https://boslive.icai.org/study_material_new_paper_details.php?c=intermediate&language=English",
