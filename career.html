@@ -22,41 +22,51 @@ footer{border-top:1px solid var(--line);margin-top:25px;padding:23px 0;color:var
  <a href="career-guidance.html" data-career-tab-link="guidance">Career Guidance</a>
 </nav>
 <section id="resume" data-career-tab="resume">
- <div class="section-head"><div class="eyebrow">Resume builder</div><h2>Build a polished CA resume.</h2><p>Enter your details, get an AI-written career objective, choose a design, and preview your resume as you build it.</p></div>
+ <div class="section-head"><div class="eyebrow">Resume builder</div><h2>Build a complete, polished resume.</h2><p>Answer the key questions, choose a design or let AI recommend one, then review and edit your complete resume draft.</p></div>
  <div class="resume-layout">
   <form class="panel resume-form" id="resumeForm">
-   <h3>Personal information</h3>
+   <h3>1. Personal information</h3>
    <div class="form-grid">
     <div><label for="resumeName">Full name</label><input id="resumeName" maxlength="100" placeholder="Your full name"></div>
     <div><label for="resumeEmail">Email</label><input id="resumeEmail" type="email" maxlength="120" placeholder="you@example.com"></div>
     <div><label for="resumePhone">Phone</label><input id="resumePhone" type="tel" maxlength="30" placeholder="+91"></div>
     <div><label for="resumeLocation">City / location</label><input id="resumeLocation" maxlength="100" placeholder="City, State"></div>
     <div><label for="resumeLinkedIn">LinkedIn profile</label><input id="resumeLinkedIn" type="url" maxlength="240" placeholder="https://linkedin.com/in/your-profile"></div>
-    <div><label for="resumeRole">Target role</label><input id="resumeRole" maxlength="120" placeholder="Articleship / Audit Associate / Finance Analyst"></div>
+    <div><label for="resumePortfolio">Portfolio / website (optional)</label><input id="resumePortfolio" type="url" maxlength="240" placeholder="https://your-portfolio.example"></div>
    </div>
-   <h3>Career objective</h3>
-   <p class="form-hint">Tell us your target role and qualifications. AI will write a short objective you can edit.</p>
-   <button class="btn btn-ai" type="button" id="generateResumeObjective">✨ Write objective with AI</button>
-   <textarea id="resumeObjective" maxlength="700" placeholder="Your career objective will appear here."></textarea>
-   <h3>Education &amp; qualifications</h3>
-   <label for="resumeEducation">Educational qualification</label><textarea id="resumeEducation" maxlength="1600" placeholder="Degree or course · Institution · Year · Result"></textarea>
-   <label for="resumeProfessional">Professional qualification</label><textarea id="resumeProfessional" maxlength="1200" placeholder="CA Foundation / Intermediate / Final / Qualified · Attempt or year"></textarea>
-   <h3>Experience &amp; strengths</h3>
-   <label for="resumeExperience">Work experience</label><textarea id="resumeExperience" maxlength="2000" placeholder="Role · Organisation · Dates&#10;Key responsibilities and achievements"></textarea>
-   <label for="resumeSkills">Skills</label><textarea id="resumeSkills" maxlength="1000" placeholder="Accounting, Excel, GST, communication…"></textarea>
-   <label for="resumeHobbies">Hobbies &amp; interests</label><textarea id="resumeHobbies" maxlength="700" placeholder="Reading, volunteering, finance research…"></textarea>
-   <h3>Resume design</h3>
-   <label for="resumeTheme">Choose a theme</label><select id="resumeTheme"><option value="modern">Modern finance</option><option value="classic">Classic professional</option><option value="executive">Executive blue</option><option value="minimal">Minimal clean</option></select>
-   <div class="resume-actions"><button class="btn btn-save" type="button" id="printResume">Print / save PDF</button><button class="btn btn-reset" type="reset" id="resetResume">Clear details</button></div>
-   <p class="status" id="resumeStatus" role="status" aria-live="polite">Your resume preview updates as you type.</p>
+   <h3>2. Target career</h3>
+   <div class="form-grid">
+    <div><label for="resumeRole">Role you want</label><input id="resumeRole" maxlength="120" placeholder="Articleship trainee / Audit associate"></div>
+    <div><label for="resumeIndustry">Area of interest</label><input id="resumeIndustry" maxlength="120" placeholder="Audit, tax, finance, consulting…"></div>
+    <div><label for="resumeCareerStage">Career stage</label><select id="resumeCareerStage"><option value="">Choose one</option><option>CA student seeking articleship</option><option>CA student seeking internship</option><option>Finance fresher</option><option>Qualified Chartered Accountant</option><option>Experienced professional</option></select></div>
+   </div>
+   <h3>3. Education &amp; professional qualifications</h3>
+   <label for="resumeEducation">Educational qualification</label><textarea id="resumeEducation" maxlength="1800" placeholder="Course or degree · Institution · Year · marks/grade (if you want to include it)"></textarea>
+   <label for="resumeProfessional">CA and other professional qualifications</label><textarea id="resumeProfessional" maxlength="1400" placeholder="CA level or status · attempts/year · certifications"></textarea>
+   <h3>4. Experience &amp; projects</h3>
+   <label for="resumeExperience">Work, articleship or internship experience</label><textarea id="resumeExperience" maxlength="2400" placeholder="For each role: title · organisation · dates · main duties · measurable achievements"></textarea>
+   <label for="resumeProjects">Projects / practical work (optional)</label><textarea id="resumeProjects" maxlength="1400" placeholder="Project · what you did · tools used · result"></textarea>
+   <h3>5. Skills &amp; achievements</h3>
+   <label for="resumeSkills">Skills</label><textarea id="resumeSkills" maxlength="1200" placeholder="Technical and people skills, separated by commas"></textarea>
+   <label for="resumeAchievements">Achievements / awards (optional)</label><textarea id="resumeAchievements" maxlength="1000" placeholder="Awards, leadership, volunteering or notable results"></textarea>
+   <label for="resumeLanguages">Languages (optional)</label><input id="resumeLanguages" maxlength="300" placeholder="English, Hindi…">
+   <label for="resumeHobbies">Hobbies &amp; interests (optional)</label><input id="resumeHobbies" maxlength="400" placeholder="Reading, volunteering, finance research…">
+   <h3>6. Choose your resume design</h3>
+   <label for="resumeTheme">Design theme</label><select id="resumeTheme"><option value="auto">Let AI recommend a design</option><option value="modern">Modern finance</option><option value="classic">Classic professional</option><option value="executive">Executive teal</option><option value="minimal">Minimal clean</option></select>
+   <p class="form-hint">AI will suggest a suitable design based on your career goal. You can change it at any time.</p>
+   <div class="resume-actions"><button class="btn btn-ai" type="button" id="generateResumeDraft">✨ Draft my complete resume with AI</button><button class="btn btn-save" type="button" id="printResume">Print / save PDF</button><button class="btn btn-reset" type="reset" id="resetResume">Clear details</button></div>
+   <p class="status" id="resumeStatus" role="status" aria-live="polite">Your details stay in this browser. Review and edit the AI draft before printing.</p>
   </form>
   <article class="preview resume-preview" id="resumePreview" data-theme="modern">
-   <div class="preview-accent"></div><h2 id="previewName">Your name</h2><p id="previewContact" class="preview-contact">Email · Phone · Location</p><p id="previewLinks" class="preview-links"></p>
-   <section class="preview-section"><h3>Career Objective</h3><p id="previewObjective">Your tailored career objective will appear here.</p></section>
-   <section class="preview-section"><h3>Education</h3><p id="previewEducation">Your educational qualification will appear here.</p></section>
-   <section class="preview-section"><h3>Professional Qualifications</h3><p id="previewProfessional">Your CA and professional qualifications will appear here.</p></section>
-   <section class="preview-section"><h3>Work Experience</h3><p id="previewExperience">Your experience and achievements will appear here.</p></section>
+   <div class="preview-accent"></div><h2 id="previewName">Your name</h2><p id="previewHeadline" class="preview-contact"></p><p id="previewContact" class="preview-contact">Email · Phone · Location</p><p id="previewLinks" class="preview-links"></p>
+   <section class="preview-section"><h3>Career Objective</h3><p id="previewObjective">Your AI-drafted objective will appear here.</p></section>
+   <section class="preview-section"><h3>Education</h3><p id="previewEducation">Your education details will appear here.</p></section>
+   <section class="preview-section"><h3>Professional Qualifications</h3><p id="previewProfessional">Your professional qualifications will appear here.</p></section>
+   <section class="preview-section"><h3>Experience</h3><p id="previewExperience">Your experience will appear here.</p></section>
+   <section class="preview-section"><h3>Projects</h3><p id="previewProjects">Your projects will appear here.</p></section>
    <section class="preview-section"><h3>Skills</h3><p id="previewSkills">Your skills will appear here.</p></section>
+   <section class="preview-section"><h3>Achievements</h3><p id="previewAchievements">Your achievements will appear here.</p></section>
+   <section class="preview-section"><h3>Languages</h3><p id="previewLanguages">Your languages will appear here.</p></section>
    <section class="preview-section"><h3>Interests</h3><p id="previewHobbies">Your interests will appear here.</p></section>
   </article>
  </div>
@@ -64,5 +74,5 @@ footer{border-top:1px solid var(--line);margin-top:25px;padding:23px 0;color:var
 
 </main>
 <footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=career-hub-pages-20261110"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=resume-ai-full-draft-20261110"></script>
 </body></html>
