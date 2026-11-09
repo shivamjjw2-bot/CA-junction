@@ -355,7 +355,7 @@
       if(adminGrid&&!revisionLevelApps){const empty=document.createElement("div");empty.className="empty";empty.textContent="Choose your CA level on the homepage to view matching resources.";adminGrid.replaceChildren(empty)}
       return;
     }
-    if(!ready()){msg("#materialStatus",backendMessage);msg("#adminResourcesStatus",backendMessage);return}
+    if(!ready()){msg("#materialStatus",backendMessage);msg("#adminResourcesStatus",backendMessage);if(revisionCount)revisionCount.textContent="Connect to load resources.";return}
     let all=[];
     let currentUserId="";
     const matchesLevel=row=>!activeLevel()||row.level==="All"||row.level===activeLevel();
@@ -478,7 +478,7 @@
     chapterFilter?.addEventListener("change",()=>{if(authorFilter)authorFilter.value="";render()});
     authorFilter?.addEventListener("change",render);
     sb.from("materials").select("id,title,description,level,subject,chapter,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle,linkedin_url,student_submission_id,is_premium").eq("is_published",true).order("created_at",{ascending:false}).then(async({data,error})=>{
-      if(error){msg("#materialStatus",error.message,"error");msg("#adminResourcesStatus",error.message,"error");return}
+      if(error){msg("#materialStatus",error.message,"error");msg("#adminResourcesStatus",error.message,"error");if(revisionCount)revisionCount.textContent="Resources could not be loaded.";return}
       const {data:{user}}=await sb.auth.getUser();currentUserId=user?.id||"";
       all=data||[];render();
     });
