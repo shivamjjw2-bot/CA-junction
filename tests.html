@@ -50,8 +50,7 @@ footer{padding:22px 0;border-top:1px solid var(--line);font-size:13px;color:var(
    <label for="aiPracticeSubject">Subject</label><select id="aiPracticeSubject" required disabled><option value="">Choose a level first</option></select>
    <a id="aiPracticeMaterialLink" class="source-note" href="#" target="_blank" rel="noopener" hidden>Open official ICAI study material ↗</a>
    <label for="aiPracticeChapterSelect">ICAI chapter(s)</label><div class="chapter-picker"><select id="aiPracticeChapterSelect" disabled><option value="">Choose a subject first</option></select></div><div id="aiPracticeSelectedChapters" class="selected-chapters" aria-live="polite"></div><p id="aiPracticeChapterHelp" class="chapter-help">Choose a subject to load ICAI chapters. Tap a chapter to select it.</p>
-   <label for="aiPracticeFormat">Question format</label><select id="aiPracticeFormat"><option value="standard">Challenging individual MCQs · 10 questions · 1 mark each</option><option value="case-study">Case study · 10 linked MCQs · 2 marks each</option></select>
-   <p class="source-note">Each set has 10 questions. Correct answers raise the difficulty; missed answers adjust the next question. Case-study questions are worth 2 marks, individual questions 1 mark.</p>
+   <p class="source-note">Each set has 10 challenging questions. Correct answers raise the difficulty; missed answers adjust the next question.</p>
    <label for="aiPracticeMode">Question style</label><select id="aiPracticeMode"><option value="separate">Questions from the selected chapters</option><option value="combined">Combine concepts from different chapters</option></select>
    <button class="btn btn-green" id="aiPracticeStart" type="submit">Start practice</button>
   </form>
@@ -71,5 +70,5 @@ footer{padding:22px 0;border-top:1px solid var(--line);font-size:13px;color:var(
 </section>
 </main>
 <footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=ai-mcq-auto-select-chapters-20261110"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=ai-mcq-no-question-style-20261110"></script>
 </body></html>
