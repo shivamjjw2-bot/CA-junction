@@ -336,17 +336,21 @@
       Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
       Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
     };
+    const chapterSubjectAliases={"Taxation — Income-tax Law":"Taxation","Taxation — Goods and Services Tax":"Taxation","Financial Management":"Financial Management and Strategic Management","Strategic Management":"Financial Management and Strategic Management","Integrated Business Solutions":"Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"};
+    const materialUrls={Foundation:"https://boslive.icai.org/study_material_new_paper_details.php?c=foundation&language=English",Intermediate:"https://boslive.icai.org/study_material_new_paper_details.php?c=intermediate&language=English",Final:"https://boslive.icai.org/study_material_new_paper_details.php?c=final&language=English"};
     const studentGrid=$("#studentNotesGrid");
     const adminGrid=$("#adminResourcesGrid");
     const revisionLevelApps=$("#revisionLevelApps"),revisionResources=$("#revisionResources");
+    const revisionLevelFilter=$("#revisionLevelFilter"),revisionSubjectFilter=$("#revisionSubjectFilter"),revisionChapterFilter=$("#revisionChapterFilter"),revisionCount=$("#revisionResourceCount"),revisionIcaiLink=$("#revisionIcaiLink");
     const requestedLevel=new URLSearchParams(location.search).get("level")||"";
     const savedLevel=revisionLevelApps?requestedLevel:(requestedLevel||localStorage.getItem("caJunctionLevel")||"");
     if(levelFilter&&["Foundation","Intermediate","Final"].includes(savedLevel))levelFilter.value=savedLevel;
-    const activeLevel=()=>levelFilter?levelFilter.value:savedLevel;
+    if(revisionLevelFilter&&["Foundation","Intermediate","Final"].includes(requestedLevel||localStorage.getItem("caJunctionLevel")||""))revisionLevelFilter.value=requestedLevel||localStorage.getItem("caJunctionLevel");
+    const activeLevel=()=>revisionLevelFilter?revisionLevelFilter.value:(levelFilter?levelFilter.value:savedLevel);
     const levelLabel=$("#selectedLevelLabel");
     if(revisionLevelApps){revisionLevelApps.hidden=Boolean(activeLevel());if(revisionResources)revisionResources.hidden=!activeLevel();const heading=$("#revisionLevelHeading");if(heading&&activeLevel())heading.textContent=activeLevel()}
     if(levelLabel) levelLabel.textContent=studentGrid?(activeLevel()?"Showing "+activeLevel()+" student PDFs.":"Showing student PDFs across all levels."):(activeLevel()?"Showing "+activeLevel()+" resources.":"Choose your CA level on the homepage.");
-    if(!activeLevel()&&!levelFilter){
+    if(!activeLevel()&&!levelFilter&&!revisionLevelFilter){
       if(studentGrid){const empty=document.createElement("div");empty.className="empty";empty.textContent="Student contributions are on their way! No PDFs have been shared yet. Be the first to help another CA student.";studentGrid.replaceChildren(empty)}
       if(adminGrid&&!revisionLevelApps){const empty=document.createElement("div");empty.className="empty";empty.textContent="Choose your CA level on the homepage to view matching resources.";adminGrid.replaceChildren(empty)}
       return;
@@ -364,7 +368,7 @@
         if(row.category==="student_note"){const icon=document.createElement("span");icon.className="note-app-icon";icon.setAttribute("aria-hidden","true");icon.textContent="📄";card.append(icon)}
         const title=document.createElement("h3");title.textContent=row.title;
         card.append(title);
-        if(revisionLevelApps&&grid===adminGrid){const kind=document.createElement("small");kind.className="resource-kind";kind.textContent=({revision:"Summary chart",mind_map:"Mind map",formula:"Formula sheet"})[row.category]||"Study resource";card.append(kind)}
+        if((revisionLevelApps||revisionLevelFilter)&&grid===adminGrid){const kind=document.createElement("small");kind.className="resource-kind";kind.textContent=({revision:"Summary chart",mind_map:"Mind map",formula:"Formula sheet"})[row.category]||"Study resource";card.append(kind)}
         if(row.category!=="student_note"&&row.is_premium){const access=document.createElement("small");access.className="resource-access premium";access.textContent="Premium";card.append(access)}
         if(row.category==="student_note"){
           const detail=document.createElement("p");detail.textContent=row.description||"";if(detail.textContent)card.append(detail);
@@ -376,7 +380,7 @@
           if(row.instagram_handle){const handle=row.instagram_handle.replace(/^@/,"");if(/^[A-Za-z0-9._]{1,30}$/.test(handle)){const profile=document.createElement("a");profile.className="link";profile.href="https://www.instagram.com/"+encodeURIComponent(handle)+"/";profile.target="_blank";profile.rel="noopener";profile.textContent="Instagram: @"+handle+" ↗";card.append(profile)}}
           if(row.linkedin_url){try{const profileUrl=new URL(row.linkedin_url);if(profileUrl.protocol==="https:"&&(profileUrl.hostname==="linkedin.com"||profileUrl.hostname.endsWith(".linkedin.com"))){const profile=document.createElement("a");profile.className="link";profile.href=profileUrl.href;profile.target="_blank";profile.rel="noopener";profile.textContent="LinkedIn profile ↗";card.append(profile)}}catch{}}
         }
-        const meta=document.createElement("small");meta.textContent=row.category==="student_note"?[row.level,row.subject&&("Subject: "+row.subject),row.chapter&&("Chapter: "+row.chapter)].filter(Boolean).join(" · "):(revisionLevelApps&&grid===adminGrid?[row.subject].filter(Boolean):[row.level,row.subject].filter(Boolean)).join(" · ");if(meta.textContent)card.append(meta);
+        const meta=document.createElement("small");meta.textContent=row.category==="student_note"?[row.level,row.subject&&("Subject: "+row.subject),row.chapter&&("Chapter: "+row.chapter)].filter(Boolean).join(" · "):((revisionLevelApps||revisionLevelFilter)&&grid===adminGrid?[row.level,row.subject,row.chapter].filter(Boolean):[row.level,row.subject].filter(Boolean)).join(" · ");if(meta.textContent)card.append(meta);
         const action=row.external_url?document.createElement("a"):document.createElement("button");
         action.className="link";
         if(row.external_url){action.href=row.external_url;action.target="_blank";action.rel="noopener";action.textContent="Open PDF ↗"}
@@ -397,6 +401,43 @@
         }
         grid.append(card);
       });
+    };
+    const revisionLevels=["Foundation","Intermediate","Final"];
+    const revisionSubjects=()=>{
+      const current=revisionSubjectFilter?.value||"";
+      const selected=revisionLevelFilter?.value?[revisionLevelFilter.value]:revisionLevels;
+      const names=[...new Set(selected.flatMap(level=>subjectsByLevel[level]||[]))];
+      if(revisionSubjectFilter){revisionSubjectFilter.replaceChildren(new Option("All subjects",""),...names.map(name=>new Option(name,name)));if(names.includes(current))revisionSubjectFilter.value=current}
+      if(revisionIcaiLink){const chosen=revisionLevelFilter?.value||"";revisionIcaiLink.hidden=!chosen;if(chosen)revisionIcaiLink.href=materialUrls[chosen]}
+      if(revisionChapterFilter&&!revisionSubjectFilter?.value){revisionChapterFilter.replaceChildren(new Option("All chapters",""));revisionChapterFilter.disabled=true}
+    };
+    let revisionChapterRequest=0;
+    const loadRevisionChapters=async()=>{
+      if(!revisionChapterFilter||!revisionSubjectFilter)return;
+      const requestId=++revisionChapterRequest,subjectName=revisionSubjectFilter.value;
+      const current=revisionChapterFilter.value;
+      if(!subjectName){revisionChapterFilter.replaceChildren(new Option("All chapters",""));revisionChapterFilter.disabled=true;return}
+      revisionChapterFilter.disabled=true;revisionChapterFilter.replaceChildren(new Option("Loading ICAI chapters…",""));
+      const canonical=chapterSubjectAliases[subjectName]||subjectName;
+      const selectedLevels=revisionLevelFilter?.value?[revisionLevelFilter.value]:revisionLevels;
+      const matchingLevels=selectedLevels.filter(level=>(subjectsByLevel[level]||[]).some(name=>(chapterSubjectAliases[name]||name)===canonical));
+      try{
+        const outlines=await Promise.all(matchingLevels.map(async level=>{
+          const params=new URLSearchParams({mode:"chapters",level,subjects:canonical});
+          const response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}});
+          const result=await response.json().catch(()=>({}));
+          if(!response.ok)return[];
+          return Array.isArray(result.outlines)?result.outlines.flatMap(item=>Array.isArray(item.chapters)?item.chapters:[]):[];
+        }));
+        if(requestId!==revisionChapterRequest)return;
+        const chapters=[...new Set(outlines.flat().map(name=>String(name).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+        revisionChapterFilter.replaceChildren(new Option("All chapters",""),...chapters.map(name=>new Option(name,name)));
+        revisionChapterFilter.disabled=!chapters.length;
+        if(chapters.includes(current))revisionChapterFilter.value=current;
+        if(!chapters.length&&revisionCount)revisionCount.textContent="Official chapter list is temporarily unavailable.";
+      }catch{
+        if(requestId===revisionChapterRequest){revisionChapterFilter.replaceChildren(new Option("All chapters",""));revisionChapterFilter.disabled=true;if(revisionCount)revisionCount.textContent="Could not load ICAI chapter titles. Please try again."}
+      }
     };
     const fillFilters=()=>{
       if(!subjectFilter||!chapterFilter||!authorFilter)return;
@@ -421,12 +462,17 @@
     const render=()=>{
       fillFilters();
       const students=all.filter(row=>row.category==="student_note"&&matchesLevel(row)&&(!subjectFilter?.value||row.subject===subjectFilter.value)&&(!chapterFilter?.value||row.chapter===chapterFilter.value)&&(!authorFilter?.value||row.contributor_name===authorFilter.value));
-      const admin=all.filter(row=>["revision","mind_map","formula"].includes(row.category)&&matchesLevel(row));
+      const admin=all.filter(row=>["revision","mind_map","formula"].includes(row.category)&&matchesLevel(row)&&(!revisionSubjectFilter?.value||row.subject===revisionSubjectFilter.value)&&(!revisionChapterFilter?.value||row.chapter===revisionChapterFilter.value));
+      if(revisionCount)revisionCount.textContent=admin.length+" resource"+(admin.length===1?"":"s")+" available";
       if(levelLabel)levelLabel.textContent=studentGrid?(activeLevel()?"Showing "+activeLevel()+" student PDFs.":"Showing student PDFs across all levels."):(activeLevel()?"Showing "+activeLevel()+" resources.":"Choose your CA level on the homepage.");
       const count=$("#studentPdfCount");if(count)count.textContent=students.length+" PDF"+(students.length===1?"":"s");
       draw(studentGrid,students,activeLevel()?"Student contributions are on their way! No PDFs have been shared for this level yet. Be the first to help another CA student.":"Student contributions are on their way! No PDFs have been shared yet. Be the first to help another CA student.","#materialStatus");
       draw(adminGrid,admin,revisionLevelApps?"No resources published for this level yet.":"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
     };
+    revisionSubjects();
+    revisionLevelFilter?.addEventListener("change",()=>{if(revisionSubjectFilter)revisionSubjectFilter.value="";if(revisionChapterFilter)revisionChapterFilter.value="";revisionSubjects();loadRevisionChapters().then(render);render()});
+    revisionSubjectFilter?.addEventListener("change",()=>{if(revisionChapterFilter)revisionChapterFilter.value="";loadRevisionChapters().then(render);render()});
+    revisionChapterFilter?.addEventListener("change",render);
     levelFilter?.addEventListener("change",()=>{if(subjectFilter)subjectFilter.value="";if(chapterFilter)chapterFilter.value="";if(authorFilter)authorFilter.value="";render()});
     subjectFilter?.addEventListener("change",()=>{if(chapterFilter)chapterFilter.value="";if(authorFilter)authorFilter.value="";render()});
     chapterFilter?.addEventListener("change",()=>{if(authorFilter)authorFilter.value="";render()});
@@ -967,6 +1013,9 @@
     const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
     if(!role){msg("#adminStatus","This account does not have the admin role.","error");$("#adminSetup").hidden=false;$("#adminSetup").textContent="Only the account you manually promote in Supabase can use this panel.";return}
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
+    $("#resourceLevel")?.addEventListener("change",loadAdminResourceSubjects);
+    $("#resourceSubject")?.addEventListener("change",loadAdminResourceChapters);
+    loadAdminResourceSubjects();
     $("#adminMaterialForm")?.addEventListener("submit",saveMaterial);
     $("#adminMindMapForm")?.addEventListener("submit",saveMindMap);
     $("#adminMtpForm")?.addEventListener("submit",saveMtpPaper);
@@ -981,12 +1030,37 @@
     $("#virtualLibraryIntermediateForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_intermediate","Intermediate Virtual Library study room","#virtualLibraryIntermediateUrl","#virtualLibraryIntermediateStatus"));
     $("#virtualLibraryFinalForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_final","Final Virtual Library study room","#virtualLibraryFinalUrl","#virtualLibraryFinalStatus"));
     $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
-    await Promise.all([loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
+    await Promise.all([loadAdminResourceSubjects(),loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
+    const adminSubjectsByLevel={
+      Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
+      Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
+      Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
+    };
+    const adminChapterAliases={"Taxation — Income-tax Law":"Taxation","Taxation — Goods and Services Tax":"Taxation","Financial Management":"Financial Management and Strategic Management","Strategic Management":"Financial Management and Strategic Management","Integrated Business Solutions":"Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"};
+    const adminCanonical=subject=>adminChapterAliases[subject]||subject;
+    async function loadAdminResourceSubjects(){
+      const level=$("#resourceLevel"),subject=$("#resourceSubject"),chapter=$("#resourceChapter");if(!level||!subject||!chapter)return;
+      const current=subject.value,levels=level.value==="All"?Object.keys(adminSubjectsByLevel):[level.value];
+      const names=[...new Set(levels.flatMap(name=>adminSubjectsByLevel[name]||[]))];
+      subject.replaceChildren(new Option("Choose an ICAI subject",""),...names.map(name=>new Option(name,name)));
+      subject.disabled=false;if(names.includes(current))subject.value=current;
+      if(subject.value)await loadAdminResourceChapters();else{chapter.replaceChildren(new Option("Choose a subject first",""));chapter.disabled=true}
+    }
+    async function loadAdminResourceChapters(){
+      const level=$("#resourceLevel"),subject=$("#resourceSubject"),chapter=$("#resourceChapter");if(!level||!subject||!chapter)return;
+      const subjectName=subject.value;if(!subjectName){chapter.replaceChildren(new Option("Choose a subject first",""));chapter.disabled=true;return}
+      const canonical=adminCanonical(subjectName),levels=(level.value==="All"?Object.keys(adminSubjectsByLevel):[level.value]).filter(name=>(adminSubjectsByLevel[name]||[]).some(item=>adminCanonical(item)===canonical));
+      chapter.replaceChildren(new Option("Loading ICAI chapters…",""));chapter.disabled=true;
+      const outlines=await Promise.all(levels.map(async name=>{try{const params=new URLSearchParams({mode:"chapters",level:name,subjects:canonical});const response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}});const result=await response.json().catch(()=>({}));return response.ok&&Array.isArray(result.outlines)?result.outlines.flatMap(item=>item.chapters||[]):[]}catch{return[]}}));
+      const chapters=[...new Set(outlines.flat().map(item=>String(item).trim()).filter(Boolean))];
+      chapter.replaceChildren(new Option(chapters.length?"Choose an ICAI chapter":"No ICAI chapters available",""),...chapters.map(name=>new Option(name,name)));
+      chapter.disabled=!chapters.length;
+    }
     async function saveMaterial(e){
       e.preventDefault();msg("#resourceStatus","Saving resource…");const {data:{user}}=await sb.auth.getUser();let path=null,bucket=null;const file=$("#resourcePdf").files[0];
       if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#resourceStatus","Choose a PDF no larger than 50 MB.","error");return}bucket="ca-materials";path="admin/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from(bucket).upload(path,file,{contentType:"application/pdf"});if(error){msg("#resourceStatus",error.message,"error");return}}
       const url=$("#resourceExternal").value.trim()||null;if(!path&&!url){msg("#resourceStatus","Upload a PDF or provide an external URL.","error");return}
-      const {error}=await sb.from("materials").insert({title:$("#resourceTitle").value.trim(),description:$("#resourceDescription").value.trim(),level:$("#resourceLevel").value,subject:$("#resourceSubject").value.trim(),category:$("#resourceCategory").value,file_bucket:bucket,file_path:path,external_url:url,is_premium:false,is_published:$("#resourcePublished").checked,created_by:user.id});
+      const {error}=await sb.from("materials").insert({title:$("#resourceTitle").value.trim(),description:$("#resourceDescription").value.trim(),level:$("#resourceLevel").value,subject:$("#resourceSubject").value.trim(),chapter:$("#resourceChapter").value.trim(),category:$("#resourceCategory").value,file_bucket:bucket,file_path:path,external_url:url,is_premium:false,is_published:$("#resourcePublished").checked,created_by:user.id});
       if(error){if(path)await sb.storage.from(bucket).remove([path]);msg("#resourceStatus",error.message,"error");return}e.target.reset();msg("#resourceStatus","Resource saved.");loadAdminResources();
     }
 
@@ -1062,9 +1136,9 @@
       });
     }
     async function loadAdminResources(){
-      const {data}=await sb.from("materials").select("id,title,level,category,is_premium,is_published").neq("category","icai_link").order("created_at",{ascending:false}).limit(100);
+      const {data}=await sb.from("materials").select("id,title,level,subject,chapter,category,is_premium,is_published").neq("category","icai_link").order("created_at",{ascending:false}).limit(100);
       const list=$("#adminResources");if(!list)return;list.replaceChildren();if(!data?.length){emptyRow(list,"No resources yet.");return}
-      data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+row.category+" · "+(row.is_premium?"Premium":"Free")+" · "+(row.is_published?"Published":"Draft");info.append(h,p);const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#resourceStatus",error?error.message:"Resource status updated.",error?"error":"success");loadAdminResources()});item.append(info,button);list.append(item)});
+      data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=[row.level,row.subject,row.chapter,row.category,row.is_premium?"Premium":"Free",row.is_published?"Published":"Draft"].filter(Boolean).join(" · ");info.append(h,p);const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#resourceStatus",error?error.message:"Resource status updated.",error?"error":"success");loadAdminResources()});item.append(info,button);list.append(item)});
     }
     async function loadNoteSubmissions(){
       const {data,error}=await sb.from("student_note_submissions").select("*").eq("status","pending").order("created_at");
