@@ -469,7 +469,45 @@
     }
   }
 
+  function initAiMcqPractice(){
+    const form=$("#aiPracticeForm");if(!form)return;
+    const level=$("#aiPracticeLevel"),preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
+    if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
+    const session=$("#aiPracticeSession"),box=$("#aiPracticeQuestion"),start=$("#aiPracticeStart"),feedback=$("#aiPracticeFeedback"),next=$("#aiPracticeNext"),check=$("#aiPracticeCheck");
+    let questions=[],index=0,score=0,answered=false;
+    const showQuestion=()=>{
+      const q=questions[index];if(!q)return;answered=false;feedback.hidden=true;next.hidden=true;check.hidden=false;box.replaceChildren();
+      const legend=document.createElement("legend");legend.textContent=(index+1)+". "+q.question;legend.style.fontWeight="700";box.append(legend);
+      q.options.forEach((option,i)=>{const label=document.createElement("label");label.className="answer";const radio=document.createElement("input");radio.type="radio";radio.name="aiPracticeAnswer";radio.value=String(i);const span=document.createElement("span");span.textContent=option;label.append(radio,span);box.append(label)});
+      $("#aiPracticeProgress").textContent="Question "+(index+1)+" of "+questions.length;$("#aiPracticeScore").textContent="Your score: "+score+" / "+questions.length;
+    };
+    form.addEventListener("submit",async event=>{
+      event.preventDefault();if(!ready()){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
+      const chapters=$("#aiPracticeChapters").value.split(",").map(v=>v.trim()).filter(Boolean);
+      if(chapters.length>8){msg("#aiPracticeStatus","Enter no more than 8 chapters.","error");return}
+      if(!chapters.length){msg("#aiPracticeStatus","Enter at least one chapter name.","error");return}
+      start.disabled=true;session.hidden=true;msg("#aiPracticeStatus","Preparing your questions…");
+      try{
+        const {data:{session:authSession},error:authError}=await sb.auth.getSession();
+        if(authError||!authSession?.access_token){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
+        const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+authSession.access_token},body:JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters,mix:$("#aiPracticeMode").value})});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(result.error||"Could not start practice. Please try again.");
+        questions=result.questions;index=0;score=0;session.hidden=false;showQuestion();msg("#aiPracticeStatus","Your practice set is ready.");session.scrollIntoView({behavior:"smooth",block:"center"});
+      }catch(error){msg("#aiPracticeStatus",error?.message||"Could not start practice. Please try again.","error")}
+      finally{start.disabled=false}
+    });
+    check.addEventListener("click",()=>{
+      if(answered)return;const selected=$('input[name="aiPracticeAnswer"]:checked',box);
+      if(!selected){msg("#aiPracticeStatus","Choose an answer first.","error");return}
+      answered=true;const q=questions[index],correct=Number(selected.value)===q.correct_index;if(correct)score++;
+      feedback.textContent=(correct?"Correct. ":"Not quite. The right answer is "+q.options[q.correct_index]+". ")+q.explanation;feedback.hidden=false;check.hidden=true;next.hidden=false;next.textContent=index===questions.length-1?"Finish practice":"Next question";$("#aiPracticeScore").textContent="Your score: "+score+" / "+questions.length;msg("#aiPracticeStatus",correct?"Well done!":"Keep going—you’re learning with every question.",correct?"success":"info");
+    });
+    next.addEventListener("click",()=>{if(index>=questions.length-1){session.hidden=true;msg("#aiPracticeStatus","Practice complete: "+score+" out of "+questions.length+". Choose another chapter or start a fresh set.","success");return}index++;showQuestion()});
+  }
+
   function initTests(){
+    initAiMcqPractice();
     const selectedLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
     const levelLabel=$("#testsLevelLabel");
     if(levelLabel)levelLabel.textContent=selectedLevel?"Showing "+selectedLevel+" tests.":"Choose your CA level on the homepage.";
