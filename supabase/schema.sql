@@ -586,7 +586,7 @@ create policy "admin deletes student uploads" on storage.objects for delete to a
 -- on conflict do nothing;
 -- Never assign admin roles from the browser or expose a service-role key.
 
--- Reserve no more than 8,000 estimated Neurons each UTC day across CA Junction AI features.
+-- Reserve no more than 9,000 estimated Neurons each UTC day across CA Junction AI features.
 -- The remaining 2,000 Neurons are a safety buffer under Cloudflare's free allocation.
 create table if not exists public.ca_ai_daily_usage (
   usage_day date primary key,
@@ -619,7 +619,7 @@ begin
   values (timezone('utc', now())::date, p_neurons)
   on conflict (usage_day) do update
     set estimated_neurons = current_usage.estimated_neurons + p_neurons
-    where current_usage.estimated_neurons + p_neurons <= 8000
+    where current_usage.estimated_neurons + p_neurons <= 9000
   returning estimated_neurons into reserved_total;
 
   return found;
