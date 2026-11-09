@@ -654,7 +654,7 @@
       const levels=[
         {key:"virtual_library_foundation",name:"Foundation",tab:"#libraryTabFoundation"},
         {key:"virtual_library_intermediate",name:"Intermediate",tab:"#libraryTabIntermediate"},
-        {key:"virtual_library_final",name:"Final",tab:"#libraryTabFinal"}
+        {key:"virtual_library_final",name:"Finals",tab:"#libraryTabFinal"}
       ];
       const title=$("#libraryLevelTitle");
       let links={};
@@ -671,7 +671,7 @@
       };
       levels.forEach(level=>$(level.tab)?.addEventListener("click",()=>activate(level)));
       const requested=(new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"Foundation").toLowerCase();
-      activate(levels.find(level=>level.name.toLowerCase()===requested||("final"===requested&&level.name==="Final"))||levels[0]);
+      activate(levels.find(level=>level.name.toLowerCase()===requested||(level.key==="virtual_library_final"&&["final","finals"].includes(requested)))||levels[0]);
       return;
     }
     if(!ready()){if(status)status.textContent="This link has not been added yet.";return}
