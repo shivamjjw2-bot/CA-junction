@@ -537,6 +537,51 @@
       label.textContent=Math.round(Number(localStorage.getItem("caJunctionLocalStudySeconds")||0)/60)+" minutes";
     }
     if(ready())sb.auth.getUser().then(({data})=>loadTodayHours(data.user?.id));else loadTodayHours();
+    const builder=$("#plannerBuilderForm");
+    if(builder){
+      const level=$("#plannerLevel"),subjectsInput=$("#plannerSubjects"),daysInput=$("#plannerDays"),results=$("#plannerBuilderResults"),createButton=$("#plannerCreateButton");
+      const preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
+      if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
+      const renderSchedule=schedule=>{
+        results.replaceChildren();
+        schedule.forEach(item=>{
+          const card=document.createElement("article");card.className="plan-day";
+          const title=document.createElement("strong");title.textContent="Day "+item.day+" · "+item.subject;
+          const activity=document.createElement("p");activity.textContent=item.activity||"Study concepts, solve questions, and revise.";
+          const minutes=Number(item.study_minutes||150),time=document.createElement("small");time.textContent="Suggested study time · "+(Math.round(minutes/6)/10)+" hours";
+          card.append(title,activity,time);results.append(card);
+        });
+      };
+      try{
+        const saved=JSON.parse(localStorage.getItem("caJunctionCustomPlan")||"null");
+        if(saved?.subjects&&saved?.days){
+          subjectsInput.value=saved.subjects.join(", ");daysInput.value=saved.days;
+          if(["Foundation","Intermediate","Final"].includes(saved.level))level.value=saved.level;
+          if(Array.isArray(saved.schedule))renderSchedule(saved.schedule);
+          msg("#plannerBuilderStatus","Your saved plan is stored in this browser. Update the details to create another.");
+        }
+      }catch{}
+      builder.addEventListener("submit",async event=>{
+        event.preventDefault();
+        const subjects=subjectsInput.value.split(/[,，\n]/).map(value=>value.trim()).filter(Boolean);
+        const days=Number(daysInput.value);
+        if(!subjects.length||subjects.length>12||subjects.some(subject=>subject.length>100)){msg("#plannerBuilderStatus","Enter between 1 and 12 subjects, each up to 100 characters.","error");return}
+        if(!Number.isInteger(days)||days<1||days>180){msg("#plannerBuilderStatus","Choose a duration from 1 to 180 days.","error");return}
+        if(!ready()){msg("#plannerBuilderStatus",backendMessage,"error");return}
+        createButton.disabled=true;createButton.textContent="Creating your AI plan…";results.replaceChildren();msg("#plannerBuilderStatus","AI is arranging your study, practice and revision days…");
+        try{
+          const {data:{session},error:authError}=await sb.auth.getSession();
+          if(authError||!session?.access_token){msg("#plannerBuilderStatus","Please sign in to create an AI study plan.","error");return}
+          const response=await fetch("/api/ai-planner",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},body:JSON.stringify({level:level.value,subjects,days})});
+          const result=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(result.error||"Could not create your plan. Please try again.");
+          const plan={level:level.value,subjects,days,schedule:result.schedule};
+          localStorage.setItem("caJunctionCustomPlan",JSON.stringify(plan));renderSchedule(plan.schedule);
+          msg("#plannerBuilderStatus","Your "+days+"-day AI plan is ready and saved in this browser.");results.scrollIntoView({behavior:"smooth",block:"nearest"});
+        }catch(error){msg("#plannerBuilderStatus",error?.message||"Could not create your plan. Please try again.","error")}
+        finally{createButton.disabled=false;createButton.textContent="Create my AI plan"}
+      });
+    }
     const planList=$("#planList");
     async function loadPlans(){
       if(!planList)return;
