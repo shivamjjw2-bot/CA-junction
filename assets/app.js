@@ -473,7 +473,7 @@
     const form=$("#aiPracticeForm");if(!form)return;
     const level=$("#aiPracticeLevel"),preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
     if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
-    const session=$("#aiPracticeSession"),box=$("#aiPracticeQuestion"),start=$("#aiPracticeStart"),feedback=$("#aiPracticeFeedback"),next=$("#aiPracticeNext"),check=$("#aiPracticeCheck");
+    const session=$("#aiPracticeSession"),box=$("#aiPracticeQuestion"),caseStudy=$("#aiPracticeCaseStudy"),start=$("#aiPracticeStart"),feedback=$("#aiPracticeFeedback"),next=$("#aiPracticeNext"),check=$("#aiPracticeCheck");
     let questions=[],index=0,score=0,answered=false;
     const showQuestion=()=>{
       const q=questions[index];if(!q)return;answered=false;feedback.hidden=true;next.hidden=true;check.hidden=false;box.replaceChildren();
@@ -486,14 +486,14 @@
       const chapters=$("#aiPracticeChapters").value.split(",").map(v=>v.trim()).filter(Boolean);
       if(chapters.length>8){msg("#aiPracticeStatus","Enter no more than 8 chapters.","error");return}
       if(!chapters.length){msg("#aiPracticeStatus","Enter at least one chapter name.","error");return}
-      start.disabled=true;session.hidden=true;msg("#aiPracticeStatus","Preparing your questions…");
+      start.disabled=true;session.hidden=true;caseStudy.hidden=true;msg("#aiPracticeStatus","Preparing your questions…");
       try{
         const {data:{session:authSession},error:authError}=await sb.auth.getSession();
         if(authError||!authSession?.access_token){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
-        const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+authSession.access_token},body:JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters,mix:$("#aiPracticeMode").value})});
+        const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+authSession.access_token},body:JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters,mix:$("#aiPracticeMode").value,format:$("#aiPracticeFormat").value})});
         const result=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(result.error||"Could not start practice. Please try again.");
-        questions=result.questions;index=0;score=0;session.hidden=false;showQuestion();msg("#aiPracticeStatus","Your practice set is ready.");session.scrollIntoView({behavior:"smooth",block:"center"});
+        questions=result.questions;index=0;score=0;caseStudy.textContent=result.case_study||"";caseStudy.hidden=!result.case_study;session.hidden=false;showQuestion();msg("#aiPracticeStatus","Your practice set is ready.");session.scrollIntoView({behavior:"smooth",block:"center"});
       }catch(error){msg("#aiPracticeStatus",error?.message||"Could not start practice. Please try again.","error")}
       finally{start.disabled=false}
     });
