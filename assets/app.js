@@ -879,15 +879,41 @@
   }
 
   function initCareer(){
-    const fields=["resumeName","resumeEmail","resumeLevel","resumeSummary","resumeSkills"];
+    const fields=["resumeName","resumeEmail","resumePhone","resumeLocation","resumeLinkedIn","resumeRole","resumeObjective","resumeEducation","resumeProfessional","resumeExperience","resumeSkills","resumeHobbies"];
+    const fieldValue=id=>$("#"+id)?.value.trim()||"";
+    const previewText=(targetId,sourceId,placeholder)=>{const target=$("#"+targetId);if(target)target.textContent=fieldValue(sourceId)||placeholder};
     function refreshResume(){
-      $("#previewName").textContent=$("#resumeName").value.trim()||"Your name";
-      $("#previewContact").textContent=[$("#resumeEmail").value.trim(),$("#resumeLevel").value.trim()].filter(Boolean).join(" · ")||"Email · CA level";
-      $("#previewSummary").textContent=$("#resumeSummary").value.trim()||"Your summary will appear here.";
-      $("#previewSkills").textContent=$("#resumeSkills").value.trim()||"Your skills will appear here.";
+      $("#previewName").textContent=fieldValue("resumeName")||"Your name";
+      $("#previewContact").textContent=[fieldValue("resumeEmail"),fieldValue("resumePhone"),fieldValue("resumeLocation")].filter(Boolean).join(" · ")||"Email · Phone · Location";
+      const links=$("#previewLinks"),linkedIn=fieldValue("resumeLinkedIn");
+      if(links){links.replaceChildren();if(linkedIn){const anchor=document.createElement("a");anchor.href=linkedIn;anchor.target="_blank";anchor.rel="noopener";anchor.textContent="LinkedIn profile";links.append(anchor)}}
+      previewText("previewObjective","resumeObjective","Your tailored career objective will appear here.");
+      previewText("previewEducation","resumeEducation","Your educational qualification will appear here.");
+      previewText("previewProfessional","resumeProfessional","Your CA and professional qualifications will appear here.");
+      previewText("previewExperience","resumeExperience","Your experience and achievements will appear here.");
+      previewText("previewSkills","resumeSkills","Your skills will appear here.");
+      previewText("previewHobbies","resumeHobbies","Your interests will appear here.");
     }
     fields.forEach(id=>$("#"+id)?.addEventListener("input",refreshResume));
+    const theme=$("#resumeTheme"),preview=$("#resumePreview");
+    theme?.addEventListener("change",()=>{if(preview)preview.dataset.theme=theme.value});
+    $("#resumeForm")?.addEventListener("reset",()=>setTimeout(()=>{if(theme&&preview)preview.dataset.theme=theme.value;refreshResume()},0));
     $("#printResume")?.addEventListener("click",()=>window.print());
+    $("#generateResumeObjective")?.addEventListener("click",async()=>{
+      const role=fieldValue("resumeRole"),education=fieldValue("resumeEducation"),qualification=fieldValue("resumeProfessional"),experience=fieldValue("resumeExperience"),skills=fieldValue("resumeSkills");
+      if(!role){msg("#resumeStatus","Add your target role first so AI can tailor the objective.","error");$("#resumeRole")?.focus();return}
+      if(!ready()){msg("#resumeStatus","Please sign in to use the free AI objective writer.","error");return}
+      const button=$("#generateResumeObjective");button.disabled=true;button.textContent="Writing your objective…";msg("#resumeStatus","AI is drafting a concise, professional objective…");
+      try{
+        const {data:{session},error:authError}=await sb.auth.getSession();
+        if(authError||!session?.access_token)throw new Error("Please sign in again to use the AI objective writer.");
+        const response=await fetch("/api/ai-resume-objective",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},body:JSON.stringify({role,education,qualification,experience,skills})});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(result.error||"Could not write your objective. Please try again.");
+        $("#resumeObjective").value=result.objective;refreshResume();msg("#resumeStatus","AI career objective added. You can edit it before saving your resume.","success");
+      }catch(error){msg("#resumeStatus",error?.message||"Could not write your objective. Please try again.","error")}
+      finally{button.disabled=false;button.textContent="✨ Write objective with AI"}
+    });
     if(!ready()){msg("#jobsStatus",backendMessage);msg("#careerStatus",backendMessage);return}
     const loadJobs=async()=>{
       const {data,error}=await sb.from("jobs").select("id,title,organization,location,job_type,description,application_url,closes_at").eq("is_published",true).order("created_at",{ascending:false});
