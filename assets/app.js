@@ -392,6 +392,50 @@
     msg(statusId,"PDF opened.");
   }
 
+  function initMtp(){
+    const levelButtons=$("[data-mtp-level]");
+    const typeButtons=$("[data-mtp-type]");
+    const panel=$("#mtpPapersPanel"),heading=$("#mtpPapersHeading"),list=$("#mtpPapersList");
+    let selectedLevel="",selectedType="mtp_question";
+    const setType=type=>{
+      selectedType=type;
+      typeButtons.forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.mtpType===type)));
+      heading.textContent=type==="mtp_question"?"Question papers":"Suggested answers";
+      load();
+    };
+    const load=async()=>{
+      if(!selectedLevel||!list)return;
+      list.replaceChildren();
+      if(!ready()){msg("#mtpStatus",backendMessage,"error");return}
+      msg("#mtpStatus","Loading "+(selectedType==="mtp_question"?"question papers":"suggested answers")+"…");
+      const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,file_bucket,file_path,external_url,is_premium,created_at").eq("category","icai_link").eq("is_published",true).eq("is_premium",false).eq("level",selectedLevel).eq("chapter",selectedType).order("created_at",{ascending:false}).limit(200);
+      if(error){emptyRow(list,"Could not load papers right now. Please try again in a moment.");msg("#mtpStatus",error.message,"error");return}
+      if(!data?.length){const empty=document.createElement("article");empty.className="card";const h=document.createElement("h3");h.textContent="Your next practice paper is on its way";const p=document.createElement("p");p.textContent="No "+(selectedType==="mtp_question"?"question paper":"suggested answer")+" has been uploaded by the CA Junction team for "+selectedLevel+" yet. Keep preparing—your papers will appear here as soon as they are shared.";empty.append(h,p);list.append(empty);msg("#mtpStatus","");return}
+      data.forEach(row=>{
+        const card=document.createElement("article");card.className="card";
+        const h=document.createElement("h3");h.textContent=row.title;
+        const p=document.createElement("p");p.textContent=[row.subject,row.description].filter(Boolean).join(" · ")||row.level+" ICAI MTP resource";
+        const button=document.createElement("button");button.type="button";button.className="btn";button.textContent="Open PDF";
+        button.addEventListener("click",()=>downloadMaterial(row,"#mtpStatus"));
+        card.append(h,p,button);list.append(card);
+      });
+      msg("#mtpStatus",data.length+" PDF"+(data.length===1?"":"s")+" available.");
+    };
+    levelButtons.forEach(button=>button.addEventListener("click",()=>{
+      selectedLevel=button.dataset.mtpLevel;
+      localStorage.setItem("caJunctionLevel",selectedLevel);
+      levelButtons.forEach(x=>x.setAttribute("aria-pressed",String(x===button)));
+      if(panel)panel.hidden=false;
+      msg("#mtpStatus","");
+      load();
+    }));
+    typeButtons.forEach(button=>button.addEventListener("click",()=>setType(button.dataset.mtpType)));
+    const params=new URLSearchParams(location.search);
+    const requested=params.get("level")||localStorage.getItem("caJunctionLevel")||"";
+    const match=levelButtons.find(button=>button.dataset.mtpLevel.toLowerCase()===requested.toLowerCase());
+    if(match)match.click();
+  }
+
   function initTests(){
     const selectedLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
     const levelLabel=$("#testsLevelLabel");
@@ -553,6 +597,7 @@
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
     $("#adminMaterialForm")?.addEventListener("submit",saveMaterial);
     $("#adminMindMapForm")?.addEventListener("submit",saveMindMap);
+    $("#adminMtpForm")?.addEventListener("submit",saveMtpPaper);
     $("#adminTestForm")?.addEventListener("submit",saveTest);
     $("#adminJobForm")?.addEventListener("submit",saveJob);
     $("#adminProductForm")?.addEventListener("submit",saveProduct);
@@ -560,7 +605,7 @@
     $("#groupLinkForm")?.addEventListener("submit",saveGroupLink);
     $("#virtualLibraryForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library","Virtual Library study room","#virtualLibraryUrl","#virtualLibraryStatus"));
     $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
-    await Promise.all([loadAdminResources(),loadAdminMindMaps(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
+    await Promise.all([loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadPendingPayments(),loadAdminProducts(),loadServiceRequests(),loadEvaluationQueue(),loadProductTargets(),loadAdminTests(),loadAdminJobs(),loadAdminCourses(),loadAdminStudents(),loadManagedLinks()]);
     async function saveMaterial(e){
       e.preventDefault();msg("#resourceStatus","Saving resource…");const {data:{user}}=await sb.auth.getUser();let path=null,bucket=null;const file=$("#resourcePdf").files[0];
       if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#resourceStatus","Choose a PDF no larger than 50 MB.","error");return}bucket="ca-materials";path="admin/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from(bucket).upload(path,file,{contentType:"application/pdf"});if(error){msg("#resourceStatus",error.message,"error");return}}
@@ -569,6 +614,53 @@
       if(error){if(path)await sb.storage.from(bucket).remove([path]);msg("#resourceStatus",error.message,"error");return}e.target.reset();msg("#resourceStatus","Resource saved.");loadAdminResources();
     }
 
+    async function saveMtpPaper(e){
+      e.preventDefault();
+      msg("#mtpAdminStatus","Uploading MTP PDF…");
+      const {data:{user}}=await sb.auth.getUser();
+      const file=$("#mtpPdf").files[0];
+      if(!file||file.type!=="application/pdf"||file.size>50*1024*1024){msg("#mtpAdminStatus","Choose a PDF no larger than 50 MB.","error");return}
+      const path="admin/mtp/"+$("#mtpPaperType").value+"/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+      const {error:uploadError}=await sb.storage.from("ca-materials").upload(path,file,{contentType:"application/pdf"});
+      if(uploadError){msg("#mtpAdminStatus",uploadError.message,"error");return}
+      const {error}=await sb.from("materials").insert({
+        title:$("#mtpTitle").value.trim(),
+        description:$("#mtpDescription").value.trim(),
+        level:$("#mtpLevel").value,
+        subject:$("#mtpSubject").value.trim(),
+        chapter:$("#mtpPaperType").value,
+        category:"icai_link",
+        file_bucket:"ca-materials",
+        file_path:path,
+        external_url:null,
+        is_premium:false,
+        is_published:$("#mtpPublished").checked,
+        created_by:user.id
+      });
+      if(error){await sb.storage.from("ca-materials").remove([path]);msg("#mtpAdminStatus",error.message,"error");return}
+      e.target.reset();
+      $("#mtpPublished").checked=true;
+      msg("#mtpAdminStatus","MTP PDF uploaded.");
+      loadAdminMtpPapers();
+    }
+    async function loadAdminMtpPapers(){
+      const {data,error}=await sb.from("materials").select("id,title,level,subject,chapter,is_published,file_bucket,file_path").eq("category","icai_link").in("chapter",["mtp_question","mtp_suggested_answer"]).order("created_at",{ascending:false}).limit(200);
+      const list=$("#adminMtpPapers");if(!list)return;list.replaceChildren();
+      if(error||!data?.length){emptyRow(list,error?"Could not load MTP papers.":"No MTP PDFs uploaded yet.");return}
+      data.forEach(row=>{
+        const item=document.createElement("div");item.className="data-row";
+        const info=document.createElement("div"),h=document.createElement("strong"),p=document.createElement("p");
+        h.textContent=row.title;
+        p.textContent=row.level+" · "+(row.chapter==="mtp_question"?"Question paper":"Suggested answers")+(row.subject?" · "+row.subject:"")+" · "+(row.is_published?"Published":"Draft");
+        info.append(h,p);
+        const actions=document.createElement("div");actions.className="row-actions";
+        const visibility=document.createElement("button");visibility.className="btn";visibility.type="button";visibility.textContent=row.is_published?"Unpublish":"Publish";
+        visibility.addEventListener("click",async()=>{visibility.disabled=true;const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#mtpAdminStatus",error?error.message:"Paper visibility updated.",error?"error":"success");loadAdminMtpPapers()});
+        const remove=document.createElement("button");remove.className="btn danger";remove.type="button";remove.textContent="Delete";
+        remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” permanently?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#mtpAdminStatus",error.message,"error");remove.disabled=false;return}if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);if(storageError)msg("#mtpAdminStatus","Paper deleted, but its PDF file could not be removed: "+storageError.message,"error");else msg("#mtpAdminStatus","Paper deleted.","success")}else msg("#mtpAdminStatus","Paper deleted.","success");loadAdminMtpPapers()});
+        actions.append(visibility,remove);item.append(info,actions);list.append(item);
+      });
+    }
     async function saveMindMap(e){
       e.preventDefault();msg("#mindMapAdminStatus","Saving mind map…");const {data:{user}}=await sb.auth.getUser();let path=null;const file=$("#mindMapPdf").files[0];
       if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#mindMapAdminStatus","Choose a PDF no larger than 50 MB.","error");return}path="admin/mind-maps/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from("ca-materials").upload(path,file,{contentType:"application/pdf"});if(error){msg("#mindMapAdminStatus",error.message,"error");return}}
@@ -590,7 +682,7 @@
       });
     }
     async function loadAdminResources(){
-      const {data}=await sb.from("materials").select("id,title,level,category,is_premium,is_published").order("created_at",{ascending:false}).limit(100);
+      const {data}=await sb.from("materials").select("id,title,level,category,is_premium,is_published").neq("category","icai_link").order("created_at",{ascending:false}).limit(100);
       const list=$("#adminResources");if(!list)return;list.replaceChildren();if(!data?.length){emptyRow(list,"No resources yet.");return}
       data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+row.category+" · "+(row.is_premium?"Premium":"Free")+" · "+(row.is_published?"Published":"Draft");info.append(h,p);const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#resourceStatus",error?error.message:"Resource status updated.",error?"error":"success");loadAdminResources()});item.append(info,button);list.append(item)});
     }
@@ -709,6 +801,7 @@
     if(page==="dashboard")initDashboard();
     if(page==="study")initStudy();
     if(page==="resource-link")initResourceLink();
+    if(page==="mtp")initMtp();
     if(page==="tests")initTests();
     if(page==="planner")initPlanner();
     if(page==="career")initCareer();
