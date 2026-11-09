@@ -542,14 +542,14 @@
       const level=$("#plannerLevel"),countInput=$("#plannerSubjectCount"),choices=$("#plannerSubjectOptions"),subjectsStatus=$("#plannerSubjectsStatus"),daysInput=$("#plannerDays"),results=$("#plannerBuilderResults"),createButton=$("#plannerCreateButton");
       const preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
       if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
-      let availableSubjects=[],loadingSubjects=false;
+      let availableSubjects=[],loadingSubjects=false,subjectsMessage="";
       let savedPlan=null;
       try{savedPlan=JSON.parse(localStorage.getItem("caJunctionCustomPlan")||"null")}catch{}
       const selectedSubjects=()=>[...choices.querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value);
       const updateSelection=()=>{
         const selected=selectedSubjects(),target=Number(countInput.value)||0;
         choices.querySelectorAll('input[type="checkbox"]').forEach(input=>{input.disabled=!input.checked&&selected.length>=target});
-        if(!availableSubjects.length)subjectsStatus.textContent=loadingSubjects?"Loading subjects from study materials…":"No published study materials with subject names were found for this level.";
+        if(!availableSubjects.length)subjectsStatus.textContent=loadingSubjects?"Loading subjects from study materials…":subjectsMessage||"No published study materials with subject names were found for this level.";
         else subjectsStatus.textContent="Selected "+selected.length+" of "+target+" subjects · "+availableSubjects.length+" subjects available from study materials.";
         createButton.disabled=loadingSubjects||!availableSubjects.length||selected.length!==target;
       };
@@ -569,12 +569,12 @@
         updateSelection();
       };
       const loadMaterialSubjects=async(restore=[])=>{
-        choices.replaceChildren();availableSubjects=[];loadingSubjects=true;countInput.disabled=true;createButton.disabled=true;subjectsStatus.textContent="Loading subjects from study materials…";results.replaceChildren();
-        if(!level.value){loadingSubjects=false;subjectsStatus.textContent="Choose a CA level to load available subjects.";updateSelection();return}
-        if(!ready()){loadingSubjects=false;subjectsStatus.textContent=backendMessage;updateSelection();return}
+        choices.replaceChildren();availableSubjects=[];loadingSubjects=true;subjectsMessage="";countInput.disabled=true;createButton.disabled=true;subjectsStatus.textContent="Loading subjects from study materials…";results.replaceChildren();
+        if(!level.value){loadingSubjects=false;subjectsMessage="Choose a CA level to load available subjects.";updateSelection();return}
+        if(!ready()){loadingSubjects=false;subjectsMessage=backendMessage;updateSelection();return}
         const {data,error}=await sb.from("materials").select("subject,title,chapter,description,category,level").eq("is_published",true).in("level",[level.value,"All"]).not("subject","is",null).order("created_at",{ascending:false}).limit(500);
         loadingSubjects=false;
-        if(error){subjectsStatus.textContent="Could not load published subjects from Study Materials. Please try again.";countInput.disabled=true;createButton.disabled=true;return}
+        if(error){subjectsMessage="Could not load published subjects from Study Materials. Please try again.";updateSelection();countInput.disabled=true;createButton.disabled=true;return}
         const grouped=new Map();
         (data||[]).forEach(row=>{
           const subject=String(row.subject||"").trim();if(!subject)return;
@@ -583,7 +583,7 @@
           grouped.get(key).resources.push({title:row.title||"",chapter:row.chapter||"",description:row.description||"",category:row.category||""});
         });
         availableSubjects=[...grouped.values()].slice(0,12);
-        if(!availableSubjects.length){subjectsStatus.textContent="No published study materials with subject names were found for "+level.value+" yet.";countInput.disabled=true;countInput.max="12";createButton.disabled=true;return}
+        if(!availableSubjects.length){subjectsMessage="No published study materials with subject names were found for "+level.value+" yet. Ask the admin to publish resources with a subject name.";updateSelection();countInput.disabled=true;countInput.max="12";createButton.disabled=true;return}
         countInput.disabled=false;countInput.max=String(Math.min(12,availableSubjects.length));
         const restored=restore.filter(name=>availableSubjects.some(item=>item.subject.toLowerCase()===String(name).toLowerCase()));
         const target=restored.length||Math.min(3,availableSubjects.length);
