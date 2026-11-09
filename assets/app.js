@@ -474,7 +474,9 @@
     const level=$("#aiPracticeLevel"),preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
     if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
     const session=$("#aiPracticeSession"),box=$("#aiPracticeQuestion"),caseStudy=$("#aiPracticeCaseStudy"),start=$("#aiPracticeStart"),feedback=$("#aiPracticeFeedback"),next=$("#aiPracticeNext"),check=$("#aiPracticeCheck");
-    let questions=[],index=0,score=0,answered=false;
+    let questions=[],index=0,score=0,answered=false,preparationTimer=null,preparationStarted=0;
+    const stopPreparationTimer=()=>{if(preparationTimer)clearInterval(preparationTimer);preparationTimer=null;$("#aiPracticeTimer").hidden=true};
+    const updatePreparationTimer=()=>{const elapsed=Math.floor((Date.now()-preparationStarted)/1000),minutes=String(Math.floor(elapsed/60)).padStart(2,"0"),seconds=String(elapsed%60).padStart(2,"0");$("#aiPracticeTimer").textContent="Preparing questions · "+minutes+":"+seconds};
     const showQuestion=()=>{
       const q=questions[index];if(!q)return;answered=false;feedback.hidden=true;next.hidden=true;check.hidden=false;box.replaceChildren();
       const legend=document.createElement("legend");legend.textContent=(index+1)+". "+q.question;legend.style.fontWeight="700";box.append(legend);
@@ -486,7 +488,7 @@
       const chapters=$("#aiPracticeChapters").value.split(",").map(v=>v.trim()).filter(Boolean);
       if(chapters.length>8){msg("#aiPracticeStatus","Enter no more than 8 chapters.","error");return}
       if(!chapters.length){msg("#aiPracticeStatus","Enter at least one chapter name.","error");return}
-      start.disabled=true;session.hidden=true;caseStudy.hidden=true;msg("#aiPracticeStatus","Preparing your questions…");
+      start.disabled=true;session.hidden=true;caseStudy.hidden=true;msg("#aiPracticeStatus","Preparing your questions…");preparationStarted=Date.now();updatePreparationTimer();$("#aiPracticeTimer").hidden=false;preparationTimer=setInterval(updatePreparationTimer,1000);
       try{
         const {data:{session:authSession},error:authError}=await sb.auth.getSession();
         if(authError||!authSession?.access_token){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
@@ -495,7 +497,7 @@
         if(!response.ok)throw new Error(result.error||"Could not start practice. Please try again.");
         questions=result.questions;index=0;score=0;caseStudy.textContent=result.case_study||"";caseStudy.hidden=!result.case_study;session.hidden=false;showQuestion();msg("#aiPracticeStatus","Your practice set is ready.");session.scrollIntoView({behavior:"smooth",block:"center"});
       }catch(error){msg("#aiPracticeStatus",error?.message||"Could not start practice. Please try again.","error")}
-      finally{start.disabled=false}
+      finally{stopPreparationTimer();start.disabled=false}
     });
     check.addEventListener("click",()=>{
       if(answered)return;const selected=$('input[name="aiPracticeAnswer"]:checked',box);
