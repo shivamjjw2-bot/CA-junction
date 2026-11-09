@@ -464,7 +464,7 @@
     const updatePreparationTimer=()=>{const elapsed=Math.floor((Date.now()-preparationStarted)/1000),minutes=String(Math.floor(elapsed/60)).padStart(2,"0"),seconds=String(elapsed%60).padStart(2,"0");$("#aiPracticeTimer").textContent="Preparing questions · "+minutes+":"+seconds};
     const maxMarks=()=>questions.length*marksEach;
     const showQuestion=()=>{
-      const q=questions[index];if(!q)return;answered=false;feedback.hidden=true;next.hidden=true;check.hidden=false;box.replaceChildren();
+      const q=questions[index];if(!q)return;feedback.hidden=true;next.hidden=true;check.hidden=false;box.replaceChildren();
       const legend=document.createElement("legend");legend.textContent=(index+1)+". "+q.question+" ("+marksEach+" "+(marksEach===1?"mark":"marks")+")";legend.style.fontWeight="700";box.append(legend);
       q.options.forEach((option,i)=>{const label=document.createElement("label");label.className="answer";const radio=document.createElement("input");radio.type="radio";radio.name="aiPracticeAnswer";radio.value=String(i);const span=document.createElement("span");span.textContent=option;label.append(radio,span);box.append(label)});
       $("#aiPracticeProgress").textContent="Question "+(index+1)+" of "+questions.length+" · "+marksEach+" "+(marksEach===1?"mark":"marks");
