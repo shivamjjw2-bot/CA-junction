@@ -608,7 +608,7 @@
       if(!subject.value||!level.value){chapterSelect.options[0].textContent="Choose a subject first";return}
       const lookupSubject=chapterSubjectAliases[subject.value]||subject.value;
       try{
-        const query=new URLSearchParams({mode:"chapters",level:level.value,subjects:lookupSubject});
+        const query=new URLSearchParams({mode:"chapters",level:level.value,subject:lookupSubject});
         const response=await fetch("/api/ai-planner?"+query.toString(),{headers:{accept:"application/json"}});
         const result=await response.json().catch(()=>({}));
         const outline=Array.isArray(result.outlines)?result.outlines.find(item=>item.subject?.toLowerCase()===lookupSubject.toLowerCase()):null;
