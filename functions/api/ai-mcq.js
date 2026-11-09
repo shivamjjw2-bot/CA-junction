@@ -3,6 +3,13 @@ const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
 const LEVELS=new Set(["Foundation","Intermediate","Final"]);
 const AI_MODEL="@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+async function reserveAiGeneration(token){
+  try{
+    const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_generation",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:"{}"});
+    if(!response.ok)return{ok:false,allowed:false};
+    return{ok:true,allowed:(await response.json())===true};
+  }catch{return{ok:false,allowed:false}}
+}
 
 export async function onRequestPost({request,env}) {
   if(!env.AI)return json({error:"Free AI practice is being connected. Please try again later."},503);
@@ -31,6 +38,9 @@ export async function onRequestPost({request,env}) {
   const schema={type:"object",additionalProperties:false,properties:{case_study:{type:"string"},questions:{type:"array",items:{type:"object",additionalProperties:false,properties:{
     question:{type:"string"},options:{type:"array",items:{type:"string"}},correct_index:{type:"integer"},explanation:{type:"string"}
   },required:["question","options","correct_index","explanation"]}}},required:["case_study","questions"]};
+  const quota=await reserveAiGeneration(token);
+  if(!quota.ok)return json({error:"The free AI limit could not be checked, so no AI request was sent. Please try again later."},503);
+  if(!quota.allowed)return json({error:"Today's free AI practice limit is reached. Please try again after the daily reset."},429);
   try {
     const result=await env.AI.run(AI_MODEL,{
       messages:[{role:"system",content:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema."},{role:"user",content:userPrompt}],
@@ -46,7 +56,7 @@ export async function onRequestPost({request,env}) {
       typeof q.question==="string"&&q.question.length<=1200&&Array.isArray(q.options)&&q.options.length===4&&q.options.every(o=>typeof o==="string"&&o.length<=500)&&
       Number.isInteger(q.correct_index)&&q.correct_index>=0&&q.correct_index<=3&&typeof q.explanation==="string"&&q.explanation.length<=1500);
     if(!valid)return json({error:"The question set did not pass checks. Please generate a new set."},502);
-    return json({questions,case_study:parsed.case_study});
+    return json({questions,case_study:parsed.case_study,marks_per_question:format==="case-study"?2:1,max_marks:questionCount*(format==="case-study"?2:1)});
   } catch(error) {
     const detail=String(error?.message||"").toLowerCase();
     if(/daily.*(limit|allowance)|neuron.*(limit|allowance)|quota.*(exceed|limit)|limit.*(exceed|reached)|429/.test(detail))
