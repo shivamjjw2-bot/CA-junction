@@ -498,7 +498,30 @@
   function initAiMcqPractice(){
     const form=$("#aiPracticeForm");if(!form)return;
     const level=$("#aiPracticeLevel"),preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
+    const subject=$("#aiPracticeSubject"),chapterInput=$("#aiPracticeChapters"),materialLink=$("#aiPracticeMaterialLink");
+    const subjectsByLevel={
+      Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
+      Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
+      Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
+    };
+    const materialUrls={
+      Foundation:"https://boslive.icai.org/study_material_new_paper_details.php?c=foundation&language=English",
+      Intermediate:"https://boslive.icai.org/study_material_new_paper_details.php?c=intermediate&language=English",
+      Final:"https://boslive.icai.org/study_material_new_paper_details.php?c=final&language=English"
+    };
+    const updateMaterialChoices=()=>{
+      const current=subject.value,subjects=subjectsByLevel[level.value]||[];
+      subject.replaceChildren(new Option(level.value?"Choose a subject":"Choose a level first",""),...subjects.map(name=>new Option(name,name)));
+      subject.disabled=!level.value;
+      if(subjects.includes(current))subject.value=current;
+      chapterInput.disabled=!subject.value;
+      chapterInput.placeholder=subject.value?"Enter chapter name(s) as listed by ICAI":"Choose a subject first";
+      if(materialLink){materialLink.hidden=!level.value;if(level.value)materialLink.href=materialUrls[level.value]}
+    };
     if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
+    updateMaterialChoices();
+    level.addEventListener("change",()=>{subject.value="";chapterInput.value="";updateMaterialChoices()});
+    subject.addEventListener("change",()=>{chapterInput.disabled=!subject.value;chapterInput.placeholder=subject.value?"Enter chapter name(s) as listed by ICAI":"Choose a subject first"});
     const session=$("#aiPracticeSession"),box=$("#aiPracticeQuestion"),caseStudy=$("#aiPracticeCaseStudy"),start=$("#aiPracticeStart"),feedback=$("#aiPracticeFeedback"),next=$("#aiPracticeNext"),check=$("#aiPracticeCheck");
     const review=$("#aiPracticeReview"),reviewSummary=$("#aiPracticeReviewSummary"),reviewCase=$("#aiPracticeReviewCaseStudy"),reviewItems=$("#aiPracticeReviewItems");
     let questions=[],score=0,answers=[],reviewOrder=[],marksEach=1,currentDifficulty=1,currentQuestionIndex=-1,preparationTimer=null,preparationStarted=0,caseStudyText="";
