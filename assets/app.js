@@ -269,29 +269,60 @@
 
   async function initDashboard() {
     const {data:{user}}=await sb.auth.getUser();
-    if(!user){msg("#dashboardStatus","Sign in to see your dashboard.");return}
-    $("#welcomeHeading").textContent="Welcome, "+(user.user_metadata?.full_name||user.email||"student")+".";
-    const {data:profile}=await sb.from("profiles").select("*").eq("user_id",user.id).maybeSingle();
-    if(profile){$("#profileName").value=profile.full_name||"";$("#profileLevel").value=profile.ca_level||"Foundation"}
-    const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
-    if(role)$("#adminLink").hidden=false;
-    $("#membershipStatus").textContent="Free CA Junction account · all services are free during launch.";
-    const [downloads,attempts,plans,evals,purchases]=await Promise.all([
-      sb.from("material_downloads").select("downloaded_at,materials(title,level)").eq("user_id",user.id).order("downloaded_at",{ascending:false}).limit(10),
-      sb.from("test_attempts").select("score,total_questions,submitted_at,study_tests(title)").eq("user_id",user.id).order("submitted_at",{ascending:false}).limit(10),
-      sb.from("study_plans").select("title,due_on,planned_minutes,is_complete").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10),
-      sb.from("evaluation_submissions").select("status,score,feedback,created_at,study_tests(title)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10),
-      sb.from("payment_orders").select("id,amount_inr,status,created_at,products(title)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10)
-    ]);
-    const renderList=(selector,rows,fn,empty)=>{const el=$(selector);if(!el)return;el.replaceChildren();if(!rows?.length){emptyRow(el,empty);return}rows.forEach(row=>addRow(el,fn(row),row.submitted_at||row.downloaded_at||row.created_at||""))};
-    renderList("#myMaterials",downloads.data,r=>r.materials?.title+" · "+r.materials?.level,"No downloads yet.");
-    renderList("#myProgress",attempts.data,r=>(r.study_tests?.title||"Test")+" · "+r.score+"/"+r.total_questions,"No completed tests yet.");
-    renderList("#myTests",evals.data,r=>(r.study_tests?.title||"Written test")+" · "+r.status+(r.score!==null?" · "+r.score:""),"No evaluated submissions yet.");
-    renderList("#myPurchases",purchases.data,r=>(r.products?.title||"Purchase")+" · "+r.status.replace(/_/g," ")+" · "+window.caFormatINR(r.amount_inr),"No purchases yet. All CA Junction services are free during launch.");
-    renderList("#myPlanner",plans.data,r=>r.title+" · "+r.planned_minutes+" min"+(r.is_complete?" · complete":""),"No saved study targets.");
-    const dashboardGroup=$("#dashboardGroupLink");
-    if(dashboardGroup){const {data:group}=await sb.from("premium_resources").select("resource_url").eq("resource_key","whatsapp_study_group").eq("is_active",true).maybeSingle();if(group){dashboardGroup.href=group.resource_url;dashboardGroup.hidden=false;msg("#dashboardGroupStatus","Your premium group invite is available.");}}
-    $("#profileForm")?.addEventListener("submit",async e=>{e.preventDefault();const {error}=await sb.from("profiles").update({full_name:$("#profileName").value.trim(),ca_level:$("#profileLevel").value,updated_at:new Date().toISOString()}).eq("user_id",user.id);msg("#profileStatus",error?error.message:"Profile saved.",error?"error":"success")});
+    if(!user){msg("#dashboardStatus","Please sign in to view and edit your profile.","error");location.href="account.html";return}
+    const {data:profile,error:profileError}=await sb.from("profiles").select("full_name,ca_level").eq("user_id",user.id).maybeSingle();
+    if(profileError){msg("#dashboardStatus","Your profile could not be loaded. Please refresh and try again.","error");return}
+    const nameInput=$("#profileName"),levelInput=$("#profileLevel"),photoInput=$("#profilePhoto");
+    const photoPreview=$("#profilePhotoPreview"),photoInitial=$("#profilePhotoInitial");
+    if(nameInput)nameInput.value=profile?.full_name||user.user_metadata?.full_name||"";
+    if(levelInput)levelInput.value=profile?.ca_level||"Foundation";
+    const showPhoto=value=>{
+      if(!photoPreview||!photoInitial)return;
+      if(typeof value==="string"&&value.startsWith("data:image/")){photoPreview.src=value;photoPreview.hidden=false;photoInitial.hidden=true}
+      else{photoPreview.removeAttribute("src");photoPreview.hidden=true;photoInitial.hidden=false;photoInitial.textContent=(nameInput?.value||"CA").trim().split(/\\s+/).slice(0,2).map(word=>word[0]).join("").toUpperCase()||"CA"}
+    };
+    showPhoto(user.user_metadata?.avatar_data||"");
+    photoInput?.addEventListener("change",()=>{
+      const file=photoInput.files?.[0];if(!file)return;
+      if(!["image/jpeg","image/png","image/webp"].includes(file.type)){photoInput.value="";msg("#profileStatus","Choose a JPG, PNG or WebP photo.","error");return}
+      if(file.size>8*1024*1024){photoInput.value="";msg("#profileStatus","Choose a photo smaller than 8 MB.","error");return}
+      const previewUrl=URL.createObjectURL(file);photoPreview.src=previewUrl;photoPreview.hidden=false;photoInitial.hidden=true;
+      photoPreview.onload=()=>URL.revokeObjectURL(previewUrl);
+    });
+    const makeProfilePhoto=async file=>{
+      const image=new Image(),url=URL.createObjectURL(file);
+      try{
+        await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=url});
+        const scale=Math.min(1,512/Math.max(image.naturalWidth,image.naturalHeight)),canvas=document.createElement("canvas");
+        canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
+        canvas.getContext("2d").drawImage(image,0,0,canvas.width,canvas.height);
+        let result=canvas.toDataURL("image/jpeg",.78);
+        if(result.length>220000)result=canvas.toDataURL("image/jpeg",.55);
+        return result;
+      }finally{URL.revokeObjectURL(url)}
+    };
+    $("#profileForm")?.addEventListener("submit",async event=>{
+      event.preventDefault();
+      const fullName=nameInput.value.trim(),caLevel=levelInput.value,file=photoInput?.files?.[0]||null;
+      if(!fullName){msg("#profileStatus","Enter your name to save your profile.","error");return}
+      const button=$('#profileForm button[type="submit"]');if(button)button.disabled=true;
+      msg("#profileStatus","Saving your profile…");
+      try{
+        let avatarData=user.user_metadata?.avatar_data||"";
+        if(file){
+          avatarData=await makeProfilePhoto(file);
+          const {error}=await sb.auth.updateUser({data:{avatar_data:avatarData}});
+          if(error)throw error;
+        }
+        const {error}=await sb.from("profiles").update({full_name:fullName,ca_level:caLevel,updated_at:new Date().toISOString()}).eq("user_id",user.id);
+        if(error)throw error;
+        const {error:metadataError}=await sb.auth.updateUser({data:{full_name:fullName,ca_level:caLevel}});
+        if(metadataError)throw metadataError;
+        showPhoto(avatarData);
+        msg("#profileStatus","Your profile has been saved.","success");
+      }catch(error){msg("#profileStatus",error?.message||"Your profile could not be saved. Please try again.","error")}
+      finally{if(button)button.disabled=false}
+    });
     $("#signOutButton")?.addEventListener("click",async()=>{await sb.auth.signOut();location.href="account.html"});
   }
 
