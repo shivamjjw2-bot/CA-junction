@@ -51,7 +51,7 @@
       }));
     }
     $$("[data-whatsapp]").forEach(link => {
-      const url = window.caWhatsAppUrl();
+      const url = window.caWhatsAppUrl(link.dataset.whatsappMessage || undefined);
       if (url) {
         link.href = url;
         link.target = "_blank";
@@ -85,24 +85,6 @@
       href.searchParams.set("level",level);
       link.href = href.pathname.split("/").pop() + href.search + href.hash;
     }, true);
-    const form = $("#homeSearch");
-    if (form) form.addEventListener("submit", event => {
-      event.preventDefault();
-      const query = ($("#homeSearchInput").value || "").trim().toLowerCase();
-      const cards = $("#service-heads .service-tile");
-      let matches = 0;
-      cards.forEach(card => {
-        const show = !query || card.textContent.toLowerCase().includes(query);
-        card.hidden = !show;
-        if (show) matches++;
-      });
-      if(query) $("#service-heads .service-group").forEach(group=>{if($(".service-tile:not([hidden])",group).length)group.open=true});
-      msg("#searchMessage", query ? (matches ? matches + " matching services found below." : "No matching services. Try another search.") : "Showing all services.");
-      if (query && matches) {
-        const first = cards.find(card => !card.hidden);
-        first?.scrollIntoView({ behavior:"smooth", block:"center" });
-      }
-    });
     if (ready()) loadHomeHighlights();
   }
 
