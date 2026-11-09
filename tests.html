@@ -32,12 +32,22 @@ footer{margin-top:30px;padding:24px 0;border-top:1px solid var(--line);font-size
  <p id="testsStatus" class="status" role="status" aria-live="polite"></p>
 </section>
 <section id="ai-practice">
- <div class="section-head"><div class="eyebrow">AI practice · setup pending</div><h2>Build a practice set.</h2><p>Select a subject and chapters. The AI generator must be connected before it can create questions or combine chapters.</p></div>
- <div class="panel"><p id="aiPracticeLevelLabel" class="muted">AI practice will use your selected CA level.</p>
- <label for="aiPracticeSubject">Subject</label><input id="aiPracticeSubject" placeholder="For example: Accounting">
- <label for="aiPracticeChapters">Chapter names</label><input id="aiPracticeChapters" placeholder="Enter one or more chapters, separated by commas">
- <label for="aiPracticeMode">Question mix</label><select id="aiPracticeMode"><option>Questions from selected chapters</option><option>Combined questions using multiple chapters</option></select>
- <button class="btn" type="button" disabled>Start AI practice</button><p class="status" role="status">This practice builder is a preview. AI question generation is not connected yet.</p></div>
+ <div class="section-head"><div class="eyebrow">AI MCQ practice</div><h2>Practise one chapter at a time.</h2><p>Choose your CA level, subject and chapter. ChatGPT will make fresh questions and explain each answer.</p></div>
+ <div class="panel">
+  <form id="aiPracticeForm">
+   <label for="aiPracticeLevel">CA level</label><select id="aiPracticeLevel" required><option value="">Choose your level</option><option>Foundation</option><option>Intermediate</option><option>Final</option></select>
+   <label for="aiPracticeSubject">Subject</label><input id="aiPracticeSubject" maxlength="100" required placeholder="For example: Accounting">
+   <label for="aiPracticeChapters">Chapter name(s)</label><input id="aiPracticeChapters" maxlength="800" required placeholder="For example: Accounting for Depreciation">
+   <p class="muted" style="font-size:12px;margin-top:5px">Enter up to 8 chapter names, separated by commas.</p>
+   <label for="aiPracticeMode">Question style</label><select id="aiPracticeMode"><option value="separate">Questions from the selected chapters</option><option value="combined">Combine concepts from different chapters</option></select>
+   <button class="btn" id="aiPracticeStart" type="submit">Start practice</button>
+  </form>
+  <p id="aiPracticeStatus" class="status" role="status" aria-live="polite"></p>
+  <div id="aiPracticeSession" hidden><div class="notice" id="aiPracticeProgress"></div><fieldset id="aiPracticeQuestion" style="border:0;margin:14px 0"></fieldset>
+   <button class="btn" id="aiPracticeCheck" type="button">Check answer</button><div id="aiPracticeFeedback" class="notice" style="margin-top:12px" hidden></div>
+   <button class="btn" id="aiPracticeNext" type="button" hidden>Next question</button><p id="aiPracticeScore" class="status"></p>
+  </div>
+ </div>
 </section>
 <section id="mcq">
  <div class="section-head"><div class="eyebrow">Online MCQ tests</div><h2>Attempt an available quiz.</h2><p>Scores are recorded to your account. Correct answers are not exposed before you submit.</p></div>
@@ -50,5 +60,5 @@ footer{margin-top:30px;padding:24px 0;border-top:1px solid var(--line);font-size
 <section><div class="notice">All published quizzes and evaluations are free during the CA Junction launch.</div><a class="btn" href="account.html#membership">Create a free student account →</a></section>
 </main>
 <footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=ai-mcq-practice-20261109"></script>
 </body></html>
