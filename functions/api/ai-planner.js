@@ -8,7 +8,7 @@ export async function onRequestPost({request,env}) {
   if(!env.AI)return json({error:"The free AI planner is being connected. Please try again later."},503);
   if(!(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return json({error:"Send a valid planner request."},415);
   if(Number(request.headers.get("content-length")||0)>16000)return json({error:"That planner request is too large."},413);
-  const token=(request.headers.get("authorization")||"").match(/^Bearer\\s+(.+)$/i)?.[1];
+  const token=(request.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];
   if(!token||token.length>5000)return json({error:"Please sign in to create an AI study plan."},401);
   try {
     const auth=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token}});
@@ -54,7 +54,7 @@ export async function onRequestPost({request,env}) {
   if(subjects.some((_,index)=>perSubject.get(index)===0))
     return json({error:"One or more selected subjects no longer have published study materials. Reload the subject list and try again."},400);
 
-  const subjectGuide=subjects.map((subject,index)=>index+": "+subject).join("\\n");
+  const subjectGuide=subjects.map((subject,index)=>index+": "+subject).join("\n");
   const prompt=[
     "Create a clear, realistic CA study timetable with exactly "+days+" daily entries.",
     "CA level: "+level,
@@ -67,7 +67,7 @@ export async function onRequestPost({request,env}) {
     "Do not invent chapters, chapter numbers, exam questions, or topics absent from the supplied resources. If a resource has little detail, make a general but actionable task for its listed title or chapter.",
     "Suggest 90 to 240 minutes of total study time per day. Keep each activity specific and under 180 characters. Output days in exact order from day 1 to day "+days+". resource_index must refer to a supplied resource whose subject_index matches the day's subject_index.",
     "Return only JSON matching the schema."
-  ].join("\\n");
+  ].join("\n");
 
   const schema={type:"object",additionalProperties:false,properties:{schedule:{type:"array",items:{type:"object",additionalProperties:false,properties:{
     day:{type:"integer"},subject_index:{type:"integer"},resource_index:{type:"integer"},activity:{type:"string"},study_minutes:{type:"integer"}
