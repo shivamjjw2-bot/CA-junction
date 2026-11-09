@@ -33,7 +33,7 @@ footer{margin-top:25px;border-top:1px solid var(--line);padding:20px 0;color:var
   <form id="adminMtpForm">
    <label for="mtpTitle">PDF title</label><input id="mtpTitle" required maxlength="160" placeholder="Example: May 2026 Foundation Paper 1 or RTP 1">
    <label for="mtpDescription">Description (optional)</label><textarea id="mtpDescription" maxlength="800" placeholder="Add a short note about this paper"></textarea>
-   <label for="mtpCollection">Paper collection</label><select id="mtpCollection"><option value="mtp">ICAI MTP</option><option value="rtp">ICAI RTP</option><option value="previous_year">Previous Year Question Papers</option></select><label for="mtpLevel">CA level</label><select id="mtpLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option></select>
+   <label for="mtpCollection">Paper collection</label><select id="mtpCollection"><option value="mtp">ICAI MTP</option><option value="rtp">ICAI RTP</option><option value="previous_year">Previous Year Question Papers</option><option value="mock_test">Mock Test Series</option></select><label for="mtpLevel">CA level</label><select id="mtpLevel"><option>Foundation</option><option>Intermediate</option><option>Final</option></select>
    <label for="mtpPaperType">Paper type</label><select id="mtpPaperType"><option value="question">Question paper</option><option value="suggested">Suggested answers</option></select>
    <label for="mtpSubject">Subject (optional)</label><input id="mtpSubject" maxlength="100" placeholder="Paper or subject name">
    <label for="mtpPdf">PDF file (up to 50 MB)</label><input id="mtpPdf" type="file" accept="application/pdf" required>
@@ -84,5 +84,5 @@ footer{margin-top:25px;border-top:1px solid var(--line);padding:20px 0;color:var
 </div>
 </main>
 <footer><div class="container">CA Junction Admin · Keep service-role keys private. <a href="index.html">Return to website</a></div></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=exam-papers-20261109-solutions3"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=mock-test-papers-20261109"></script>
 </body></html>
