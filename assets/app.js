@@ -393,26 +393,67 @@
   }
 
   function initMtp(){
+    const levels=["Foundation","Intermediate","Final"];
     const levelButtons=$$("[data-mtp-level]");
     const typeButtons=$$("[data-mtp-type]");
-    const panel=$("#mtpPapersPanel"),heading=$("#mtpPapersHeading"),list=$("#mtpPapersList");
-    let selectedLevel="",selectedType="";
-    const setType=type=>{
-      selectedType=type;
-      typeButtons.forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.mtpType===type)));
-      heading.textContent=type==="mtp_question"?"Question papers":"Suggested answers";
-      if(list)list.hidden=false;
-      msg("#mtpStatus","");
-      load();
+    const levelPage=$("#mtpLevelPage"),typePage=$("#mtpTypePage"),paperPage=$("#mtpPaperPage");
+    const levelTitle=$("#mtpTypeLevelTitle"),paperTitle=$("#mtpPaperTitle"),backTypes=$("#mtpBackToTypes");
+    const list=$("#mtpPapersList"),heading=$("#mtpPapersHeading");
+    const params=new URLSearchParams(location.search);
+    const paramLevel=params.get("level")||"";
+    const storedLevel=localStorage.getItem("caJunctionLevel")||"";
+    const selectedLevel=levels.find(x=>x.toLowerCase()===paramLevel.toLowerCase())||(!paramLevel?levels.find(x=>x.toLowerCase()===storedLevel.toLowerCase()):"");
+    const typeParam=params.get("type")||"";
+    const selectedType=typeParam==="question"?"mtp_question":typeParam==="suggested"?"mtp_suggested_answer":"";
+    if(selectedLevel)localStorage.setItem("caJunctionLevel",selectedLevel);
+
+    const showPage=(page)=>{
+      if(levelPage)levelPage.hidden=page!=="level";
+      if(typePage)typePage.hidden=page!=="type";
+      if(paperPage)paperPage.hidden=page!=="paper";
     };
-    const load=async()=>{
-      if(!selectedLevel||!selectedType||!list)return;
+    levelButtons.forEach(button=>{
+      const level=button.dataset.mtpLevel;
+      button.addEventListener("click",()=>{
+        localStorage.setItem("caJunctionLevel",level);
+        location.href="mtp.html?level="+encodeURIComponent(level);
+      });
+    });
+    typeButtons.forEach(button=>{
+      const type=button.dataset.mtpType;
+      button.addEventListener("click",()=>{
+        if(!selectedLevel)return;
+        const paperType=type==="mtp_question"?"question":"suggested";
+        location.href="mtp.html?level="+encodeURIComponent(selectedLevel)+"&type="+paperType;
+      });
+    });
+    if(!selectedLevel){showPage("level");return}
+    if(!selectedType){
+      showPage("type");
+      levelTitle.textContent="CA "+selectedLevel+" · Choose a paper type";
+      return;
+    }
+    showPage("paper");
+    const typeLabel=selectedType==="mtp_question"?"Question Papers":"Suggested Answers";
+    paperTitle.textContent="CA "+selectedLevel+" · "+typeLabel;
+    backTypes.href="mtp.html?level="+encodeURIComponent(selectedLevel);
+    heading.textContent=typeLabel;
+    load();
+
+    async function load(){
+      if(!list)return;
       list.replaceChildren();
+      list.hidden=false;
       if(!ready()){msg("#mtpStatus",backendMessage,"error");return}
-      msg("#mtpStatus","Loading "+(selectedType==="mtp_question"?"question papers":"suggested answers")+"…");
+      msg("#mtpStatus","Loading "+typeLabel.toLowerCase()+"…");
       const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,file_bucket,file_path,external_url,is_premium,created_at").eq("category","icai_link").eq("is_published",true).eq("is_premium",false).eq("level",selectedLevel).eq("chapter",selectedType).order("created_at",{ascending:false}).limit(200);
       if(error){emptyRow(list,"Could not load papers right now. Please try again in a moment.");msg("#mtpStatus",error.message,"error");return}
-      if(!data?.length){const empty=document.createElement("article");empty.className="card";const h=document.createElement("h3");h.textContent="Your next practice paper is on its way";const p=document.createElement("p");p.textContent="No "+(selectedType==="mtp_question"?"question paper":"suggested answer")+" has been uploaded by the CA Junction team for "+selectedLevel+" yet. Keep preparing—your papers will appear here as soon as they are shared.";empty.append(h,p);list.append(empty);msg("#mtpStatus","");return}
+      if(!data?.length){
+        const empty=document.createElement("article");empty.className="card";
+        const h=document.createElement("h3");h.textContent="Your next practice paper is on its way";
+        const p=document.createElement("p");p.textContent="No "+(selectedType==="mtp_question"?"question paper":"suggested answer")+" has been uploaded by the CA Junction team for "+selectedLevel+" yet. Keep preparing—your papers will appear here as soon as they are shared.";
+        empty.append(h,p);list.append(empty);msg("#mtpStatus","");return
+      }
       data.forEach(row=>{
         const card=document.createElement("article");card.className="card";
         const h=document.createElement("h3");h.textContent=row.title;
@@ -422,24 +463,7 @@
         card.append(h,p,button);list.append(card);
       });
       msg("#mtpStatus",data.length+" PDF"+(data.length===1?"":"s")+" available.");
-    };
-    levelButtons.forEach(button=>button.addEventListener("click",()=>{
-      selectedLevel=button.dataset.mtpLevel;
-      selectedType="";
-      typeButtons.forEach(x=>x.setAttribute("aria-pressed","false"));
-      heading.textContent="Choose a paper type";
-      if(list){list.hidden=true;list.replaceChildren()}
-      localStorage.setItem("caJunctionLevel",selectedLevel);
-      levelButtons.forEach(x=>x.setAttribute("aria-pressed",String(x===button)));
-      if(panel)panel.hidden=false;
-      msg("#mtpStatus","");
-      load();
-    }));
-    typeButtons.forEach(button=>button.addEventListener("click",()=>setType(button.dataset.mtpType)));
-    const params=new URLSearchParams(location.search);
-    const requested=params.get("level")||localStorage.getItem("caJunctionLevel")||"";
-    const match=levelButtons.find(button=>button.dataset.mtpLevel.toLowerCase()===requested.toLowerCase());
-    if(match)match.click();
+    }
   }
 
   function initTests(){
