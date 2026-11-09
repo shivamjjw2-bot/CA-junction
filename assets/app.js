@@ -97,6 +97,7 @@
       if (!level) return;
       const href = new URL(link.href,location.href);
       if (href.origin !== location.origin || !href.pathname.endsWith(".html")) return;
+      if (href.pathname.endsWith("/mtp.html")) return;
       href.searchParams.set("level",level);
       link.href = href.pathname.split("/").pop() + href.search + href.hash;
     }, true);
@@ -401,8 +402,7 @@
     const list=$("#mtpPapersList");
     const params=new URLSearchParams(location.search);
     const paramLevel=params.get("level")||"";
-    const storedLevel=localStorage.getItem("caJunctionLevel")||"";
-    const selectedLevel=levels.find(x=>x.toLowerCase()===paramLevel.toLowerCase())||(!paramLevel?levels.find(x=>x.toLowerCase()===storedLevel.toLowerCase()):"");
+    const selectedLevel=levels.find(x=>x.toLowerCase()===paramLevel.toLowerCase())||"";
     const typeParam=params.get("type")||"";
     const selectedType=typeParam==="question"?"mtp_question":typeParam==="suggested"?"mtp_suggested_answer":"";
     if(selectedLevel)localStorage.setItem("caJunctionLevel",selectedLevel);
