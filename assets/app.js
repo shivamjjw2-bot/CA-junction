@@ -279,14 +279,17 @@
     const chapterFilter=$("#chapterFilter");
     const studentGrid=$("#studentNotesGrid");
     const adminGrid=$("#adminResourcesGrid");
-    const savedLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
+    const revisionLevelApps=$("#revisionLevelApps"),revisionResources=$("#revisionResources");
+    const requestedLevel=new URLSearchParams(location.search).get("level")||"";
+    const savedLevel=revisionLevelApps?requestedLevel:(requestedLevel||localStorage.getItem("caJunctionLevel")||"");
     if(levelFilter&&["Foundation","Intermediate","Final"].includes(savedLevel))levelFilter.value=savedLevel;
     const activeLevel=()=>levelFilter?levelFilter.value:savedLevel;
     const levelLabel=$("#selectedLevelLabel");
+    if(revisionLevelApps){revisionLevelApps.hidden=Boolean(activeLevel());if(revisionResources)revisionResources.hidden=!activeLevel();const heading=$("#revisionLevelHeading");if(heading&&activeLevel())heading.textContent=activeLevel()}
     if(levelLabel) levelLabel.textContent=studentGrid?(activeLevel()?"Showing "+activeLevel()+" student PDFs.":"Showing student PDFs across all levels."):(activeLevel()?"Showing "+activeLevel()+" resources.":"Choose your CA level on the homepage.");
     if(!activeLevel()&&!levelFilter){
       if(studentGrid){const empty=document.createElement("div");empty.className="empty";empty.textContent="Student contributions are on their way! No PDFs have been shared yet. Be the first to help another CA student.";studentGrid.replaceChildren(empty)}
-      if(adminGrid){const empty=document.createElement("div");empty.className="empty";empty.textContent="Choose your CA level on the homepage to view matching resources.";adminGrid.replaceChildren(empty)}
+      if(adminGrid&&!revisionLevelApps){const empty=document.createElement("div");empty.className="empty";empty.textContent="Choose your CA level on the homepage to view matching resources.";adminGrid.replaceChildren(empty)}
       return;
     }
     if(!ready()){msg("#materialStatus",backendMessage);msg("#adminResourcesStatus",backendMessage);return}
@@ -302,17 +305,18 @@
         if(row.category==="student_note"){const icon=document.createElement("span");icon.className="note-app-icon";icon.setAttribute("aria-hidden","true");icon.textContent="📄";card.append(icon)}
         const title=document.createElement("h3");title.textContent=row.title;
         card.append(title);
+        if(revisionLevelApps&&grid===adminGrid){const kind=document.createElement("small");kind.className="resource-kind";kind.textContent=({revision:"Summary chart",mind_map:"Mind map",formula:"Formula sheet"})[row.category]||"Study resource";card.append(kind)}
         if(row.category!=="student_note"&&row.is_premium){const access=document.createElement("small");access.className="resource-access premium";access.textContent="Premium";card.append(access)}
         if(row.category==="student_note"){
           const detail=document.createElement("p");detail.textContent=row.description||"";if(detail.textContent)card.append(detail);
         }else{
-          const detail=document.createElement("p");detail.textContent=row.description||[row.subject,row.level].filter(Boolean).join(" · ");if(detail.textContent)card.append(detail);
+          const detail=document.createElement("p");detail.textContent=revisionLevelApps&&grid===adminGrid?(row.description||row.subject||""):(row.description||[row.subject,row.level].filter(Boolean).join(" · "));if(detail.textContent)card.append(detail);
         }
         if(row.category==="student_note"){
           const author=document.createElement("small");author.className="note-author";author.textContent="Shared by "+(row.contributor_name||"CA Junction student");card.append(author);
           if(row.instagram_handle){const handle=row.instagram_handle.replace(/^@/,"");if(/^[A-Za-z0-9._]{1,30}$/.test(handle)){const profile=document.createElement("a");profile.className="link";profile.href="https://www.instagram.com/"+encodeURIComponent(handle)+"/";profile.target="_blank";profile.rel="noopener";profile.textContent="Instagram: @"+handle+" ↗";card.append(profile)}}
         }
-        const meta=document.createElement("small");meta.textContent=row.category==="student_note"?[row.level,row.subject&&("Subject: "+row.subject),row.chapter&&("Chapter: "+row.chapter)].filter(Boolean).join(" · "):[row.level,row.subject].filter(Boolean).join(" · ");if(meta.textContent)card.append(meta);
+        const meta=document.createElement("small");meta.textContent=row.category==="student_note"?[row.level,row.subject&&("Subject: "+row.subject),row.chapter&&("Chapter: "+row.chapter)].filter(Boolean).join(" · "):(revisionLevelApps&&grid===adminGrid?[row.subject].filter(Boolean):[row.level,row.subject].filter(Boolean)).join(" · ");if(meta.textContent)card.append(meta);
         const action=row.external_url?document.createElement("a"):document.createElement("button");
         action.className="link";
         if(row.external_url){action.href=row.external_url;action.target="_blank";action.rel="noopener";action.textContent="Open PDF ↗"}
@@ -353,7 +357,7 @@
       if(levelLabel)levelLabel.textContent=studentGrid?(activeLevel()?"Showing "+activeLevel()+" student PDFs.":"Showing student PDFs across all levels."):(activeLevel()?"Showing "+activeLevel()+" resources.":"Choose your CA level on the homepage.");
       const count=$("#studentPdfCount");if(count)count.textContent=students.length+" PDF"+(students.length===1?"":"s")+" available";
       draw(studentGrid,students,activeLevel()?"Student contributions are on their way! No PDFs have been shared for this level yet. Be the first to help another CA student.":"Student contributions are on their way! No PDFs have been shared yet. Be the first to help another CA student.","#materialStatus");
-      draw(adminGrid,admin,"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
+      draw(adminGrid,admin,revisionLevelApps?"No resources published for this level yet.":"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
     };
     levelFilter?.addEventListener("change",()=>{if(subjectFilter)subjectFilter.value="";if(chapterFilter)chapterFilter.value="";render()});
     subjectFilter?.addEventListener("change",()=>{if(chapterFilter)chapterFilter.value="";render()});
