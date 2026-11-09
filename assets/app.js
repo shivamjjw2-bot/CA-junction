@@ -508,66 +508,6 @@
 
   function initTests(){
     initAiMcqPractice();
-    const selectedLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
-    const levelLabel=$("#testsLevelLabel");
-    if(levelLabel)levelLabel.textContent=selectedLevel?"Showing "+selectedLevel+" tests.":"Choose your CA level on the homepage.";
-    if(!selectedLevel){msg("#testsStatus","Choose your CA level on the homepage to view matching tests.");return}
-    if(!ready()){msg("#testsStatus",backendMessage);msg("#quizStatus",backendMessage);return}
-    let tests=[];let selectedTest=null;
-    const grid=$("#testsGrid"),form=$("#quizForm"),questionArea=$("#questionArea");
-    const load=async()=>{
-      const {data,error}=await sb.from("study_tests").select("id,title,description,level,subject,test_type,part_label,access_tier,duration_minutes").eq("is_published",true).eq("level",selectedLevel).order("created_at",{ascending:false});
-      if(error){msg("#testsStatus","Sign in to view available CA Junction tests.");return}
-      tests=data||[];grid?.replaceChildren();
-      if(grid&&!tests.length){const e=document.createElement("div");e.className="empty";e.textContent="No CA Junction tests have been published yet.";grid.append(e)}
-      tests.forEach(test=>{
-        const card=document.createElement("article");card.className="card";
-        const badge=document.createElement("span");badge.className="badge free";badge.textContent="Free";
-        const h=document.createElement("h3");h.textContent=test.title+(test.part_label?" · "+test.part_label:"");
-        const p=document.createElement("p");p.textContent=test.description||test.level+" · "+test.subject+" · "+test.duration_minutes+" minutes";
-        const button=document.createElement("button");button.className="btn";button.type="button";button.textContent=test.test_type==="evaluated"?"Submit answer script":"Start test";
-        button.addEventListener("click",()=>test.test_type==="evaluated"?selectEvaluation(test):startTest(test));
-        card.append(badge,h,p,button);grid?.append(card);
-      });
-      const evaluated=$("#evaluationTest");if(evaluated){evaluated.replaceChildren();const first=document.createElement("option");first.value="";first.textContent="Select a published evaluated test";evaluated.append(first);tests.filter(t=>t.test_type==="evaluated").forEach(t=>{const o=document.createElement("option");o.value=t.id;o.textContent=t.title;evaluated.append(o)})}
-    };
-    async function startTest(test){
-      const {data:{user}}=await sb.auth.getUser();if(!user){msg("#quizStatus","Sign in to take and save a test.","error");location.href="account.html";return}
-      selectedTest=test;msg("#quizStatus","Loading questions…");
-      const {data,error}=await sb.from("published_test_questions").select("id,test_id,question,options,position").eq("test_id",test.id).order("position");
-      if(error||!data?.length){msg("#quizStatus",error?.message||"No questions are available in this test yet.","error");return}
-      form.dataset.testId=test.id;form.dataset.questions=JSON.stringify(data);questionArea.replaceChildren();
-      data.forEach((q,i)=>{
-        const block=document.createElement("fieldset");block.className="question-block";block.style.border="0";block.style.margin="14px 0";
-        const legend=document.createElement("legend");legend.textContent=(i+1)+". "+q.question;block.append(legend);
-        (q.options||[]).forEach((option,index)=>{const label=document.createElement("label");label.className="answer";const radio=document.createElement("input");radio.type="radio";radio.name="q_"+q.id;radio.value=String(index);const span=document.createElement("span");span.textContent=option;label.append(radio,span);block.append(label)});
-        questionArea.append(block);
-      });
-      form.hidden=false;form.scrollIntoView({behavior:"smooth",block:"center"});msg("#quizStatus",test.title+" · "+data.length+" questions.");
-    }
-    form?.addEventListener("submit",async event=>{
-      event.preventDefault();let questions=[];try{questions=JSON.parse(form.dataset.questions||"[]")}catch{}
-      const answers={};
-      for(const q of questions){const chosen=$('input[name="q_'+q.id+'"]:checked',form);if(!chosen){msg("#quizStatus","Answer every question before submitting.","error");return}answers[q.id]=Number(chosen.value)}
-      msg("#quizStatus","Submitting test…");
-      const {data,error}=await sb.rpc("create_mcq_attempt",{target_test:form.dataset.testId,submitted_answers:answers});
-      if(error){msg("#quizStatus",error.message,"error");return}
-      const result=Array.isArray(data)?data[0]:data;
-      msg("#quizStatus","Submitted. Score: "+result.points+" / "+result.question_count+". View your history in My Account.");
-      form.hidden=true;
-    });
-    function selectEvaluation(test){const select=$("#evaluationTest");if(select){select.value=test.id;$("#evaluated")?.scrollIntoView({behavior:"smooth"})}}
-    $("#evaluationForm")?.addEventListener("submit",async event=>{
-      event.preventDefault();const {data:{user}}=await sb.auth.getUser();if(!user){msg("#evaluationStatus","Sign in to submit an answer script.","error");location.href="account.html";return}
-      const testId=$("#evaluationTest").value,file=$("#answerPdf").files[0];if(!testId||!file||file.type!=="application/pdf"||file.size>25*1024*1024){msg("#evaluationStatus","Choose a test and a PDF no larger than 25 MB.","error");return}
-      const path=user.id+"/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
-      const {error:up}=await sb.storage.from("test-scripts").upload(path,file,{contentType:"application/pdf"});
-      if(up){msg("#evaluationStatus",up.message,"error");return}
-      const {error}=await sb.from("evaluation_submissions").insert({user_id:user.id,test_id:testId,file_path:path});
-      if(error){await sb.storage.from("test-scripts").remove([path]);msg("#evaluationStatus",error.message,"error");return}
-      event.target.reset();msg("#evaluationStatus","Answer script submitted for review.");
-    });
-    load();
   }
 
   function initPlanner(){
