@@ -599,6 +599,29 @@ $;
 revoke all on function public.admin_student_directory() from public, anon, authenticated;
 grant execute on function public.admin_student_directory() to authenticated;
 
+-- Aggregate-only activity totals for the admin overview; no per-student activity is returned.
+create or replace function public.admin_platform_overview()
+returns table(student_count bigint, new_students_7d bigint, study_sessions_30d bigint, study_seconds_30d bigint, published_materials bigint, pending_notes bigint, published_opportunities bigint, open_requests bigint)
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select
+    (select count(*) from auth.users),
+    (select count(*) from auth.users where created_at >= now() - interval '7 days'),
+    (select count(*) from public.study_sessions where started_at >= now() - interval '30 days'),
+    (select coalesce(sum(duration_seconds), 0)::bigint from public.study_sessions where started_at >= now() - interval '30 days'),
+    (select count(*) from public.materials where is_published),
+    (select count(*) from public.student_note_submissions where status = 'pending'),
+    (select count(*) from public.jobs where is_published),
+    (select count(*) from public.service_requests where status in ('new','contacted','scheduled'))
+  where public.is_admin(auth.uid());
+$;
+
+revoke all on function public.admin_platform_overview() from public, anon, authenticated;
+grant execute on function public.admin_platform_overview() to authenticated;
+
 -- After the owner creates their account, promote that exact account manually:
 -- insert into public.user_roles(user_id, role)
 -- select id, 'admin' from auth.users where email = 'YOUR_ADMIN_EMAIL'
