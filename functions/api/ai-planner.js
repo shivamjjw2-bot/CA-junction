@@ -12,12 +12,23 @@ function links(html){const out=[];for(const m of String(html||"").matchAll(/<a\b
 function chapterLines(html){const lines=htmlText(html).split("\n").map(x=>x.trim()).filter(x=>/^(chapter|ch\.)\s*(?:no\.?\s*)?\d+[a-z]?\s*[:.–-]?\s*\S/i.test(x)),out=[],seen=new Set();for(const line of lines){const x=line.replace(/\s+/g," ").slice(0,190),k=x.toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}return out.slice(0,80)}
 async function getOutline(level,subject){
  const i=CATALOG[level].findIndex(x=>x.toLowerCase()===subject.toLowerCase());if(i<0)return{subject,chapters:[],url:MATERIAL_URL[level]};
- const base="https://www.icai.org/post/sm-"+SLUG[level]+"-paper"+(i+1),html=await fetchHtml(base);if(!html)return{subject,chapters:[],url:base};
- let chapters=chapterLines(html);if(chapters.length)return{subject,chapters,url:base};
- const n=i+1,targets=links(html).filter(x=>new RegExp("paper\\s*-?\\s*"+n+"\\b","i").test(x.text)||(level==="Intermediate"&&n===3&&/section [ab]|income.tax|goods and services tax|gst/i.test(x.text))||(level==="Intermediate"&&n===6&&/financial management|strategic management/i.test(x.text)));
- const urls=[...new Set(targets.map(x=>x.url).filter(x=>x!==base))].slice(0,3),pages=await Promise.all(urls.map(fetchHtml));
- for(let j=0;j<pages.length;j++){const found=chapterLines(pages[j]);if(found.length){chapters=chapters.concat(found);if(level!=="Intermediate"||![3,6].includes(n))return{subject,chapters:[...new Set(chapters)].slice(0,80),url:urls[j]}}}
- return{subject,chapters:[...new Set(chapters)].slice(0,80),url:urls[0]||base}
+ const n=i+1,base="https://www.icai.org/post/sm-"+SLUG[level]+"-paper"+n;
+ const pagesToCheck=[base];
+ if(level==="Intermediate"&&n===3)pagesToCheck.push("https://www.icai.org/post/sm-intermediate-paper3-seca","https://www.icai.org/post/sm-intermediate-paper3-secb");
+ if(level==="Intermediate"&&n===6)pagesToCheck.push("https://www.icai.org/post/sm-intermediate-paper6a","https://www.icai.org/post/sm-intermediate-paper6b");
+ const listings=await Promise.all(pagesToCheck.map(fetchHtml));
+ let chapters=listings.flatMap(chapterLines);if(chapters.length)return{subject,chapters:[...new Set(chapters)].slice(0,80),url:pagesToCheck.find((url,index)=>chapterLines(listings[index]).length)||base};
+ const candidates=[];
+ for(let index=0;index<listings.length;index++){
+  const matches=links(listings[index]).filter(link=>new RegExp("paper\\s*-?\\s*"+n+"\\b","i").test(link.text)||
+   (level==="Intermediate"&&n===3&&/section [ab]|income.tax|goods and services tax|gst/i.test(link.text))||
+   (level==="Intermediate"&&n===6&&/financial management|strategic management/i.test(link.text)));
+  if(matches.length)candidates.push(matches[0]);
+ }
+ const detailUrls=[...new Set(candidates.map(link=>link.url).filter(url=>!pagesToCheck.includes(url)))].slice(0,6);
+ const details=await Promise.all(detailUrls.map(fetchHtml));
+ for(let i=0;i<details.length;i++){const found=chapterLines(details[i]);if(found.length){chapters=chapters.concat(found);if(level!=="Intermediate"||![3,6].includes(n))return{subject,chapters:[...new Set(chapters)].slice(0,80),url:detailUrls[i]}}}
+ return{subject,chapters:[...new Set(chapters)].slice(0,80),url:detailUrls[0]||pagesToCheck[0]};
 }
 function activity(mode,chapter){if(mode==="learn")return"Read "+chapter+" in ICAI material, note key concepts, and complete its worked examples.";if(mode==="practice")return"Solve questions from "+chapter+"; mark errors and redo the incorrect steps.";if(mode==="recall")return"Use active recall for "+chapter+"; answer from memory, then check the ICAI material.";if(mode==="revise")return"Revise "+chapter+" and test your recall without looking at the notes.";return"Complete a timed practice set from "+chapter+" and review every error."}
 async function listSubjects(level){const fetched=Boolean(await fetchHtml(COURSE_URL[level]));return json({level,source:fetched?"icai":"catalog",subjects:CATALOG[level].map(subject=>({subject,url:MATERIAL_URL[level]})),source_url:COURSE_URL[level]})}
