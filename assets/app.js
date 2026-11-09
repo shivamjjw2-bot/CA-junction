@@ -886,19 +886,23 @@
       careerLinks.forEach(link=>{if(link.dataset.careerTabLink===active)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
     };
     window.addEventListener("hashchange",activateCareerTab);activateCareerTab();
-    const fields=["resumeName","resumeEmail","resumePhone","resumeLocation","resumeLinkedIn","resumeRole","resumeObjective","resumeEducation","resumeProfessional","resumeExperience","resumeSkills","resumeHobbies"];
+    const fields=["resumeName","resumeEmail","resumePhone","resumeLocation","resumeLinkedIn","resumePortfolio","resumeRole","resumeIndustry","resumeCareerStage","resumeObjective","resumeEducation","resumeProfessional","resumeExperience","resumeProjects","resumeSkills","resumeAchievements","resumeLanguages","resumeHobbies"];
     const fieldValue=id=>$("#"+id)?.value.trim()||"";
     const previewText=(targetId,sourceId,placeholder)=>{const target=$("#"+targetId);if(target)target.textContent=fieldValue(sourceId)||placeholder};
     function refreshResume(){
       $("#previewName").textContent=fieldValue("resumeName")||"Your name";
       $("#previewContact").textContent=[fieldValue("resumeEmail"),fieldValue("resumePhone"),fieldValue("resumeLocation")].filter(Boolean).join(" · ")||"Email · Phone · Location";
-      const links=$("#previewLinks"),linkedIn=fieldValue("resumeLinkedIn");
-      if(links){links.replaceChildren();if(linkedIn){try{const url=new URL(linkedIn);if(url.protocol==="https:"){const anchor=document.createElement("a");anchor.href=url.href;anchor.target="_blank";anchor.rel="noopener";anchor.textContent="LinkedIn profile";links.append(anchor)}}catch{}}}
-      previewText("previewObjective","resumeObjective","Your tailored career objective will appear here.");
-      previewText("previewEducation","resumeEducation","Your educational qualification will appear here.");
-      previewText("previewProfessional","resumeProfessional","Your CA and professional qualifications will appear here.");
-      previewText("previewExperience","resumeExperience","Your experience and achievements will appear here.");
+      const links=$("#previewLinks");
+      if(links){links.replaceChildren();[["LinkedIn profile","resumeLinkedIn"],["Portfolio","resumePortfolio"]].forEach(([label,id])=>{const value=fieldValue(id);if(!value)return;try{const url=new URL(value);if(url.protocol==="https:"){const anchor=document.createElement("a");anchor.href=url.href;anchor.target="_blank";anchor.rel="noopener";anchor.textContent=label;links.append(anchor);links.append(document.createTextNode(" · "))}}catch{}});if(links.lastChild?.textContent===" · ")links.lastChild.remove()}
+      const headline=$("#previewHeadline");if(headline)headline.textContent=[fieldValue("resumeRole"),fieldValue("resumeIndustry")].filter(Boolean).join(" · ");
+      previewText("previewObjective","resumeObjective","Your AI-drafted objective will appear here.");
+      previewText("previewEducation","resumeEducation","Your education details will appear here.");
+      previewText("previewProfessional","resumeProfessional","Your professional qualifications will appear here.");
+      previewText("previewExperience","resumeExperience","Your experience will appear here.");
+      previewText("previewProjects","resumeProjects","Your projects will appear here.");
       previewText("previewSkills","resumeSkills","Your skills will appear here.");
+      previewText("previewAchievements","resumeAchievements","Your achievements will appear here.");
+      previewText("previewLanguages","resumeLanguages","Your languages will appear here.");
       previewText("previewHobbies","resumeHobbies","Your interests will appear here.");
     }
     fields.forEach(id=>$("#"+id)?.addEventListener("input",refreshResume));
@@ -906,20 +910,29 @@
     theme?.addEventListener("change",()=>{if(preview)preview.dataset.theme=theme.value});
     $("#resumeForm")?.addEventListener("reset",()=>setTimeout(()=>{if(theme&&preview)preview.dataset.theme=theme.value;refreshResume()},0));
     $("#printResume")?.addEventListener("click",()=>window.print());
-    $("#generateResumeObjective")?.addEventListener("click",async()=>{
-      const role=fieldValue("resumeRole"),education=fieldValue("resumeEducation"),qualification=fieldValue("resumeProfessional"),experience=fieldValue("resumeExperience"),skills=fieldValue("resumeSkills");
-      if(!role){msg("#resumeStatus","Add your target role first so AI can tailor the objective.","error");$("#resumeRole")?.focus();return}
-      if(!ready()){msg("#resumeStatus","Please sign in to use the free AI objective writer.","error");return}
-      const button=$("#generateResumeObjective");button.disabled=true;button.textContent="Writing your objective…";msg("#resumeStatus","AI is drafting a concise, professional objective…");
+    let recommendedTheme="modern";
+    theme?.addEventListener("change",()=>{if(preview)preview.dataset.theme=theme.value==="auto"?recommendedTheme:theme.value});
+    $("#generateResumeDraft")?.addEventListener("click",async()=>{
+      const role=fieldValue("resumeRole");
+      if(!role){msg("#resumeStatus","Tell us the role you want so AI can tailor your resume.","error");$("#resumeRole")?.focus();return}
+      if(!fieldValue("resumeEducation")&&!fieldValue("resumeProfessional")&&!fieldValue("resumeExperience")&&!fieldValue("resumeSkills")){msg("#resumeStatus","Add at least one education, qualification, experience or skills detail first.","error");return}
+      if(!ready()){msg("#resumeStatus","Please sign in to use the free AI resume builder.","error");return}
+      const button=$("#generateResumeDraft");button.disabled=true;button.textContent="Drafting your resume…";msg("#resumeStatus","AI is preparing your resume sections and recommending a design…");
       try{
         const {data:{session},error:authError}=await sb.auth.getSession();
-        if(authError||!session?.access_token)throw new Error("Please sign in again to use the AI objective writer.");
-        const response=await fetch("/api/ai-resume-objective",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},body:JSON.stringify({role,education,qualification,experience,skills})});
+        if(authError||!session?.access_token)throw new Error("Please sign in again to use the AI resume builder.");
+        const payload={role,industry:fieldValue("resumeIndustry"),career_stage:fieldValue("resumeCareerStage"),education:fieldValue("resumeEducation"),qualification:fieldValue("resumeProfessional"),experience:fieldValue("resumeExperience"),projects:fieldValue("resumeProjects"),skills:fieldValue("resumeSkills"),achievements:fieldValue("resumeAchievements"),languages:fieldValue("resumeLanguages"),interests:fieldValue("resumeHobbies"),theme_preference:theme?.value||"auto"};
+        const response=await fetch("/api/ai-resume-draft",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},body:JSON.stringify(payload)});
         const result=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(result.error||"Could not write your objective. Please try again.");
-        $("#resumeObjective").value=result.objective;refreshResume();msg("#resumeStatus","AI career objective added. You can edit it before saving your resume.","success");
-      }catch(error){msg("#resumeStatus",error?.message||"Could not write your objective. Please try again.","error")}
-      finally{button.disabled=false;button.textContent="✨ Write objective with AI"}
+        if(!response.ok)throw new Error(result.error||"Could not draft your resume. Please try again.");
+        const mapping={resumeObjective:"objective",resumeEducation:"education",resumeProfessional:"qualifications",resumeExperience:"experience",resumeProjects:"projects",resumeSkills:"skills",resumeAchievements:"achievements",resumeLanguages:"languages",resumeHobbies:"interests"};
+        Object.entries(mapping).forEach(([inputId,resultKey])=>{const input=$("#"+inputId);if(input&&typeof result[resultKey]==="string")input.value=result[resultKey]});
+        recommendedTheme=["modern","classic","executive","minimal"].includes(result.recommended_theme)?result.recommended_theme:"modern";
+        if(theme?.value==="auto")preview.dataset.theme=recommendedTheme;
+        refreshResume();
+        msg("#resumeStatus","Your complete AI resume draft is ready. Review every detail, edit anything you like, then print or save as PDF. "+(result.theme_reason||""),"success");
+      }catch(error){msg("#resumeStatus",error?.message||"Could not draft your resume. Please try again.","error")}
+      finally{button.disabled=false;button.textContent="✨ Draft my complete resume with AI"}
     });
     if(!ready()){msg("#jobsStatus",backendMessage);msg("#careerStatus",backendMessage);return}
     const loadJobs=async()=>{
