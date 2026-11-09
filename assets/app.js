@@ -935,10 +935,25 @@
     });
     if(!ready()){msg("#jobsStatus",backendMessage);msg("#careerStatus",backendMessage);return}
     const loadJobs=async()=>{
-      const {data,error}=await sb.from("jobs").select("id,title,organization,location,job_type,description,application_url,closes_at").eq("is_published",true).order("created_at",{ascending:false});
+      const {data,error}=await sb.from("jobs").select("id,title,organization,location,job_type,description,application_url,contact_email,closes_at").eq("is_published",true).order("created_at",{ascending:false});
       const grid=$("#jobsGrid");if(!grid)return;grid.replaceChildren();
-      if(error||!data?.length){const e=document.createElement("div");e.className="listing";e.textContent=error?"Sign in to view free job listings.":"No live opportunities are published at the moment.";grid.append(e);return}
-      data.forEach(job=>{const card=document.createElement("article");card.className="card";const tag=document.createElement("span");tag.className="tag";tag.textContent=job.job_type+" · Free";const h=document.createElement("h3");h.textContent=job.title;const p=document.createElement("p");p.textContent=[job.organization,job.location].filter(Boolean).join(" · ");const d=document.createElement("p");d.textContent=job.description;card.append(tag,h,p,d);if(job.application_url){const a=document.createElement("a");a.className="btn";a.href=job.application_url;a.target="_blank";a.rel="noopener";a.textContent="Application details ↗";card.append(a)}grid.append(card)});
+      if(error||!data?.length){const empty=document.createElement("div");empty.className="listing";empty.textContent=error?"Job listings could not be loaded. Please refresh and try again.":"No opportunities are published yet. Check back soon.";grid.append(empty);return}
+      data.forEach(job=>{
+        const card=document.createElement("article");card.className="job-card";
+        const company=document.createElement("div");company.className="job-company";company.textContent=job.organization||"Company details coming soon";
+        const title=document.createElement("h3");title.textContent=job.title;
+        const meta=document.createElement("div");meta.className="job-meta";
+        [job.job_type,job.location].filter(Boolean).forEach(value=>{const item=document.createElement("span");item.textContent=value;meta.append(item)});
+        const description=document.createElement("p");description.className="job-description";description.textContent=job.description||"Contact the company for further details.";
+        const actions=document.createElement("div");actions.className="job-actions";
+        let applyUrl="";
+        if(job.application_url){try{const parsed=new URL(job.application_url);if(parsed.protocol==="https:"||parsed.protocol==="http:")applyUrl=parsed.href}catch{}}
+        if(applyUrl){const apply=document.createElement("a");apply.className="btn";apply.href=applyUrl;apply.target="_blank";apply.rel="noopener noreferrer";apply.textContent="Apply now ↗";actions.append(apply)}
+        else if(job.contact_email){const email=document.createElement("a");email.className="btn";email.href="mailto:"+job.contact_email;email.textContent="Email to apply";actions.append(email)}
+        else{const unavailable=document.createElement("span");unavailable.className="apply-unavailable";unavailable.textContent="Application link coming soon";actions.append(unavailable)}
+        if(job.contact_email&&applyUrl){const contact=document.createElement("a");contact.className="contact-link";contact.href="mailto:"+job.contact_email;contact.textContent="Contact by email";actions.append(contact)}
+        card.append(company,title,meta,description,actions);grid.append(card);
+      });
     };
     loadJobs();
     $("#careerRequest")?.addEventListener("submit",async e=>{e.preventDefault();const {data:{user}}=await sb.auth.getUser();if(!user){msg("#careerStatus","Sign in to send a request.","error");location.href="account.html";return}const {error}=await sb.from("service_requests").insert({user_id:user.id,service_type:$("#careerService").value,message:$("#careerMessage").value.trim()});if(error){msg("#careerStatus",error.message,"error");return}e.target.reset();msg("#careerStatus","Request received. The team will follow up to confirm the service.")});
@@ -1076,8 +1091,15 @@
       e.target.reset();$("#testMinutes").value="60";msg("#testAdminStatus","Test created.");
     }
     async function saveJob(e){
-      e.preventDefault();const {data:{user}}=await sb.auth.getUser();const {error}=await sb.from("jobs").insert({title:$("#jobTitle").value.trim(),organization:$("#jobOrg").value.trim(),location:$("#jobLocation").value.trim(),job_type:$("#jobType").value,description:$("#jobDescription").value.trim(),application_url:$("#jobUrl").value.trim()||null,contact_email:$("#jobEmail").value.trim()||null,is_premium:false,is_published:$("#jobPublished").checked,created_by:user.id});
-      if(error){msg("#jobAdminStatus",error.message,"error");return}e.target.reset();msg("#jobAdminStatus","Opportunity saved.");
+      e.preventDefault();
+      const company=$("#jobOrg").value.trim(),url=$("#jobUrl").value.trim();
+      let applicationUrl="";
+      try{const parsed=new URL(url);if(parsed.protocol==="https:"||parsed.protocol==="http:")applicationUrl=parsed.href}catch{}
+      if(!company){msg("#jobAdminStatus","Add the company or firm name before posting.","error");return}
+      if(!applicationUrl){msg("#jobAdminStatus","Add a valid application link starting with http:// or https://.","error");return}
+      const {data:{user}}=await sb.auth.getUser();
+      const {error}=await sb.from("jobs").insert({title:$("#jobTitle").value.trim(),organization:company,location:$("#jobLocation").value.trim(),job_type:$("#jobType").value,description:$("#jobDescription").value.trim(),application_url:applicationUrl,contact_email:$("#jobEmail").value.trim()||null,is_premium:false,is_published:$("#jobPublished").checked,created_by:user.id});
+      if(error){msg("#jobAdminStatus",error.message,"error");return}e.target.reset();msg("#jobAdminStatus","Opportunity saved. Published posts will appear on Jobs & Internships.");loadAdminJobs();
     }
     async function saveProduct(e){
       e.preventDefault();const productType=$("#productType").value;
