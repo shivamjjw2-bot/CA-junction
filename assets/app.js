@@ -398,7 +398,7 @@
     const config={
       mtp:{file:"mtp.html",name:"ICAI MTP",chapters:{question:"mtp_question",suggested:"mtp_suggested_answer"},types:["question","suggested"]},
       rtp:{file:"rtp.html",name:"ICAI RTP",chapters:{question:"rtp_question",suggested:"rtp_suggested_answer"},types:["question","suggested"]},
-      previous_year:{file:"previous-papers.html",name:"Previous Year Question Papers",chapters:{question:"previous_year_question"},types:["question"]}
+      previous_year:{file:"previous-papers.html",name:"Previous Year Question Papers",chapters:{question:"previous_year_question",suggested:"previous_year_solution"},types:["question","suggested"]}
     }[series]||{file:"mtp.html",name:"ICAI MTP",chapters:{question:"mtp_question",suggested:"mtp_suggested_answer"},types:["question","suggested"]};
     const levels=["Foundation","Intermediate","Final"];
     const levelButtons=$$("[data-mtp-level]");
@@ -411,6 +411,7 @@
     const selectedLevel=levels.find(x=>x.toLowerCase()===paramLevel.toLowerCase())||"";
     const typeParam=params.get("type")||"";
     const selectedType=config.chapters[typeParam]?typeParam:"";
+    if(series==="previous_year"){const solution=typeButtons.find(button=>button.dataset.mtpType==="suggested");if(solution){const labels=$("span",solution);if(labels[0])labels[0].textContent="Solutions";if(labels[1])labels[1].textContent="View uploaded solutions";}}
 
     const showPage=page=>{
       if(levelPage)levelPage.hidden=page!=="level";
@@ -434,7 +435,7 @@
       return;
     }
     showPage("paper");
-    const typeLabel=selectedType==="question"?(series==="previous_year"?"Previous Year Question Papers":"Question Papers"):"Suggested Answers";
+    const typeLabel=selectedType==="question"?(series==="previous_year"?"Previous Year Question Papers":"Question Papers"):(series==="previous_year"?"Solutions":"Suggested Answers");
     if(pageHeading)pageHeading.textContent="CA "+selectedLevel+" · "+typeLabel;
     if(pageIntro)pageIntro.textContent="Papers uploaded by the CA Junction team will appear below.";
     if(paperTitle)paperTitle.textContent="Available PDFs";
@@ -452,7 +453,7 @@
       if(!data?.length){
         const empty=document.createElement("article");empty.className="card";
         const h=document.createElement("h3");h.textContent="Your next practice paper is on its way";
-        const resourceName=selectedType==="question"?(series==="previous_year"?"previous-year question paper":"question paper"):"suggested answer";
+        const resourceName=selectedType==="question"?(series==="previous_year"?"previous-year question paper":"question paper"):(series==="previous_year"?"solutions":"suggested answers");
         const p=document.createElement("p");p.textContent="No "+resourceName+" has been uploaded by the CA Junction team for "+selectedLevel+" yet. Keep preparing—your papers will appear here as soon as they are shared.";
         empty.append(h,p);list.append(empty);msg("#mtpStatus","");return
       }
@@ -652,7 +653,7 @@
       const collection=$("#mtpCollection"),type=$("#mtpPaperType");if(!collection||!type)return;
       const current=type.value;
       type.replaceChildren(new Option("Question paper","question"));
-      if(collection.value!=="previous_year")type.add(new Option("Suggested answers","suggested"));
+      type.add(new Option(collection.value==="previous_year"?"Solutions":"Suggested answers","suggested"));
       type.value=[...type.options].some(option=>option.value===current)?current:"question";
     }
     async function saveMtpPaper(e){
@@ -661,7 +662,7 @@
       const {data:{user}}=await sb.auth.getUser();
       const file=$("#mtpPdf").files[0],collection=$("#mtpCollection").value,paperType=$("#mtpPaperType").value;
       if(!file||file.type!=="application/pdf"||file.size>50*1024*1024){msg("#mtpAdminStatus","Choose a PDF no larger than 50 MB.","error");return}
-      const chapter=collection==="previous_year"?"previous_year_question":collection+"_"+(paperType==="question"?"question":"suggested_answer");
+      const chapter=collection==="previous_year"?(paperType==="question"?"previous_year_question":"previous_year_solution"):collection+"_"+(paperType==="question"?"question":"suggested_answer");
       const path="admin/exam-papers/"+chapter+"/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
       const {error:uploadError}=await sb.storage.from("ca-materials").upload(path,file,{contentType:"application/pdf"});
       if(uploadError){msg("#mtpAdminStatus",uploadError.message,"error");return}
@@ -687,11 +688,11 @@
       loadAdminMtpPapers();
     }
     async function loadAdminMtpPapers(){
-      const chapters=["mtp_question","mtp_suggested_answer","rtp_question","rtp_suggested_answer","previous_year_question"];
+      const chapters=["mtp_question","mtp_suggested_answer","rtp_question","rtp_suggested_answer","previous_year_question","previous_year_solution"];
       const {data,error}=await sb.from("materials").select("id,title,level,subject,chapter,is_published,file_bucket,file_path").eq("category","icai_link").in("chapter",chapters).order("created_at",{ascending:false}).limit(300);
       const list=$("#adminMtpPapers");if(!list)return;list.replaceChildren();
       if(error||!data?.length){emptyRow(list,error?"Could not load exam papers.":"No exam PDFs uploaded yet.");return}
-      const labels={mtp_question:"ICAI MTP · Question paper",mtp_suggested_answer:"ICAI MTP · Suggested answers",rtp_question:"ICAI RTP · Question paper",rtp_suggested_answer:"ICAI RTP · Suggested answers",previous_year_question:"Previous Year · Question paper"};
+      const labels={mtp_question:"ICAI MTP · Question paper",mtp_suggested_answer:"ICAI MTP · Suggested answers",rtp_question:"ICAI RTP · Question paper",rtp_suggested_answer:"ICAI RTP · Suggested answers",previous_year_question:"Previous Year · Question paper",previous_year_solution:"Previous Year · Solutions"};
       data.forEach(row=>{
         const item=document.createElement("div");item.className="data-row";
         const info=document.createElement("div"),h=document.createElement("strong"),p=document.createElement("p");
