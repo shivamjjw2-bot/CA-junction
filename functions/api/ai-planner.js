@@ -12,12 +12,34 @@ async function reserveAiNeurons(token,neurons){
 const CATALOG={Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation","Cost and Management Accounting","Auditing and Ethics","Financial Management and Strategic Management"],Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"]};
 const COURSE_URL={Foundation:"https://www.icai.org/post/foundation-nset",Intermediate:"https://www.icai.org/post/intermediate-nset",Final:"https://www.icai.org/post/final-nset"};
 const MATERIAL_URL={Foundation:"https://boslive.icai.org/study_material_new_paper_details.php?c=foundation&language=English",Intermediate:"https://boslive.icai.org/study_material_new_paper_details.php?c=intermediate&language=English",Final:"https://boslive.icai.org/study_material_new_paper_details.php?c=final&language=English"};
+const FINAL_AUDIT_CHAPTERS=[
+ "Chapter 1: Quality Control",
+ "Chapter 2: General Auditing Principles and Auditors Responsibilities",
+ "Chapter 3: Audit Planning, Strategy and Execution",
+ "Chapter 4: Materiality, Risk Assessment and Internal Control",
+ "Chapter 5: Audit Evidence",
+ "Chapter 6: Completion and Review",
+ "Chapter 7: Reporting",
+ "Chapter 8: Specialised Areas",
+ "Chapter 9: Related Services",
+ "Chapter 10: Review of Financial Information",
+ "Chapter 11: Prospective Financial Information and Other Assurance Services",
+ "Chapter 12: Digital Auditing & Assurance",
+ "Chapter 13: Group Audits",
+ "Chapter 14: Special Features of Audit of Banks & Non-Banking Financial Companies",
+ "Chapter 15: Overview of Audit of Public Sector Undertakings",
+ "Chapter 16: Internal Audit",
+ "Chapter 17: Due Diligence, Investigation & Forensic Accounting",
+ "Chapter 18: Sustainable Development Goals (SDG) & Environment, Social and Governance (ESG) Assurance",
+ "Chapter 19: Professional Ethics & Liabilities of Auditors"
+];
 const SLUG={Foundation:"foundation",Intermediate:"intermediate",Final:"final"},LEVELS=new Set(Object.keys(CATALOG));
 function htmlText(html){return String(html||"").replace(/<(script|style|noscript)[^>]*>[\s\S]*?<\/\1>/gi," ").replace(/<!--[^]*?-->/g," ").replace(/<br\s*\/?>/gi,"\n").replace(/<\/(p|li|tr|h[1-6]|section|article|div)>/gi,"\n").replace(/<[^>]+>/g," ").replace(/&nbsp;|&#160;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&ndash;/gi,"–").replace(/&mdash;/gi,"—").replace(/[ \t\f\v]+/g," ").replace(/\n[ \t]+/g,"\n").replace(/\n{2,}/g,"\n").trim()}
 async function fetchHtml(url){try{const r=await fetch(url,{headers:{"accept":"text/html,application/xhtml+xml","user-agent":"CA-Junction-Study-Planner/1.0"},signal:AbortSignal.timeout(8000)});if(!r.ok)return "";const h=await r.text();return h.length<=1800000?h:""}catch{return ""}}
 function links(html){const out=[];for(const m of String(html||"").matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){const href=m[1].match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];if(!href)continue;try{const u=new URL(href.replace(/&amp;/gi,"&"),"https://www.icai.org");if(u.protocol==="https:"&&u.hostname==="www.icai.org"&&u.pathname.startsWith("/post/"))out.push({url:u.href,text:htmlText(m[2]).replace(/\s+/g," ").trim(),context:htmlText(String(html||"").slice(Math.max(0,m.index-650),m.index)).slice(-220)})}catch{}}return out}
 function chapterLines(html){const lines=htmlText(html).split("\n").map(x=>x.trim()).filter(x=>/^(chapter|ch\.)\s*(?:no\.?\s*)?\d+[a-z]?\s*[:.–-]?\s*\S/i.test(x)),out=[],seen=new Set();for(const line of lines){const x=line.replace(/\s+/g," ").slice(0,190),k=x.toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}return out.slice(0,80)}
 async function getOutline(level,subject){
+ if(level==="Final"&&subject.toLowerCase()==="advanced auditing, assurance and professional ethics")return{subject,chapters:FINAL_AUDIT_CHAPTERS,url:"https://www.icai.org/post/sm-final-p3-may2027"};
  const i=CATALOG[level].findIndex(x=>x.toLowerCase()===subject.toLowerCase());if(i<0)return{subject,chapters:[],url:MATERIAL_URL[level]};
  const n=i+1,base="https://www.icai.org/post/sm-"+SLUG[level]+"-paper"+n;
  const pagesToCheck=[base];
