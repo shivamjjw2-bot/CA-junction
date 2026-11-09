@@ -97,7 +97,7 @@
       if (!level) return;
       const href = new URL(link.href,location.href);
       if (href.origin !== location.origin || !href.pathname.endsWith(".html")) return;
-      if (href.pathname.endsWith("/mtp.html")) return;
+      if (["/mtp.html","/rtp.html","/previous-papers.html"].some(path=>href.pathname.endsWith(path))) return;
       href.searchParams.set("level",level);
       link.href = href.pathname.split("/").pop() + href.search + href.hash;
     }, true);
@@ -394,6 +394,12 @@
   }
 
   function initMtp(){
+    const series=document.body.dataset.paperSeries||"mtp";
+    const config={
+      mtp:{file:"mtp.html",name:"ICAI MTP",chapters:{question:"mtp_question",suggested:"mtp_suggested_answer"},types:["question","suggested"]},
+      rtp:{file:"rtp.html",name:"ICAI RTP",chapters:{question:"rtp_question",suggested:"rtp_suggested_answer"},types:["question","suggested"]},
+      previous_year:{file:"previous-papers.html",name:"Previous Year Question Papers",chapters:{question:"previous_year_question"},types:["question"]}
+    }[series]||{file:"mtp.html",name:"ICAI MTP",chapters:{question:"mtp_question",suggested:"mtp_suggested_answer"},types:["question","suggested"]};
     const levels=["Foundation","Intermediate","Final"];
     const levelButtons=$$("[data-mtp-level]");
     const typeButtons=$$("[data-mtp-type]");
@@ -404,43 +410,35 @@
     const paramLevel=params.get("level")||"";
     const selectedLevel=levels.find(x=>x.toLowerCase()===paramLevel.toLowerCase())||"";
     const typeParam=params.get("type")||"";
-    const selectedType=typeParam==="question"?"mtp_question":typeParam==="suggested"?"mtp_suggested_answer":"";
-    if(selectedLevel)localStorage.setItem("caJunctionLevel",selectedLevel);
+    const selectedType=config.chapters[typeParam]?typeParam:"";
 
-    const showPage=(page)=>{
+    const showPage=page=>{
       if(levelPage)levelPage.hidden=page!=="level";
       if(typePage)typePage.hidden=page!=="type";
       if(paperPage)paperPage.hidden=page!=="paper";
     };
-    levelButtons.forEach(button=>{
-      const level=button.dataset.mtpLevel;
-      button.addEventListener("click",()=>{
-        localStorage.setItem("caJunctionLevel",level);
-        location.href="mtp.html?level="+encodeURIComponent(level);
-      });
-    });
-    typeButtons.forEach(button=>{
-      const type=button.dataset.mtpType;
-      button.addEventListener("click",()=>{
-        if(!selectedLevel)return;
-        const paperType=type==="mtp_question"?"question":"suggested";
-        location.href="mtp.html?level="+encodeURIComponent(selectedLevel)+"&type="+paperType;
-      });
-    });
-    if(!selectedLevel){showPage("level");return}
+    levelButtons.forEach(button=>button.addEventListener("click",()=>{
+      location.href=config.file+"?level="+encodeURIComponent(button.dataset.mtpLevel);
+    }));
+    typeButtons.forEach(button=>button.addEventListener("click",()=>{
+      if(!selectedLevel)return;
+      location.href=config.file+"?level="+encodeURIComponent(selectedLevel)+"&type="+button.dataset.mtpType;
+    }));
+    if(!selectedLevel){showPage("level");if(pageHeading)pageHeading.textContent=config.name+" · Choose your level";if(pageIntro)pageIntro.textContent="Select Foundation, Intermediate or Final to view "+config.name+" resources.";return}
     if(!selectedType){
       showPage("type");
-      if(pageHeading)pageHeading.textContent="CA "+selectedLevel+" MTP Papers";
-      if(pageIntro)pageIntro.textContent="Choose Question Papers or Suggested Answers to open its own page.";
-      levelTitle.textContent="Choose a paper type";
+      if(pageHeading)pageHeading.textContent="CA "+selectedLevel+" · "+config.name;
+      if(pageIntro)pageIntro.textContent="Choose a paper type to open its own page.";
+      if(levelTitle)levelTitle.textContent="Choose a paper type";
+      typeButtons.forEach(button=>{button.hidden=!config.types.includes(button.dataset.mtpType)});
       return;
     }
     showPage("paper");
-    const typeLabel=selectedType==="mtp_question"?"Question Papers":"Suggested Answers";
+    const typeLabel=selectedType==="question"?(series==="previous_year"?"Previous Year Question Papers":"Question Papers"):"Suggested Answers";
     if(pageHeading)pageHeading.textContent="CA "+selectedLevel+" · "+typeLabel;
     if(pageIntro)pageIntro.textContent="Papers uploaded by the CA Junction team will appear below.";
     if(paperTitle)paperTitle.textContent="Available PDFs";
-    if(backTypes)backTypes.href="mtp.html?level="+encodeURIComponent(selectedLevel);
+    if(backTypes)backTypes.href=config.file+"?level="+encodeURIComponent(selectedLevel);
     load();
 
     async function load(){
@@ -449,18 +447,19 @@
       list.hidden=false;
       if(!ready()){msg("#mtpStatus",backendMessage,"error");return}
       msg("#mtpStatus","Loading "+typeLabel.toLowerCase()+"…");
-      const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,file_bucket,file_path,external_url,is_premium,created_at").eq("category","icai_link").eq("is_published",true).eq("is_premium",false).eq("level",selectedLevel).eq("chapter",selectedType).order("created_at",{ascending:false}).limit(200);
+      const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,file_bucket,file_path,external_url,is_premium,created_at").eq("category","icai_link").eq("is_published",true).eq("is_premium",false).eq("level",selectedLevel).eq("chapter",config.chapters[selectedType]).order("created_at",{ascending:false}).limit(200);
       if(error){emptyRow(list,"Could not load papers right now. Please try again in a moment.");msg("#mtpStatus",error.message,"error");return}
       if(!data?.length){
         const empty=document.createElement("article");empty.className="card";
         const h=document.createElement("h3");h.textContent="Your next practice paper is on its way";
-        const p=document.createElement("p");p.textContent="No "+(selectedType==="mtp_question"?"question paper":"suggested answer")+" has been uploaded by the CA Junction team for "+selectedLevel+" yet. Keep preparing—your papers will appear here as soon as they are shared.";
+        const resourceName=selectedType==="question"?(series==="previous_year"?"previous-year question paper":"question paper"):"suggested answer";
+        const p=document.createElement("p");p.textContent="No "+resourceName+" has been uploaded by the CA Junction team for "+selectedLevel+" yet. Keep preparing—your papers will appear here as soon as they are shared.";
         empty.append(h,p);list.append(empty);msg("#mtpStatus","");return
       }
       data.forEach(row=>{
         const card=document.createElement("article");card.className="card";
         const h=document.createElement("h3");h.textContent=row.title;
-        const p=document.createElement("p");p.textContent=[row.subject,row.description].filter(Boolean).join(" · ")||row.level+" ICAI MTP resource";
+        const p=document.createElement("p");p.textContent=[row.subject,row.description].filter(Boolean).join(" · ")||row.level+" "+config.name+" resource";
         const button=document.createElement("button");button.type="button";button.className="btn";button.textContent="Open PDF";
         button.addEventListener("click",()=>downloadMaterial(row,"#mtpStatus"));
         card.append(h,p,button);list.append(card);
@@ -631,6 +630,8 @@
     $("#adminMaterialForm")?.addEventListener("submit",saveMaterial);
     $("#adminMindMapForm")?.addEventListener("submit",saveMindMap);
     $("#adminMtpForm")?.addEventListener("submit",saveMtpPaper);
+    $("#mtpCollection")?.addEventListener("change",syncMtpPaperTypes);
+    syncMtpPaperTypes();
     $("#adminTestForm")?.addEventListener("submit",saveTest);
     $("#adminJobForm")?.addEventListener("submit",saveJob);
     $("#adminProductForm")?.addEventListener("submit",saveProduct);
@@ -647,13 +648,21 @@
       if(error){if(path)await sb.storage.from(bucket).remove([path]);msg("#resourceStatus",error.message,"error");return}e.target.reset();msg("#resourceStatus","Resource saved.");loadAdminResources();
     }
 
+    function syncMtpPaperTypes(){
+      const collection=$("#mtpCollection"),type=$("#mtpPaperType");if(!collection||!type)return;
+      const current=type.value;
+      type.replaceChildren(new Option("Question paper","question"));
+      if(collection.value!=="previous_year")type.add(new Option("Suggested answers","suggested"));
+      type.value=[...type.options].some(option=>option.value===current)?current:"question";
+    }
     async function saveMtpPaper(e){
       e.preventDefault();
-      msg("#mtpAdminStatus","Uploading MTP PDF…");
+      msg("#mtpAdminStatus","Uploading paper PDF…");
       const {data:{user}}=await sb.auth.getUser();
-      const file=$("#mtpPdf").files[0];
+      const file=$("#mtpPdf").files[0],collection=$("#mtpCollection").value,paperType=$("#mtpPaperType").value;
       if(!file||file.type!=="application/pdf"||file.size>50*1024*1024){msg("#mtpAdminStatus","Choose a PDF no larger than 50 MB.","error");return}
-      const path="admin/mtp/"+$("#mtpPaperType").value+"/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+      const chapter=collection==="previous_year"?"previous_year_question":collection+"_"+(paperType==="question"?"question":"suggested_answer");
+      const path="admin/exam-papers/"+chapter+"/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
       const {error:uploadError}=await sb.storage.from("ca-materials").upload(path,file,{contentType:"application/pdf"});
       if(uploadError){msg("#mtpAdminStatus",uploadError.message,"error");return}
       const {error}=await sb.from("materials").insert({
@@ -661,7 +670,7 @@
         description:$("#mtpDescription").value.trim(),
         level:$("#mtpLevel").value,
         subject:$("#mtpSubject").value.trim(),
-        chapter:$("#mtpPaperType").value,
+        chapter,
         category:"icai_link",
         file_bucket:"ca-materials",
         file_path:path,
@@ -672,19 +681,22 @@
       });
       if(error){await sb.storage.from("ca-materials").remove([path]);msg("#mtpAdminStatus",error.message,"error");return}
       e.target.reset();
+      syncMtpPaperTypes();
       $("#mtpPublished").checked=true;
-      msg("#mtpAdminStatus","MTP PDF uploaded.");
+      msg("#mtpAdminStatus","Paper PDF uploaded.");
       loadAdminMtpPapers();
     }
     async function loadAdminMtpPapers(){
-      const {data,error}=await sb.from("materials").select("id,title,level,subject,chapter,is_published,file_bucket,file_path").eq("category","icai_link").in("chapter",["mtp_question","mtp_suggested_answer"]).order("created_at",{ascending:false}).limit(200);
+      const chapters=["mtp_question","mtp_suggested_answer","rtp_question","rtp_suggested_answer","previous_year_question"];
+      const {data,error}=await sb.from("materials").select("id,title,level,subject,chapter,is_published,file_bucket,file_path").eq("category","icai_link").in("chapter",chapters).order("created_at",{ascending:false}).limit(300);
       const list=$("#adminMtpPapers");if(!list)return;list.replaceChildren();
-      if(error||!data?.length){emptyRow(list,error?"Could not load MTP papers.":"No MTP PDFs uploaded yet.");return}
+      if(error||!data?.length){emptyRow(list,error?"Could not load exam papers.":"No exam PDFs uploaded yet.");return}
+      const labels={mtp_question:"ICAI MTP · Question paper",mtp_suggested_answer:"ICAI MTP · Suggested answers",rtp_question:"ICAI RTP · Question paper",rtp_suggested_answer:"ICAI RTP · Suggested answers",previous_year_question:"Previous Year · Question paper"};
       data.forEach(row=>{
         const item=document.createElement("div");item.className="data-row";
         const info=document.createElement("div"),h=document.createElement("strong"),p=document.createElement("p");
         h.textContent=row.title;
-        p.textContent=row.level+" · "+(row.chapter==="mtp_question"?"Question paper":"Suggested answers")+(row.subject?" · "+row.subject:"")+" · "+(row.is_published?"Published":"Draft");
+        p.textContent=row.level+" · "+(labels[row.chapter]||row.chapter)+(row.subject?" · "+row.subject:"")+" · "+(row.is_published?"Published":"Draft");
         info.append(h,p);
         const actions=document.createElement("div");actions.className="row-actions";
         const visibility=document.createElement("button");visibility.className="btn";visibility.type="button";visibility.textContent=row.is_published?"Unpublish":"Publish";
@@ -693,14 +705,6 @@
         remove.addEventListener("click",async()=>{if(!confirm("Delete “"+row.title+"” permanently?"))return;remove.disabled=true;const {error}=await sb.from("materials").delete().eq("id",row.id);if(error){msg("#mtpAdminStatus",error.message,"error");remove.disabled=false;return}if(row.file_bucket&&row.file_path){const {error:storageError}=await sb.storage.from(row.file_bucket).remove([row.file_path]);if(storageError)msg("#mtpAdminStatus","Paper deleted, but its PDF file could not be removed: "+storageError.message,"error");else msg("#mtpAdminStatus","Paper deleted.","success")}else msg("#mtpAdminStatus","Paper deleted.","success");loadAdminMtpPapers()});
         actions.append(visibility,remove);item.append(info,actions);list.append(item);
       });
-    }
-    async function saveMindMap(e){
-      e.preventDefault();msg("#mindMapAdminStatus","Saving mind map…");const {data:{user}}=await sb.auth.getUser();let path=null;const file=$("#mindMapPdf").files[0];
-      if(file){if(file.type!=="application/pdf"||file.size>50*1024*1024){msg("#mindMapAdminStatus","Choose a PDF no larger than 50 MB.","error");return}path="admin/mind-maps/"+crypto.randomUUID()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const {error}=await sb.storage.from("ca-materials").upload(path,file,{contentType:"application/pdf"});if(error){msg("#mindMapAdminStatus",error.message,"error");return}}
-      const url=$("#mindMapExternal").value.trim()||null;if(!path&&!url){msg("#mindMapAdminStatus","Choose a PDF or add an external PDF link.","error");return}
-      if(url){try{const parsed=new URL(url);if(!["http:","https:"].includes(parsed.protocol))throw new Error()}catch{if(path)await sb.storage.from("ca-materials").remove([path]);msg("#mindMapAdminStatus","Enter a valid link beginning with https://.","error");return}}
-      const {error}=await sb.from("materials").insert({title:$("#mindMapTitle").value.trim(),description:$("#mindMapDescription").value.trim(),level:$("#mindMapLevel").value,subject:$("#mindMapSubject").value.trim(),category:"mind_map",file_bucket:path?"ca-materials":null,file_path:path,external_url:url,is_premium:$("#mindMapPremium").checked,is_published:$("#mindMapPublished").checked,created_by:user.id});
-      if(error){if(path)await sb.storage.from("ca-materials").remove([path]);msg("#mindMapAdminStatus",error.message,"error");return}e.target.reset();$("#mindMapPublished").checked=true;msg("#mindMapAdminStatus","Mind map saved.");loadAdminMindMaps();
     }
     async function loadAdminMindMaps(){
       const {data,error}=await sb.from("materials").select("id,title,level,subject,is_premium,is_published,file_bucket,file_path,external_url").eq("category","mind_map").order("created_at",{ascending:false}).limit(200);
