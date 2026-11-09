@@ -140,10 +140,21 @@
 
   function initAccount() {
     const chosenLevel=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"Foundation";
+    const subjectsByLevel={
+      Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
+      Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
+      Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
+    };
+    const fillNoteSubjects=level=>{
+      const subjectSelect=$("#noteSubject");if(!subjectSelect)return;
+      const current=subjectSelect.value;
+      subjectSelect.replaceChildren(new Option("Choose a subject",""),...(subjectsByLevel[level]||[]).map(subject=>new Option(subject,subject)));
+      if((subjectsByLevel[level]||[]).includes(current))subjectSelect.value=current;
+    };
     localStorage.setItem("caJunctionLevel",chosenLevel);
     if($("#noteLevel"))$("#noteLevel").value=chosenLevel;
-    if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent="Preselected from your homepage choice; change it if needed.";
-    $("#noteLevel")?.addEventListener("change",()=>{localStorage.setItem("caJunctionLevel",$("#noteLevel").value);if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent="Selected: "+$("#noteLevel").value;});
+    fillNoteSubjects(chosenLevel);
+    $("#noteLevel")?.addEventListener("change",()=>{const level=$("#noteLevel").value;localStorage.setItem("caJunctionLevel",level);fillNoteSubjects(level)});
     if($("#signupLevel"))$("#signupLevel").value=chosenLevel;
     if($("#signupLevelLabel"))$("#signupLevelLabel").textContent=chosenLevel;
     if (!ready()) {
@@ -217,8 +228,18 @@
     if(!user){location.href="account.html?next=upload.html";return}
     const file=$("#notePdf").files[0];
     if(!file || !(file.type==="application/pdf"||/\.pdf$/i.test(file.name)) || file.size>50*1024*1024){msg("#uploadStatus","Choose a PDF no larger than 50 MB. The current storage plan does not accept larger files.","error");return}
+    const subject=$("#noteSubject").value.trim(),chapter=$("#noteChapter").value.trim(),authorName=$("#noteContributorName").value.trim();
     const instagramHandle=$("#noteInstagram").value.trim().replace(/^@/,"");
-    if(instagramHandle&&!/^[A-Za-z0-9._]{1,30}$/.test(instagramHandle)){msg("#uploadStatus","Enter a valid Instagram handle, such as @yourusername.","error");return}
+    if(instagramHandle&&!/^[A-Za-z0-9._]{1,30}$/.test(instagramHandle)){msg("#uploadStatus","Enter a valid Instagram ID, such as @yourusername.","error");return}
+    const rawLinkedIn=$("#noteLinkedIn").value.trim();
+    let linkedinUrl="";
+    if(rawLinkedIn){
+      if(/^https:\/\//i.test(rawLinkedIn)){
+        try{const parsed=new URL(rawLinkedIn);if(parsed.protocol!=="https:"||!(parsed.hostname==="linkedin.com"||parsed.hostname.endsWith(".linkedin.com"))){msg("#uploadStatus","Enter a LinkedIn profile link or ID.","error");return}linkedinUrl=parsed.href}
+        catch{msg("#uploadStatus","Enter a valid LinkedIn profile link or ID.","error");return}
+      }else if(/^[A-Za-z0-9-]{3,100}$/.test(rawLinkedIn)){linkedinUrl="https://www.linkedin.com/in/"+encodeURIComponent(rawLinkedIn)+"/"}
+      else{msg("#uploadStatus","Enter a LinkedIn profile link or ID.","error");return}
+    }
     const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
     const path=user.id+"/"+crypto.randomUUID()+"_"+safeName;
     msg("#uploadStatus","Uploading your PDF securely…");
@@ -238,11 +259,11 @@
       return;
     }
     const {error}=await sb.from("student_note_submissions").insert({
-      user_id:user.id,title:$("#noteTitle").value.trim(),level:$("#noteLevel").value,
-      subject:$("#noteSubject").value.trim(),chapter:$("#noteChapter").value.trim(),description:$("#noteDescription").value.trim(),contributor_name:$("#noteContributorName").value.trim(),instagram_handle:instagramHandle,file_path:path
+      user_id:user.id,title:(subject+" — "+chapter).slice(0,140),level:$("#noteLevel").value,
+      subject,chapter,description:"",contributor_name:authorName,instagram_handle:instagramHandle,linkedin_url:linkedinUrl,file_path:path
     });
     if(error){await sb.storage.from("student-notes").remove([path]);msg("#uploadStatus",error.message,"error");return}
-    const selectedLevel=$("#noteLevel").value;event.target.reset();$("#noteLevel").value=selectedLevel;if($("#uploadLevelLabel"))$("#uploadLevelLabel").textContent=selectedLevel;if($("#viewContributionLink"))$("#viewContributionLink").hidden=false;msg("#uploadStatus","Your PDF is now live in Contributions by Students, with your name"+(instagramHandle?" and Instagram handle":"")+" credited.");
+    const selectedLevel=$("#noteLevel").value;event.target.reset();$("#noteLevel").value=selectedLevel;fillNoteSubjects(selectedLevel);if($("#viewContributionLink"))$("#viewContributionLink").hidden=false;msg("#uploadStatus","Your PDF is live in Contributions by Students, credited to "+authorName+".");
   }
 
   async function initDashboard() {
@@ -315,6 +336,7 @@
         if(row.category==="student_note"){
           const author=document.createElement("small");author.className="note-author";author.textContent="Shared by "+(row.contributor_name||"CA Junction student");card.append(author);
           if(row.instagram_handle){const handle=row.instagram_handle.replace(/^@/,"");if(/^[A-Za-z0-9._]{1,30}$/.test(handle)){const profile=document.createElement("a");profile.className="link";profile.href="https://www.instagram.com/"+encodeURIComponent(handle)+"/";profile.target="_blank";profile.rel="noopener";profile.textContent="Instagram: @"+handle+" ↗";card.append(profile)}}
+          if(row.linkedin_url){try{const profileUrl=new URL(row.linkedin_url);if(profileUrl.protocol==="https:"&&(profileUrl.hostname==="linkedin.com"||profileUrl.hostname.endsWith(".linkedin.com"))){const profile=document.createElement("a");profile.className="link";profile.href=profileUrl.href;profile.target="_blank";profile.rel="noopener";profile.textContent="LinkedIn profile ↗";card.append(profile)}}catch{}}
         }
         const meta=document.createElement("small");meta.textContent=row.category==="student_note"?[row.level,row.subject&&("Subject: "+row.subject),row.chapter&&("Chapter: "+row.chapter)].filter(Boolean).join(" · "):(revisionLevelApps&&grid===adminGrid?[row.subject].filter(Boolean):[row.level,row.subject].filter(Boolean)).join(" · ");if(meta.textContent)card.append(meta);
         const action=row.external_url?document.createElement("a"):document.createElement("button");
@@ -362,7 +384,7 @@
     levelFilter?.addEventListener("change",()=>{if(subjectFilter)subjectFilter.value="";if(chapterFilter)chapterFilter.value="";render()});
     subjectFilter?.addEventListener("change",()=>{if(chapterFilter)chapterFilter.value="";render()});
     chapterFilter?.addEventListener("change",render);
-    sb.from("materials").select("id,title,description,level,subject,chapter,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle,student_submission_id,is_premium").eq("is_published",true).order("created_at",{ascending:false}).then(async({data,error})=>{
+    sb.from("materials").select("id,title,description,level,subject,chapter,category,file_bucket,file_path,external_url,created_at,submitted_by,contributor_name,instagram_handle,linkedin_url,student_submission_id,is_premium").eq("is_published",true).order("created_at",{ascending:false}).then(async({data,error})=>{
       if(error){msg("#materialStatus",error.message,"error");msg("#adminResourcesStatus",error.message,"error");return}
       const {data:{user}}=await sb.auth.getUser();currentUserId=user?.id||"";
       all=data||[];render();
