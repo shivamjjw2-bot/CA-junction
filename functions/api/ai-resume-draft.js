@@ -17,14 +17,14 @@ export async function onRequestPost({request,env}){
   if(!env.AI)return json({error:"The free AI resume builder is unavailable right now. Please try again later."},503);
   if(!(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return json({error:"Send a valid resume request."},415);
   if(Number(request.headers.get("content-length")||0)>16000)return json({error:"That resume request is too large. Shorten the details and try again."},413);
-  const token=(request.headers.get("authorization")||"").match(/^Bearer\\s+(.+)$/i)?.[1];
+  const token=(request.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];
   if(!token||token.length>5000)return json({error:"Please sign in to use the free AI resume builder."},401);
   try{
     const auth=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token}});
     if(!auth.ok)return json({error:"Your sign-in has expired. Please sign in again."},401);
   }catch{return json({error:"Could not verify your sign-in. Please try again."},502)}
   let body;try{const raw=await request.text();if(raw.length>16000)return json({error:"That resume request is too large. Shorten the details and try again."},413);body=JSON.parse(raw)}catch{return json({error:"The resume request could not be read."},400)}
-  const clean=(value,max)=>String(value||"").replace(/[<>]/g," ").replace(/\\s+/g," ").trim().slice(0,max);
+  const clean=(value,max)=>String(value||"").replace(/[<>]/g," ").replace(/\s+/g," ").trim().slice(0,max);
   const profile={
     role:clean(body.role,120),industry:clean(body.industry,120),career_stage:clean(body.career_stage,100),
     education:clean(body.education,1800),qualification:clean(body.qualification,1400),
@@ -51,7 +51,7 @@ export async function onRequestPost({request,env}){
     "Design preference: "+preference,
     "Draft concise resume-ready text for each supplied section. Improve clarity, spelling, grammar, formatting, and impact. Preserve real dates, organisations, qualifications, metrics and claims exactly; do not invent, infer, exaggerate or add credentials, duties, results or language fluency. Do not add filler to missing sections: return an empty string for information not provided. Keep bullets as separate lines beginning with •. Career objective should be 35–65 words and specific to the target role. Skills should be a short, factual list. Interests should be included only if provided.",
     "Choose a recommended theme from modern (contemporary finance), classic (traditional professional), executive (teal accent), or minimal (simple monochrome). Respect the student's chosen theme unless preference is auto. Keep theme_reason to one short sentence."
-  ].join("\\n");
+  ].join("\n");
   const quota=await reserveAiNeurons(token,1200);
   if(!quota.ok)return json({error:"The free AI limit could not be checked, so no request was sent. Please try again later."},503);
   if(!quota.allowed)return json({error:"Today's shared free AI budget is used up. Please try again after the daily reset."},429);
