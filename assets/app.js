@@ -1078,18 +1078,16 @@
     }
     async function loadAdminAiUsage(){
       const list=$("#adminAiUsageUsers");if(!list)return;
-      const {data,error}=await sb.rpc("admin_ai_usage_today");
-      const total=$("#adminAiTotal"),remaining=$("#adminAiRemaining");
-      if(error||!data){if(total)total.textContent="—";if(remaining)remaining.textContent="—";emptyRow(list,error?"Could not load AI usage. Apply the daily AI usage tracking migration in Supabase.":"No usage data is available.");return}
-      const used=Number(data.estimated_neurons||0),cap=Number(data.cap||9000);
-      if(total)total.textContent=used.toLocaleString("en-IN");
-      if(remaining)remaining.textContent=Math.max(0,cap-used).toLocaleString("en-IN");
+      const {data,error}=await sb.rpc("admin_ai_mcq_usage_today");
+      const total=$("#adminAiTotal");
+      if(error||!data){if(total)total.textContent="—";emptyRow(list,error?"Could not load Gemini MCQ usage. Apply the Gemini usage migration in Supabase.":"No usage data is available.");return}
+      if(total)total.textContent=Number(data.request_count||0).toLocaleString("en-IN");
       const rows=Array.isArray(data.users)?data.users:[];
-      if(!rows.length){emptyRow(list,"No tracked student requests today. Earlier requests may be included in the shared total above.");return}
+      if(!rows.length){emptyRow(list,"No Gemini MCQ requests have been recorded today.");return}
       list.replaceChildren();
       rows.forEach(row=>{
         const last=row.last_used_at?new Date(row.last_used_at).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"time unavailable";
-        addRow(list,row.full_name||"Student",[row.email||"No email on record",row.ca_level||"Level unavailable",Number(row.request_count||0)+" AI request(s)",Number(row.estimated_neurons||0).toLocaleString("en-IN")+" estimated neurons","Last used "+last].join(" · "));
+        addRow(list,row.full_name||"Student",[row.email||"No email on record",row.ca_level||"Level unavailable",Number(row.request_count||0)+" MCQ request(s)","Last used "+last].join(" · "));
       });
     }
     async function loadAdminResourceSubjects(){
