@@ -35,14 +35,14 @@ export async function onRequestPost({request,env}) {
   const schema={type:"object",additionalProperties:false,properties:{case_study:{type:"string"},questions:{type:"array",items:{type:"object",additionalProperties:false,properties:{
     question:{type:"string"},kind:{type:"string",enum:["individual","case-linked"]},marks:{type:"integer"},options:{type:"array",items:{type:"string"}},correct_index:{type:"integer"},explanation:{type:"string"},difficulty:{type:"integer"}
   },required:["question","kind","marks","options","correct_index","explanation","difficulty"]}}},required:["case_study","questions"]};
-  const quota=await reserveAiNeurons(token,2000);
+  const quota=await reserveAiNeurons(token,1500);
   if(!quota.ok)return json({error:"The free AI limit could not be checked, so no AI request was sent. Please try again later."},503);
-  if(!quota.allowed)return json({error:"Today's shared free AI budget is used up. Please try again after the daily reset."},429);
+  if(!quota.allowed)return json({error:"Today's shared 9,000-neuron AI allowance is used. It resets at midnight India time."},429);
   try {
     const result=await env.AI.run(AI_MODEL,{
       messages:[{role:"system",content:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema."},{role:"user",content:userPrompt}],
       response_format:{type:"json_schema",json_schema:schema},
-      max_completion_tokens:6000,
+      max_tokens:6000,
       temperature:0.35
     });
     const raw=result?.choices?.[0]?.message?.content??result?.response;
