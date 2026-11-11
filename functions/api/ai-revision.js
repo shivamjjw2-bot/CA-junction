@@ -20,13 +20,16 @@ function parseOutput(raw){
   return JSON.parse(text);
 }
 function normalizeOutput(output){
-  const summary=cleanText(output?.summary,18000);
+  const summary=cleanText(output?.summary,32000);
   const topic=cleanText(output?.mind_map?.topic,240);
-  const branches=Array.isArray(output?.mind_map?.branches)?output.mind_map.branches.slice(0,7).map(branch=>({
+  const branches=Array.isArray(output?.mind_map?.branches)?output.mind_map.branches.slice(0,12).map(branch=>({
     title:cleanText(branch?.title,180),
-    points:Array.isArray(branch?.points)?branch.points.slice(0,4).map(point=>cleanText(point,420)).filter(Boolean):[]
+    mnemonic:cleanText(branch?.mnemonic,600),
+    visual_cue:cleanText(branch?.visual_cue,400),
+    icon:["book","checklist","balance","process"].includes(branch?.icon)?branch.icon:"book",
+    points:Array.isArray(branch?.points)?branch.points.slice(0,6).map(point=>cleanText(point,420)).filter(Boolean):[]
   })).filter(branch=>branch.title&&branch.points.length):[];
-  if(summary.length<120||!topic||branches.length<3)throw new Error("quality");
+  if(summary.split(/\s+/).length<700||!topic||branches.length<5||branches.some(branch=>!branch.mnemonic||!branch.visual_cue))throw new Error("quality");
   return{summary,mind_map:{topic,branches}};
 }
 export async function onRequestPost({request,env}){
@@ -57,8 +60,8 @@ export async function onRequestPost({request,env}){
       mind_map:{type:"OBJECT",properties:{
         topic:{type:"STRING"},
         branches:{type:"ARRAY",items:{type:"OBJECT",properties:{
-          title:{type:"STRING"},points:{type:"ARRAY",items:{type:"STRING"}}
-        },required:["title","points"]}}
+          title:{type:"STRING"},mnemonic:{type:"STRING"},visual_cue:{type:"STRING"},icon:{type:"STRING",enum:["book","checklist","balance","process"]},points:{type:"ARRAY",items:{type:"STRING"}}
+        },required:["title","mnemonic","visual_cue","icon","points"]}}
       },required:["topic","branches"]}
     },
     required:["summary","mind_map"]
@@ -69,14 +72,16 @@ export async function onRequestPost({request,env}){
     "Subject: "+subject,
     "Exact ICAI chapter title: "+chapter,
     "Official reference page for student verification: "+officialUrl,
-    "Return a structured 600 to 900 word summary covering key concepts, procedures, distinctions, one brief illustrative example, common mistakes and revision checkpoints. Separate sections with blank lines and clear plain-text headings. Create a mind map with one central topic and 5 to 7 branches, each with 3 to 4 informative points. Use concise full explanations, not just labels.",
+    "Write a detailed 1400 to 2200 word topic-wise summary. Start with a topic checklist, then explain each relevant topic and subtopic with definitions, essential key points, procedures, distinctions, exceptions and short examples where useful. Include exam pitfalls and finish with active-recall questions and a revision checklist. Use blank lines between plain-text headed sections. Do not substitute a handful of general bullets for chapter notes.",
+    "The actual chapter text has not been supplied. Say briefly that coverage is syllabus-based and must be checked against the official chapter; never claim exhaustive or verified chapter coverage. Do not invent missing topics or legal details.",
+    "Create a pictorial memory map with 5 to 12 topic branches. Each branch must have a memorable mnemonic, spell out what EVERY letter or word stands for, a concrete visual_cue describing an image the student can imagine, and 3 to 6 short important points. Choose icon book for concepts, checklist for checks, balance for comparisons or duties, process for sequences. Mnemonics are original learning aids, never official ICAI terminology. Cover the important summary topics, prioritise understanding and accurate recall.",
     "Use clear exam revision language. Do not invent section numbers, amendments, case citations, or say you read the linked page. Tell the student to verify law, standards, limits, dates, and syllabus-edition details against official ICAI material.",
-    "Return only JSON with this shape: {summary:string, mind_map:{topic:string, branches:[{title:string, points:string[]}]}}."
+    "Return only JSON with this shape: {summary:string, mind_map:{topic:string, branches:[{title:string, mnemonic:string, visual_cue:string, icon:string, points:string[]}]}}."
   ].join("\n");
   let lastStatus=0,lastProviderStatus="";
   for(const model of GEMINI_MODELS){
     let response,result;
-    const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000,temperature:0.2};
+    const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:12000,temperature:0.2};
     if(model.startsWith("gemini-3."))generationConfig.thinkingConfig={thinkingLevel:"low"};
     try{
       response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
