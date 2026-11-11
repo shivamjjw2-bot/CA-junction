@@ -3,7 +3,7 @@ const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
 const LEVELS=new Set(["Foundation","Intermediate","Final"]);
 const GEMINI_MODEL="gemini-3.8-flash";
-const GEMINI_FALLBACK_MODEL="gemini-3.6-flash";
+const GEMINI_FALLBACK_MODEL="gemini-3.5-flash-lite";
 async function logAiMcqRequest(token){
   try{
     const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/log_ca_ai_mcq_request",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:"{}"});
@@ -45,9 +45,15 @@ export async function onRequestPost({request,env}) {
     });
     let aiResponse,result={};
     for(const model of [GEMINI_MODEL,GEMINI_FALLBACK_MODEL]){
-      aiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
-        method:"POST",headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},body:requestBody
-      });
+      try{
+        aiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
+          method:"POST",headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},body:requestBody,signal:AbortSignal.timeout(20000)
+        });
+      }catch(error){
+        console.warn("AI MCQ Gemini model timed out or could not be reached",JSON.stringify({model,errorName:error?.name||"Error"}));
+        if(model===GEMINI_MODEL)continue;
+        return json({error:"Gemini is temporarily busy. Please try again in a moment."},503);
+      }
       result=await aiResponse.json().catch(()=>({}));
       if(aiResponse.ok)break;
       const temporarilyUnavailable=aiResponse.status===500||aiResponse.status===503;
