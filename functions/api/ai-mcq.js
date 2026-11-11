@@ -3,9 +3,9 @@ const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
 const LEVELS=new Set(["Foundation","Intermediate","Final"]);
 const AI_MODEL="@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-async function reserveAiNeurons(token,neurons){
+async function reserveAiNeurons(token,neurons,feature){
   try{
-    const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_neurons",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:JSON.stringify({p_neurons:neurons})});
+    const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_neurons",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:JSON.stringify({p_neurons:neurons,p_feature:feature})});
     if(!response.ok)return{ok:false,allowed:false};
     return{ok:true,allowed:(await response.json())===true};
   }catch{return{ok:false,allowed:false}}
@@ -35,7 +35,7 @@ export async function onRequestPost({request,env}) {
   const schema={type:"object",additionalProperties:false,properties:{case_study:{type:"string"},questions:{type:"array",items:{type:"object",additionalProperties:false,properties:{
     question:{type:"string"},kind:{type:"string",enum:["individual","case-linked"]},marks:{type:"integer"},options:{type:"array",items:{type:"string"}},correct_index:{type:"integer"},explanation:{type:"string"},difficulty:{type:"integer"}
   },required:["question","kind","marks","options","correct_index","explanation","difficulty"]}}},required:["case_study","questions"]};
-  const quota=await reserveAiNeurons(token,1500);
+  const quota=await reserveAiNeurons(token,1500,"ai_mcq");
   if(!quota.ok)return json({error:"The free AI limit could not be checked, so no AI request was sent. Please try again later."},503);
   if(!quota.allowed)return json({error:"Today's shared 9,000-neuron AI allowance is used. It resets at midnight India time."},429);
   try {
