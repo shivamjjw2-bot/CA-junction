@@ -505,9 +505,6 @@
     if(levelPage)levelPage.hidden=true;if(chapterPage)chapterPage.hidden=false;
     $("#revisionHeroIntro").textContent="Select a subject and chapter to create your summary and mind map PDFs.";
     const subject=$("#revisionSubjectFilter"),chapter=$("#revisionChapterFilter"),official=$("#revisionIcaiLink"),generate=$("#generateRevisionPack");
-    const publishedGrid=$("#adminResourcesGrid"),publishedSection=$("#revisionPublishedSection");
-    $("#openPublishedPdfs").addEventListener("click",()=>{$("#publishedPdfWindow").showModal()});
-    $("#closePublishedPdfs").addEventListener("click",()=>{$("#publishedPdfWindow").close()});
     const subjects=levelOptions[level],selected=new URLSearchParams(location.search).get("subject")||"";
     subject.replaceChildren(new Option("Choose a subject",""),...subjects.map(name=>new Option(name,name)));
     if(subjects.includes(selected))subject.value=selected;
@@ -559,8 +556,8 @@
     const mapText=map=>"Central topic: "+map.topic+"\n\n"+map.branches.map((branch,index)=>(index+1)+". "+branch.title+"\n"+branch.points.map(point=>"   - "+point).join("\n")).join("\n\n");
     const loadChapters=async()=>{
       const request=++chapterRequest,name=subject.value,canonical=aliases[name]||name;
-      releaseGenerated();generate.disabled=true;$("#openPublishedPdfs").disabled=true;
-      if(!name){chapter.replaceChildren(new Option("Choose a subject first",""));chapter.disabled=true;official.href=materialUrls[level];official.textContent="Open official ICAI study material ↗";if(publishedSection)publishedSection.hidden=true;return}
+      releaseGenerated();generate.disabled=true;
+      if(!name){chapter.replaceChildren(new Option("Choose a subject first",""));chapter.disabled=true;official.href=materialUrls[level];official.textContent="Open official ICAI study material ↗";return}
       chapter.replaceChildren(new Option("Loading ICAI chapters…",""));chapter.disabled=true;
       try{
         const params=new URLSearchParams({mode:"chapters",level,subject:canonical}),response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}}),result=await response.json().catch(()=>({}));
@@ -572,22 +569,10 @@
         if(!names.length){chapter.replaceChildren(new Option("ICAI chapters unavailable",""));msg("#revisionGenerateStatus","The official ICAI chapter list could not be loaded. Please try again.","error")}
       }catch{if(request===chapterRequest){chapter.replaceChildren(new Option("ICAI chapters unavailable",""));chapter.disabled=true;msg("#revisionGenerateStatus","The official ICAI chapter list could not be loaded. Please try again.","error")}}
     };
-    const loadPublished=async()=>{
-      releaseGenerated();generate.disabled=!chapter.value;$("#openPublishedPdfs").disabled=!chapter.value;
-      const chapterName=chapter.value,subjectName=subject.value;
-      if(!chapterName||!ready()){if(publishedSection)publishedSection.hidden=true;return}
-      if(publishedSection)publishedSection.hidden=false;
-      publishedGrid.replaceChildren();addRow(publishedGrid,"Checking shared chapter PDFs…");
-      const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,category,is_premium,file_bucket,file_path,external_url").eq("is_published",true).eq("level",level).eq("subject",subjectName).eq("chapter",chapterName).in("category",["revision","mind_map"]).order("created_at",{ascending:false}).limit(20);
-      if(error){emptyRow(publishedGrid,"Shared PDFs could not be loaded.");return}
-      const rows=data||[];publishedGrid.replaceChildren();
-      if(!rows.length){emptyRow(publishedGrid,"No PDFs yet. Keep learning—new resources are on their way!");return}
-      rows.forEach(row=>{const card=document.createElement("article");card.className="note";const kind=document.createElement("small");kind.className="resource-kind";kind.textContent=row.category==="mind_map"?"CHAPTER MIND MAP":"CHAPTER SUMMARY";const title=document.createElement("h3");title.textContent=row.title;const meta=document.createElement("small");meta.textContent=[row.level,row.subject,row.chapter].join(" · ");const open=document.createElement("button");open.className="link";open.type="button";open.textContent="Open PDF ↗";open.addEventListener("click",()=>downloadMaterial(row,"#adminResourcesStatus"));card.append(kind,title,meta,open);publishedGrid.append(card)});
-    };
     const setLevel=(newLevel)=>{location.href="revision.html?level="+encodeURIComponent(newLevel)};
     document.querySelectorAll("[data-revision-level]").forEach(link=>link.addEventListener("click",event=>{event.preventDefault();setLevel(link.dataset.revisionLevel)}));
     subject.addEventListener("change",loadChapters);
-    chapter.addEventListener("change",loadPublished);
+    chapter.addEventListener("change",()=>{releaseGenerated();generate.disabled=!chapter.value;});
     if(selected){subject.value=selected;loadChapters()}
     generate.addEventListener("click",async()=>{
       const chapterName=chapter.value,subjectName=subject.value;
@@ -1312,13 +1297,6 @@
         msg("#revisionPackStatus",published?"The new PDFs are published, but an older version could not be removed. Check the resource list.":(error.message||"The PDFs could not be saved. Please try again."),"error");
       }finally{button.disabled=false}
     }
-    const revisionForm=$("#adminRevisionPackForm");
-    revisionForm?.addEventListener("submit",generateRevisionDraft);
-    $("#publishRevisionPack")?.addEventListener("click",saveRevisionPdfs);
-    $("#adminRevisionLevel")?.addEventListener("change",fillRevisionAdminSubjects);
-    $("#adminRevisionSubject")?.addEventListener("change",loadAdminRevisionChapters);
-    $("#adminRevisionChapter")?.addEventListener("change",()=>{const link=$("#adminRevisionIcaiLink");if(link){link.href=revisionSourceUrl||revisionMaterialUrls[$("#adminRevisionLevel").value];link.hidden=false}});
-    fillRevisionAdminSubjects();
     $("#resourceLevel")?.addEventListener("change",loadAdminResourceSubjects);
     ["adminResourceLevelFilter","adminResourceCategoryFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminResources));
     $("#adminResourceSearch")?.addEventListener("input",loadAdminResources);
@@ -1327,11 +1305,8 @@
     ["studentLevelFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminStudents));
     $("#studentSearch")?.addEventListener("input",loadAdminStudents);
     $("#adminRoleForm")?.addEventListener("submit",manageAdminRole);
-    ["adminMindMapLevelFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminMindMaps));
-    $("#adminMindMapSubjectFilter")?.addEventListener("input",loadAdminMindMaps);
     $("#resourceSubject")?.addEventListener("change",loadAdminResourceChapters);
     $("#adminMaterialForm")?.addEventListener("submit",saveMaterial);
-    $("#adminMindMapForm")?.addEventListener("submit",saveMindMap);
     $("#adminMtpForm")?.addEventListener("submit",saveMtpPaper);
     $("#mtpCollection")?.addEventListener("change",syncMtpPaperTypes);
     syncMtpPaperTypes();
@@ -1345,7 +1320,7 @@
     $("#virtualLibraryFinalForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_final","Final Virtual Library study room","#virtualLibraryFinalUrl","#virtualLibraryFinalStatus"));
     [["Foundation","virtual_library_foundation"],["Intermediate","virtual_library_intermediate"],["Final","virtual_library_final"]].forEach(([level,key])=>$("#virtualLibrary"+level+"Remove")?.addEventListener("click",()=>removeManagedLink(key,level)));
     $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
-    await Promise.all([loadAdminOverview(),loadAdminAiUsage(),loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadAdminJobs(),loadAdminStudents(),loadAdminRoles(),loadManagedLinks()]);window.setInterval(()=>{loadAdminOverview();loadAdminAiUsage()},30000);
+    await Promise.all([loadAdminOverview(),loadAdminAiUsage(),loadAdminResources(),loadAdminMtpPapers(),loadNoteSubmissions(),loadAdminJobs(),loadAdminStudents(),loadAdminRoles(),loadManagedLinks()]);window.setInterval(()=>{loadAdminOverview();loadAdminAiUsage()},30000);
     async function loadAdminOverview(){
       const {data,error}=await sb.rpc("admin_platform_overview");
       const row=Array.isArray(data)?data[0]:data;
@@ -1496,7 +1471,7 @@
       });
     }
         async function loadAdminResources(){
-      const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,category,is_premium,is_published,file_bucket,file_path,student_submission_id,contributor_name,external_url").neq("category","icai_link").order("created_at",{ascending:false}).limit(500);
+      const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,category,is_premium,is_published,file_bucket,file_path,student_submission_id,contributor_name,external_url").neq("category","icai_link").neq("category","revision").neq("category","mind_map").order("created_at",{ascending:false}).limit(500);
       const list=$("#adminResources");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load resources.":"No resources yet.");return}
       const level=$("#adminResourceLevelFilter")?.value||"",category=$("#adminResourceCategoryFilter")?.value||"",search=($("#adminResourceSearch")?.value||"").trim().toLowerCase();
       const rows=data.filter(row=>(!level||row.level===level||row.level==="All")&&(!category||row.category===category)&&(!search||[row.title,row.subject,row.chapter,row.contributor_name].some(value=>String(value||"").toLowerCase().includes(search))));
