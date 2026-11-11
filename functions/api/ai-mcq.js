@@ -2,17 +2,17 @@ const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:
 const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
 const LEVELS=new Set(["Foundation","Intermediate","Final"]);
-const AI_MODEL="@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-async function reserveAiNeurons(token,neurons,feature){
+const GEMINI_MODEL="gemini-3.8-flash";
+async function logAiMcqRequest(token){
   try{
-    const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_neurons",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:JSON.stringify({p_neurons:neurons,p_feature:feature})});
-    if(!response.ok)return{ok:false,allowed:false};
-    return{ok:true,allowed:(await response.json())===true};
-  }catch{return{ok:false,allowed:false}}
+    const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/log_ca_ai_mcq_request",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:"{}"});
+    if(!response.ok)return false;
+    return (await response.json())===true;
+  }catch{return false}
 }
 
 export async function onRequestPost({request,env}) {
-  if(!env.AI)return json({error:"Free AI practice is being connected. Please try again later."},503);
+  if(!env.GEMINI_API_KEY)return json({error:"Free AI practice is temporarily unavailable. Please try again later."},503);
   if(!(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return json({error:"Send a valid practice request."},415);
   if(Number(request.headers.get("content-length")||0)>12000)return json({error:"That request is too large. Shorten the chapter list and try again."},413);
   const token=(request.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];
@@ -35,19 +35,26 @@ export async function onRequestPost({request,env}) {
   const schema={type:"object",additionalProperties:false,properties:{case_study:{type:"string"},questions:{type:"array",items:{type:"object",additionalProperties:false,properties:{
     question:{type:"string"},kind:{type:"string",enum:["individual","case-linked"]},marks:{type:"integer"},options:{type:"array",items:{type:"string"}},correct_index:{type:"integer"},explanation:{type:"string"},difficulty:{type:"integer"}
   },required:["question","kind","marks","options","correct_index","explanation","difficulty"]}}},required:["case_study","questions"]};
-  const quota=await reserveAiNeurons(token,1500,"ai_mcq");
-  if(!quota.ok)return json({error:"The free AI limit could not be checked, so no AI request was sent. Please try again later."},503);
-  if(!quota.allowed)return json({error:"Today's shared 9,000-neuron AI allowance is used. It resets at midnight India time."},429);
+  const logged=await logAiMcqRequest(token);
+  if(!logged)return json({error:"Your practice request could not be recorded. Please try again later."},503);
   try {
-    const result=await env.AI.run(AI_MODEL,{
-      messages:[{role:"system",content:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema."},{role:"user",content:userPrompt}],
-      response_format:{type:"json_schema",json_schema:schema},
-      max_tokens:6000,
-      temperature:0.35
+    const aiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+GEMINI_MODEL+":generateContent",{
+      method:"POST",
+      headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},
+      body:JSON.stringify({
+        contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\\n\\n"+userPrompt}]}],
+        generationConfig:{responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000,temperature:0.35}
+      })
     });
-    const raw=result?.choices?.[0]?.message?.content??result?.response;
+    const result=await aiResponse.json().catch(()=>({}));
+    if(!aiResponse.ok){
+      if(aiResponse.status===429)return json({error:"Gemini’s free shared limit is busy or used for now. Please try again later."},429);
+      if(aiResponse.status===403)return json({error:"Gemini free access is unavailable for this project. Please try again later."},503);
+      return json({error:"Gemini could not create a question set right now. Please try again shortly."},502);
+    }
+    const raw=result?.candidates?.[0]?.content?.parts?.map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
     if(!raw)return json({error:"No questions were returned. Please try again."},502);
-    const parsed=typeof raw==="string"?JSON.parse(raw):raw;
+    const parsed=JSON.parse(raw);
     const rawQuestions=parsed?.questions;
     const caseStudy=typeof parsed?.case_study==="string"?parsed.case_study.trim():"";
     if(!Array.isArray(rawQuestions)||rawQuestions.length!==questionCount)return json({error:"The AI returned an incomplete question set. Please generate a new set."},502);
@@ -67,9 +74,7 @@ export async function onRequestPost({request,env}) {
     return json({questions,case_study:caseStudy,max_marks:15,question_count:questionCount});
   } catch(error) {
     const detail=String(error?.message||"").toLowerCase();
-    if(/daily.*(limit|allowance)|neuron.*(limit|allowance)|quota.*(exceed|limit)|limit.*(exceed|reached)|429/.test(detail))
-      return json({error:"Today's free AI allowance has been used. Please try again after it resets."},429);
-    if(/capacity|5035|out of service/.test(detail))return json({error:"AI is busy right now. Please try again shortly."},503);
+    if(/429|quota|resource_exhausted/.test(detail))return json({error:"Gemini’s free shared limit is busy or used for now. Please try again later."},429);
     return json({error:"Could not create a question set. Please try again shortly."},502);
   }
 }
