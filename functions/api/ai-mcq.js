@@ -43,7 +43,7 @@ export async function onRequestPost({request,env}) {
       const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000};
       if(model.startsWith("gemini-3."))generationConfig.thinkingConfig={thinkingLevel:"low"};
       const requestBody=JSON.stringify({
-        contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\\n\\n"+userPrompt}]}],
+        contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\n\n"+userPrompt}]}],
         generationConfig
       });
       try{
