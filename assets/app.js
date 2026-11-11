@@ -1083,7 +1083,7 @@
       event.preventDefault();
       const level=$("#adminRevisionLevel").value,subject=$("#adminRevisionSubject").value,chapter=$("#adminRevisionChapter").value;
       if(!chapter){msg("#revisionPackStatus","Choose an ICAI chapter first.","error");return}
-      const button=$("#generateRevisionPack");button.disabled=true;msg("#revisionPackStatus","Creating the summary and mind map drafts…");
+      const button=$("#generateRevisionPack");button.disabled=true;msg("#revisionPackStatus","Gemini is creating the summary and mind map drafts…");
       try{
         const {data:{session}}=await sb.auth.getSession();
         if(!session?.access_token)throw new Error("Your admin session expired. Please sign in again.");
