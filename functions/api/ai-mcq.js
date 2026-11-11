@@ -3,6 +3,7 @@ const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
 const LEVELS=new Set(["Foundation","Intermediate","Final"]);
 const GEMINI_MODEL="gemini-3.8-flash";
+const GEMINI_FALLBACK_MODEL="gemini-3.6-flash";
 async function logAiMcqRequest(token){
   try{
     const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/log_ca_ai_mcq_request",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:"{}"});
@@ -36,22 +37,29 @@ export async function onRequestPost({request,env}) {
     question:{type:"string"},kind:{type:"string",enum:["individual","case-linked"]},marks:{type:"integer"},options:{type:"array",items:{type:"string"}},correct_index:{type:"integer"},explanation:{type:"string"},difficulty:{type:"integer"}
   },required:["question","kind","marks","options","correct_index","explanation","difficulty"]}}},required:["case_study","questions"]};
   const logged=await logAiMcqRequest(token);
-  if(!logged)return json({error:"Your practice request could not be recorded. Please try again later."},503);
-  try {
-    const aiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+GEMINI_MODEL+":generateContent",{
-      method:"POST",
-      headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},
-      body:JSON.stringify({
-        contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\n\n"+userPrompt}]}],
-        generationConfig:{responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000,thinkingConfig:{thinkingLevel:"low"}}
-      })
+  if(!logged)return json({error:"Your practice request could not be re    const requestBody=JSON.stringify({
+      contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\\n\\n"+userPrompt}]}],
+      generationConfig:{responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000,thinkingConfig:{thinkingLevel:"low"}}
     });
-    const result=await aiResponse.json().catch(()=>({}));
-    if(!aiResponse.ok){
-      console.error("AI MCQ Gemini request failed",JSON.stringify({httpStatus:aiResponse.status,providerStatus:result?.error?.status||null,providerCode:result?.error?.code||null,providerMessage:String(result?.error?.message||"").slice(0,320)}));
+    let aiResponse,result={};
+    for(const model of [GEMINI_MODEL,GEMINI_FALLBACK_MODEL]){
+      aiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
+        method:"POST",headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},body:requestBody
+      });
+      result=await aiResponse.json().catch(()=>({}));
+      if(aiResponse.ok)break;
+      const temporarilyUnavailable=aiResponse.status===500||aiResponse.status===503;
+      if(temporarilyUnavailable&&model===GEMINI_MODEL){
+        console.warn("AI MCQ primary Gemini model temporarily unavailable; trying free fallback",JSON.stringify({httpStatus:aiResponse.status,providerStatus:result?.error?.status||null}));
+        continue;
+      }
+      console.error("AI MCQ Gemini request failed",JSON.stringify({model,httpStatus:aiResponse.status,providerStatus:result?.error?.status||null,providerCode:result?.error?.code||null,providerMessage:String(result?.error?.message||"").slice(0,320)}));
       if(aiResponse.status===429)return json({error:"Gemini’s free shared limit is busy or used for now. Please try again later."},429);
       if(aiResponse.status===403)return json({error:"Gemini free access is unavailable for this project. Please try again later."},503);
+      if(temporarilyUnavailable)return json({error:"Gemini is temporarily busy. Please try again in a moment."},503);
       return json({error:"Gemini could not create a question set right now. Please try again shortly."},502);
+    }
+ht now. Please try again shortly."},502);
     }
     const raw=result?.candidates?.[0]?.content?.parts?.map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
     if(!raw)return json({error:"No questions were returned. Please try again."},502);
