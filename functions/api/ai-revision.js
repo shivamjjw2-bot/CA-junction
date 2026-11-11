@@ -47,7 +47,7 @@ export async function onRequestPost({request,env}){
     if(!auth.ok)return json({error:"Your sign-in has expired. Please sign in again."},401);
     user=await auth.json();
   }catch{return json({error:"Could not verify your admin sign-in."},502)}
-  if(!user?.id||!(await isAdmin(token,user.id)))return json({error:"Only an approved admin can create chapter PDFs."},403);
+  if(!user?.id)return json({error:"Please sign in to generate chapter PDFs."},401);
   let body;
   try{body=await request.json()}catch{return json({error:"The chapter request could not be read."},400)}
   const level=cleanText(body.level,24),subject=cleanText(body.subject,120),chapter=cleanText(body.chapter,180);
@@ -140,7 +140,7 @@ export async function onRequestPost({request,env}){
     if(summary.length<120||!topic||branches.length<3)return json({error:"The AI chapter draft did not pass quality checks. Please generate it again."},502);
     return json({level,subject,chapter,source_url:officialUrl,summary,mind_map:{topic,branches}});
   }catch(error){
-    console.error("AI revision pack generation failed",JSON.stringify({errorName:error?.name||"Error"}));
+    console.error("Gemini revision pack generation failed",JSON.stringify({errorName:error?.name||"Error"}));
     return json({error:"Could not create the chapter draft right now. Please try again shortly."},502);
   }
 }
