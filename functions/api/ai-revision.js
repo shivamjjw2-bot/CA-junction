@@ -17,7 +17,7 @@ async function reserveAiNeurons(token,neurons){
     const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_neurons",{
       method:"POST",
       headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},
-      body:JSON.stringify({p_neurons:neurons,p_feature:"ai_revision_pack"})
+      body:JSON.stringify({p_neurons:neurons,p_feature:"ai_planner"})
     });
     if(!response.ok)return{ok:false,allowed:false};
     return{ok:true,allowed:(await response.json())===true};
@@ -62,7 +62,7 @@ export async function onRequestPost({request,env}){
       if(parsed.protocol==="https:"&&["www.icai.org","icai.org","boslive.icai.org"].includes(parsed.hostname))officialUrl=parsed.href;
     }catch{}
   }
-  const quota=await reserveAiNeurons(token,1200);
+  const quota=await reserveAiNeurons(token,1500);
   if(!quota.ok)return json({error:"The shared AI allowance could not be checked, so no chapter draft was generated. Please try again later."},503);
   if(!quota.allowed)return json({error:"Today's shared AI allowance is used. It resets at midnight India time."},429);
   const schema={
