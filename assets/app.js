@@ -422,7 +422,7 @@
       const matchingLevels=selectedLevels.filter(level=>(subjectsByLevel[level]||[]).some(name=>(chapterSubjectAliases[name]||name)===canonical));
       try{
         const outlines=await Promise.all(matchingLevels.map(async level=>{
-          const params=new URLSearchParams({mode:"chapters",level,subjects:canonical});
+          const params=new URLSearchParams({mode:"chapters",level,subject:canonical});
           const response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}});
           const result=await response.json().catch(()=>({}));
           if(!response.ok)return[];
@@ -430,7 +430,8 @@
         }));
         if(requestId!==revisionChapterRequest)return;
         const chapterNames=outlines.flatMap(items=>Array.isArray(items)?items.flatMap(item=>Array.isArray(item.chapters)?item.chapters:[]):[]);
-        const chapters=[...new Set(chapterNames.map(name=>String(name).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+        let chapters=[...new Set(chapterNames.map(name=>String(name).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+        if(!chapters.length&&selectedLevels.includes("Final")&&canonical.toLowerCase().replace(/\\s+/g," ")==="advanced auditing, assurance and professional ethics")chapters=["Chapter 1: Quality Control","Chapter 2: General Auditing Principles and Auditors Responsibilities","Chapter 3: Audit Planning, Strategy and Execution","Chapter 4: Materiality, Risk Assessment and Internal Control","Chapter 5: Audit Evidence","Chapter 6: Completion and Review","Chapter 7: Reporting","Chapter 8: Specialised Areas","Chapter 9: Related Services","Chapter 10: Review of Financial Information","Chapter 11: Prospective Financial Information and Other Assurance Services","Chapter 12: Digital Auditing & Assurance","Chapter 13: Group Audits","Chapter 14: Special Features of Audit of Banks & Non-Banking Financial Companies","Chapter 15: Overview of Audit of Public Sector Undertakings","Chapter 16: Internal Audit","Chapter 17: Due Diligence, Investigation & Forensic Accounting","Chapter 18: Sustainable Development Goals (SDG) & Environment, Social and Governance (ESG) Assurance","Chapter 19: Professional Ethics & Liabilities of Auditors"];
         const officialOutline=outlines.flatMap(items=>Array.isArray(items)?items:[]).find(item=>item.url);
         if(revisionIcaiLink&&officialOutline?.url){revisionIcaiLink.href=officialOutline.url;revisionIcaiLink.textContent="Open official ICAI material for "+subjectName+" ↗"}
         revisionChapterFilter.replaceChildren(new Option("All chapters",""),...chapters.map(name=>new Option(name,name)));
@@ -497,6 +498,7 @@
     };
     const aliases={"Taxation — Income-tax Law":"Taxation","Taxation — Goods and Services Tax":"Taxation","Financial Management":"Financial Management and Strategic Management","Strategic Management":"Financial Management and Strategic Management","Integrated Business Solutions":"Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"};
     const materialUrls={Foundation:"https://boslive.icai.org/study_material_new_paper_details.php?c=foundation&language=English",Intermediate:"https://boslive.icai.org/study_material_new_paper_details.php?c=intermediate&language=English",Final:"https://boslive.icai.org/study_material_new_paper_details.php?c=final&language=English"};
+    const finalAuditChapters=["Chapter 1: Quality Control","Chapter 2: General Auditing Principles and Auditors Responsibilities","Chapter 3: Audit Planning, Strategy and Execution","Chapter 4: Materiality, Risk Assessment and Internal Control","Chapter 5: Audit Evidence","Chapter 6: Completion and Review","Chapter 7: Reporting","Chapter 8: Specialised Areas","Chapter 9: Related Services","Chapter 10: Review of Financial Information","Chapter 11: Prospective Financial Information and Other Assurance Services","Chapter 12: Digital Auditing & Assurance","Chapter 13: Group Audits","Chapter 14: Special Features of Audit of Banks & Non-Banking Financial Companies","Chapter 15: Overview of Audit of Public Sector Undertakings","Chapter 16: Internal Audit","Chapter 17: Due Diligence, Investigation & Forensic Accounting","Chapter 18: Sustainable Development Goals (SDG) & Environment, Social and Governance (ESG) Assurance","Chapter 19: Professional Ethics & Liabilities of Auditors"];
     const level=new URLSearchParams(location.search).get("level")||"";
     const levelPage=$("#revisionLevelPage"),chapterPage=$("#revisionChapterPage");
     if(!levelOptions[level]){if(levelPage)levelPage.hidden=false;if(chapterPage)chapterPage.hidden=true;return}
@@ -527,7 +529,7 @@
       if(!name){chapter.replaceChildren(new Option("Choose a subject first",""));chapter.disabled=true;official.href=materialUrls[level];official.textContent="Open official ICAI study material ↗";if(publishedSection)publishedSection.hidden=true;return}
       chapter.replaceChildren(new Option("Loading ICAI chapters…",""));chapter.disabled=true;
       try{
-        const params=new URLSearchParams({mode:"chapters",level,subjects:canonical}),response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}}),result=await response.json().catch(()=>({}));
+        const params=new URLSearchParams({mode:"chapters",level,subject:canonical}),response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}}),result=await response.json().catch(()=>({}));
         if(request!==chapterRequest)return;
         const outlines=response.ok&&Array.isArray(result.outlines)?result.outlines:[],outline=outlines.find(item=>Array.isArray(item.chapters)&&item.chapters.length);
         const names=[...new Set(outlines.flatMap(item=>Array.isArray(item.chapters)?item.chapters:[]).map(item=>String(item).trim()).filter(Boolean))];
@@ -556,13 +558,13 @@
     generate.addEventListener("click",async()=>{
       const chapterName=chapter.value,subjectName=subject.value;
       if(!chapterName||!subjectName)return;
-      const buttonText=generate.textContent;generate.disabled=true;generate.textContent="Gemini is preparing your PDFs…";msg("#revisionGenerateStatus","Gemini is preparing the chapter summary and mind map. This may take up to 2 minutes.");
+      const buttonText=generate.textContent;generate.disabled=true;generate.textContent="CA Junction is preparing your PDFs…";msg("#revisionGenerateStatus","Preparing your chapter summary and mind map. This may take up to 2 minutes.");
       try{
         const {data:{session}}=await sb.auth.getSession();
         if(!session?.access_token){location.href="account.html?next="+encodeURIComponent("revision.html?level="+level+"&subject="+encodeURIComponent(subjectName));return}
         const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl})});
         const result=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(result.error||"Gemini could not create these PDFs.");
+        if(!response.ok)throw new Error(result.error||"CA Junction could not create these PDFs.");
         const map=mapText(result.mind_map),meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
         const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,result.summary)),mapUrl=URL.createObjectURL(makePdf(chapterName+" — Mind Map",meta,map));
         generatedUrls.push(summaryUrl,mapUrl);
@@ -572,7 +574,7 @@
         $("#generatedMindMapTitle").textContent=chapterName+" — Mind Map";
         $("#revisionGeneratedFiles").hidden=false;
         msg("#revisionGenerateStatus","Both PDFs are ready. Check them against the linked ICAI material before relying on exam-specific details.");
-      }catch(error){msg("#revisionGenerateStatus",error.message||"Gemini could not create these PDFs. Please try again.","error")}
+      }catch(error){msg("#revisionGenerateStatus",error.message||"CA Junction could not create these PDFs. Please try again.","error")}
       finally{generate.disabled=!chapter.value;generate.textContent=buttonText}
     });
     if(!ready()){msg("#revisionGenerateStatus",backendMessage,"error");generate.disabled=true}
@@ -1172,20 +1174,20 @@
       event.preventDefault();
       const level=$("#adminRevisionLevel").value,subject=$("#adminRevisionSubject").value,chapter=$("#adminRevisionChapter").value;
       if(!chapter){msg("#revisionPackStatus","Choose an ICAI chapter first.","error");return}
-      const button=$("#generateRevisionPack");button.disabled=true;msg("#revisionPackStatus","Gemini is creating the summary and mind map drafts…");
+      const button=$("#generateRevisionPack");button.disabled=true;msg("#revisionPackStatus","Creating the chapter summary and mind map drafts…");
       try{
         const {data:{session}}=await sb.auth.getSession();
         if(!session?.access_token)throw new Error("Your admin session expired. Please sign in again.");
         const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject,chapter,source_url:revisionSourceUrl})});
         const result=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(result.error||"Could not create the chapter drafts.");
+        if(!response.ok)throw new Error(result.error||"CA Junction could not create the chapter drafts.");
         revisionDraftMeta={level,subject,chapter,sourceUrl:result.source_url||revisionSourceUrl};
         $("#revisionSummaryDraft").value=result.summary||"";
         $("#revisionMindMapDraft").value=revisionMapText(result.mind_map);
         $("#revisionDraftPanel").hidden=false;
         msg("#revisionPackStatus","Drafts are ready. Review or edit them, then save both PDFs.");
         $("#revisionDraftPanel").scrollIntoView({behavior:"smooth",block:"nearest"});
-      }catch(error){msg("#revisionPackStatus",error.message||"Could not create the chapter drafts.","error")}
+      }catch(error){msg("#revisionPackStatus",error.message||"CA Junction could not create the chapter drafts.","error")}
       finally{button.disabled=false}
     }
     function pdfText(value){
