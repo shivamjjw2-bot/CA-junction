@@ -1038,7 +1038,145 @@
       Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
     };
     const adminChapterAliases={"Taxation — Income-tax Law":"Taxation","Taxation — Goods and Services Tax":"Taxation","Financial Management":"Financial Management and Strategic Management","Strategic Management":"Financial Management and Strategic Management","Integrated Business Solutions":"Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"};
-    const adminCanonical=subject=>adminChapterAliases[subject]||subject;
+        const adminCanonical=subject=>adminChapterAliases[subject]||subject;
+    const revisionMaterialUrls={Foundation:"https://boslive.icai.org/study_material_new_paper_details.php?c=foundation&language=English",Intermediate:"https://boslive.icai.org/study_material_new_paper_details.php?c=intermediate&language=English",Final:"https://boslive.icai.org/study_material_new_paper_details.php?c=final&language=English"};
+    let revisionSourceUrl="",revisionDraftMeta=null;
+    const fillRevisionAdminSubjects=()=>{
+      const level=$("#adminRevisionLevel"),subject=$("#adminRevisionSubject"),chapter=$("#adminRevisionChapter");
+      if(!level||!subject||!chapter)return;
+      const names=adminSubjectsByLevel[level.value]||[];
+      subject.replaceChildren(...names.map(name=>new Option(name,name)));
+      chapter.replaceChildren(new Option("Loading ICAI chapters…",""));chapter.disabled=true;
+      loadAdminRevisionChapters();
+    };
+    async function loadAdminRevisionChapters(){
+      const level=$("#adminRevisionLevel")?.value,subject=$("#adminRevisionSubject")?.value,chapter=$("#adminRevisionChapter");
+      const link=$("#adminRevisionIcaiLink");
+      if(!level||!subject||!chapter)return;
+      const params=new URLSearchParams({mode:"chapters",level,subjects:adminCanonical(subject)});
+      chapter.disabled=true;chapter.replaceChildren(new Option("Loading ICAI chapters…",""));
+      try{
+        const response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}});
+        const result=await response.json().catch(()=>({}));
+        const outlines=response.ok&&Array.isArray(result.outlines)?result.outlines:[];
+        const outline=outlines.find(item=>item.subject&&item.chapters?.length);
+        const names=[...new Set(outlines.flatMap(item=>Array.isArray(item.chapters)?item.chapters:[]).map(name=>String(name).trim()).filter(Boolean))];
+        revisionSourceUrl=outline?.url||revisionMaterialUrls[level];
+        if(link){link.href=revisionSourceUrl;link.hidden=false}
+        chapter.replaceChildren(...(names.length?names.map(name=>new Option(name,name)):[new Option("ICAI chapter list unavailable","")]));
+        chapter.disabled=!names.length;
+        if(!names.length)msg("#revisionPackStatus","Could not load the official ICAI chapter list. Please try again.","error");
+      }catch{
+        chapter.replaceChildren(new Option("Could not load ICAI chapters",""));chapter.disabled=true;
+        msg("#revisionPackStatus","Could not load the official ICAI chapter list. Please try again.","error");
+      }
+    }
+    function revisionMapText(map){
+      return "Central topic: "+map.topic+"\n\n"+map.branches.map((branch,index)=>(index+1)+". "+branch.title+"\n"+branch.points.map(point=>"   - "+point).join("\n")).join("\n\n");
+    }
+    async function generateRevisionDraft(event){
+      event.preventDefault();
+      const level=$("#adminRevisionLevel").value,subject=$("#adminRevisionSubject").value,chapter=$("#adminRevisionChapter").value;
+      if(!chapter){msg("#revisionPackStatus","Choose an ICAI chapter first.","error");return}
+      const button=$("#generateRevisionPack");button.disabled=true;msg("#revisionPackStatus","Creating the summary and mind map drafts…");
+      try{
+        const {data:{session}}=await sb.auth.getSession();
+        if(!session?.access_token)throw new Error("Your admin session expired. Please sign in again.");
+        const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject,chapter,source_url:revisionSourceUrl})});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(result.error||"Could not create the chapter drafts.");
+        revisionDraftMeta={level,subject,chapter,sourceUrl:result.source_url||revisionSourceUrl};
+        $("#revisionSummaryDraft").value=result.summary||"";
+        $("#revisionMindMapDraft").value=revisionMapText(result.mind_map);
+        $("#revisionDraftPanel").hidden=false;
+        msg("#revisionPackStatus","Drafts are ready. Review or edit them, then save both PDFs.");
+        $("#revisionDraftPanel").scrollIntoView({behavior:"smooth",block:"nearest"});
+      }catch(error){msg("#revisionPackStatus",error.message||"Could not create the chapter drafts.","error")}
+      finally{button.disabled=false}
+    }
+    function pdfText(value){
+      return String(value||"").replace(/•/g,"-").replace(/→|➜/g,"->").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g," ");
+    }
+    function makeRevisionPdf(title,meta,body){
+      const wrap=(line,width)=>{
+        const words=pdfText(line).split(/\s+/);const out=[];let current="";
+        words.forEach(word=>{if(!word)return;if((current+" "+word).trim().length>width&&current){out.push(current);current=word}else current=(current?current+" ":"")+word});
+        out.push(current);return out;
+      };
+      let lines=[];
+      String(body||"").split(/\r?\n/).forEach(line=>{if(!line.trim()){lines.push("");return}lines.push(...wrap(line,88))});
+      const pageLines=[];for(let i=0;i<lines.length||!pageLines.length;i+=48)pageLines.push(lines.slice(i,i+48));
+      const objects=[];
+      objects[1]="<< /Type /Catalog /Pages 2 0 R >>";
+      objects[2]="<< /Type /Pages /Kids ["+pageLines.map((_,i)=>(5+i*2)+" 0 R").join(" ")+"] /Count "+pageLines.length+" >>";
+      objects[3]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+      pageLines.forEach((page,i)=>{
+        const stream=["BT","/F1 17 Tf","50 790 Td","("+pdfText(title).replace(/([\\()])/g,"\\$1")+") Tj","/F1 9 Tf","0 -23 Td","("+pdfText(meta).replace(/([\\()])/g,"\\$1")+") Tj","0 -25 Td","/F1 10 Tf"];
+        page.forEach(line=>{stream.push("("+pdfText(line).replace(/([\\()])/g,"\\$1")+") Tj","0 -14 Td")});
+        stream.push("ET");
+        const content=stream.join("\n");
+        const contentId=4+i*2,pageId=5+i*2;
+        objects[contentId]="<< /Length "+content.length+" >>\nstream\n"+content+"\nendstream";
+        objects[pageId]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents "+contentId+" 0 R >>";
+      });
+      let pdf="%PDF-1.4\n",offsets=[0];
+      for(let i=1;i<objects.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\n"+objects[i]+"\nendobj\n"}
+      const xref=pdf.length;pdf+="xref\n0 "+objects.length+"\n0000000000 65535 f \n";
+      for(let i=1;i<objects.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";
+      pdf+="trailer\n<< /Size "+objects.length+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";
+      return new Blob([pdf],{type:"application/pdf"});
+    }
+    async function saveRevisionPdfs(){
+      if(!revisionDraftMeta){msg("#revisionPackStatus","Generate a chapter draft first.","error");return}
+      const summary=$("#revisionSummaryDraft").value.trim(),mindMap=$("#revisionMindMapDraft").value.trim();
+      if(summary.length<40||mindMap.length<40){msg("#revisionPackStatus","Add more detail to both drafts before saving.","error");return}
+      const button=$("#publishRevisionPack");button.disabled=true;msg("#revisionPackStatus","Uploading both PDFs…");
+      const uploaded=[];
+      try{
+        const userResult=await sb.auth.getUser(),user=userResult.data?.user;
+        if(userResult.error||!user)throw new Error("Your admin session expired. Please sign in again.");
+        const chapterSlug=revisionDraftMeta.chapter.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"chapter";
+        const levelSlug=revisionDraftMeta.level.toLowerCase();
+        const pack=[
+          {kind:"summary",category:"revision",title:revisionDraftMeta.chapter+" — Summary",body:summary},
+          {kind:"mind map",category:"mind_map",title:revisionDraftMeta.chapter+" — Mind Map",body:mindMap}
+        ];
+        for(const item of pack){
+          const file=makeRevisionPdf(item.title,revisionDraftMeta.level+" · "+revisionDraftMeta.subject+" · "+revisionDraftMeta.chapter,item.body);
+          const path="admin/revision-packs/"+levelSlug+"/"+chapterSlug+"/"+item.kind.replace(/ /g,"_")+"_"+crypto.randomUUID()+".pdf";
+          const {error:uploadError}=await sb.storage.from("ca-materials").upload(path,file,{contentType:"application/pdf",upsert:false});
+          if(uploadError)throw uploadError;
+          uploaded.push({item,path});
+        }
+        for(const entry of uploaded){
+          const marker="CAJ_AI_REVISION_V1|"+entry.item.kind+"|";
+          const rowData={title:entry.item.title,description:marker+"AI-generated study aid. Verify with the linked official ICAI material.",level:revisionDraftMeta.level,subject:revisionDraftMeta.subject,chapter:revisionDraftMeta.chapter,category:entry.item.category,file_bucket:"ca-materials",file_path:entry.path,external_url:revisionDraftMeta.sourceUrl,is_premium:false,is_published:true,created_by:user.id};
+          const {data:oldRows,error:findError}=await sb.from("materials").select("id,file_bucket,file_path").eq("level",revisionDraftMeta.level).eq("subject",revisionDraftMeta.subject).eq("chapter",revisionDraftMeta.chapter).eq("category",entry.item.category).like("description",marker+"%").limit(1);
+          if(findError)throw findError;
+          if(oldRows?.length){
+            const {error:updateError}=await sb.from("materials").update(rowData).eq("id",oldRows[0].id);
+            if(updateError)throw updateError;
+            entry.old=oldRows[0];
+          }else{
+            const {error:insertError}=await sb.from("materials").insert(rowData);
+            if(insertError)throw insertError;
+          }
+        }
+        for(const entry of uploaded)if(entry.old?.file_bucket&&entry.old?.file_path)await sb.storage.from(entry.old.file_bucket).remove([entry.old.file_path]);
+        msg("#revisionPackStatus","Both PDFs are published and visible in the student chapter page.");
+        loadAdminResources();loadAdminMindMaps();
+      }catch(error){
+        for(const entry of uploaded)await sb.storage.from("ca-materials").remove([entry.path]);
+        msg("#revisionPackStatus",error.message||"The PDFs could not be saved. Please try again.","error");
+      }finally{button.disabled=false}
+    }
+    const revisionForm=$("#adminRevisionPackForm");
+    revisionForm?.addEventListener("submit",generateRevisionDraft);
+    $("#publishRevisionPack")?.addEventListener("click",saveRevisionPdfs);
+    $("#adminRevisionLevel")?.addEventListener("change",fillRevisionAdminSubjects);
+    $("#adminRevisionSubject")?.addEventListener("change",loadAdminRevisionChapters);
+    $("#adminRevisionChapter")?.addEventListener("change",()=>{const link=$("#adminRevisionIcaiLink");if(link){link.href=revisionSourceUrl||revisionMaterialUrls[$("#adminRevisionLevel").value];link.hidden=false}});
+    fillRevisionAdminSubjects();
     $("#resourceLevel")?.addEventListener("change",loadAdminResourceSubjects);
     ["adminResourceLevelFilter","adminResourceCategoryFilter"].forEach(id=>$("#"+id)?.addEventListener("change",loadAdminResources));
     $("#adminResourceSearch")?.addEventListener("input",loadAdminResources);
@@ -1216,7 +1354,7 @@
       });
     }
         async function loadAdminResources(){
-      const {data,error}=await sb.from("materials").select("id,title,level,subject,chapter,category,is_premium,is_published,file_bucket,file_path,student_submission_id,contributor_name,external_url").neq("category","icai_link").order("created_at",{ascending:false}).limit(500);
+      const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,category,is_premium,is_published,file_bucket,file_path,student_submission_id,contributor_name,external_url").neq("category","icai_link").order("created_at",{ascending:false}).limit(500);
       const list=$("#adminResources");if(!list)return;list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load resources.":"No resources yet.");return}
       const level=$("#adminResourceLevelFilter")?.value||"",category=$("#adminResourceCategoryFilter")?.value||"",search=($("#adminResourceSearch")?.value||"").trim().toLowerCase();
       const rows=data.filter(row=>(!level||row.level===level||row.level==="All")&&(!category||row.category===category)&&(!search||[row.title,row.subject,row.chapter,row.contributor_name].some(value=>String(value||"").toLowerCase().includes(search))));
@@ -1226,6 +1364,15 @@
         if(row.external_url){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
         const actions=document.createElement("div");actions.className="row-actions";const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#resourceStatus",error?error.message:"Resource status updated.",error?"error":"success");loadAdminResources()});
         const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{remove.disabled=true;await deleteManagedMaterial(row,"#resourceStatus","Resource");loadAdminResources()});
+        if((row.category==="revision"||row.category==="mind_map")&&String(row.description||"").startsWith("CAJ_AI_REVISION_V1|")){
+          const update=document.createElement("button");update.className="btn";update.type="button";update.textContent="Edit / update PDFs";
+          update.addEventListener("click",async()=>{
+            $("#adminRevisionLevel").value=row.level;fillRevisionAdminSubjects();$("#adminRevisionSubject").value=row.subject;
+            await loadAdminRevisionChapters();$("#adminRevisionChapter").value=row.chapter;revisionDraftMeta={level:row.level,subject:row.subject,chapter:row.chapter,sourceUrl:revisionSourceUrl};
+            $("#revisionDraftPanel").hidden=true;$("#admin-ai-revision-pack").scrollIntoView({behavior:"smooth",block:"start"});
+            msg("#revisionPackStatus","Chapter selected. Generate new drafts, edit them, then save to replace both PDFs.");
+          });actions.append(update)
+        }
         actions.append(button,remove);item.append(info,actions);list.append(item);
       });
     }
