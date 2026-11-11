@@ -29,7 +29,9 @@ function normalizeOutput(output){
     icon:["book","checklist","balance","process"].includes(branch?.icon)?branch.icon:"book",
     points:Array.isArray(branch?.points)?branch.points.slice(0,6).map(point=>cleanText(point,420)).filter(Boolean):[]
   })).filter(branch=>branch.title&&branch.points.length):[];
-  if(summary.split(/\s+/).length<700||!topic||branches.length<5||branches.some(branch=>!branch.mnemonic||!branch.visual_cue))throw new Error("quality");
+  if(summary.split(/\s+/).length<700)throw new Error("summary_too_short");
+  if(!topic||branches.length<5)throw new Error("incomplete_map");
+  if(branches.some(branch=>!branch.mnemonic||!branch.visual_cue))throw new Error("missing_memory_aids");
   return{summary,mind_map:{topic,branches}};
 }
 export async function onRequestPost({request,env}){
@@ -81,40 +83,47 @@ export async function onRequestPost({request,env}){
     "Use clear exam revision language. Do not invent section numbers, amendments, case citations, or say you read the linked page. Tell the student to verify law, standards, limits, dates, and syllabus-edition details against official ICAI material.",
     "Return only JSON with this shape: {summary:string, mind_map:{topic:string, branches:[{title:string, mnemonic:string, visual_cue:string, icon:string, points:string[]}]}}."
   ].join("\n");
-  let lastStatus=0,lastProviderStatus="";
+  let lastStatus=0,lastProviderStatus="",lastFailure="",repair="";
+  const deadline=Date.now()+110000;
   for(const model of GEMINI_MODELS){
+    if(deadline-Date.now()<5000)break;
     let response,result;
     const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:12000,temperature:0.2};
     if(model.startsWith("gemini-3."))generationConfig.thinkingConfig={thinkingLevel:"low"};
     try{
       response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
         method:"POST",headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},
-        body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig}),
-        signal:AbortSignal.timeout(45000)
+        body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt+repair}]}],generationConfig}),
+        signal:AbortSignal.timeout(Math.min(75000,deadline-Date.now()))
       });
     }catch(error){
-      lastStatus=503;
+      lastStatus=503;lastFailure="timeout";
       console.warn("AI revision model unavailable",JSON.stringify({model,errorName:error?.name||"Error"}));
       continue;
     }
     result=await response.json().catch(()=>({}));
     if(!response.ok){
-      lastStatus=response.status;lastProviderStatus=result?.error?.status||"";
+      lastFailure="provider";lastStatus=response.status;lastProviderStatus=result?.error?.status||"";
       console.warn("AI revision model request failed; trying fallback",JSON.stringify({model,httpStatus:response.status,providerStatus:lastProviderStatus}));
       if(response.status===401||response.status===403)return json({error:"CA Junction could not reach its study aid service. Please try again later."},503);
       continue;
     }
-    const raw=result?.candidates?.[0]?.content?.parts?.map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
-    if(!raw){lastStatus=502;continue}
+    const candidate=result?.candidates?.[0];
+    if(candidate?.finishReason==="MAX_TOKENS"){lastStatus=502;lastFailure="truncated";repair="\nKeep the summary near 1400 words and use 5 compact but complete memory-map branches. Complete the JSON within the output limit.";continue;}
+    const raw=candidate?.content?.parts?.filter(part=>!part.thought).map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
+    if(!raw){lastStatus=502;lastFailure="empty";continue}
     try{
       const output=normalizeOutput(parseOutput(raw));
       return json({level,subject,chapter,source_url:officialUrl,...output});
-    }catch{
-      lastStatus=502;
-      console.warn("AI revision response did not match expected chapter pack",JSON.stringify({model,finishReason:result?.candidates?.[0]?.finishReason||"unknown"}));
+    }catch(error){
+      lastStatus=502;lastFailure=error instanceof SyntaxError?"invalid_json":error.message;
+      repair="\nReturn complete valid JSON. The summary must contain at least 700 words; include at least 5 branches, each with both mnemonic and visual_cue. Do not omit any required fields.";
+      console.warn("AI revision response did not match expected chapter pack",JSON.stringify({model,reason:lastFailure,finishReason:candidate?.finishReason||"unknown"}));
     }
   }
   if(lastStatus===429||lastProviderStatus==="RESOURCE_EXHAUSTED")return json({error:"CA Junction is busy right now. Please try again shortly."},429);
   if(lastStatus===401||lastStatus===403)return json({error:"CA Junction could not reach its study aid service. Please try again later."},503);
-  return json({error:"CA Junction could not create this chapter summary and mind map. Please try again shortly."},502);
+  if(lastFailure==="timeout")return json({error:"This detailed chapter took too long to prepare. Please retry.",code:"PREPARATION_TIMEOUT"},504);
+  if(["summary_too_short","incomplete_map","missing_memory_aids","invalid_json","truncated","empty"].includes(lastFailure))return json({error:"CA Junction received an incomplete chapter pack. Please retry.",code:"INCOMPLETE_CHAPTER_PACK"},502);
+  return json({error:"CA Junction could not create this chapter summary and mind map. Please try again shortly.",code:"GENERATION_UNAVAILABLE"},502);
 }
