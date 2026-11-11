@@ -503,7 +503,7 @@
     const levelPage=$("#revisionLevelPage"),chapterPage=$("#revisionChapterPage");
     if(!levelOptions[level]){if(levelPage)levelPage.hidden=false;if(chapterPage)chapterPage.hidden=true;return}
     if(levelPage)levelPage.hidden=true;if(chapterPage)chapterPage.hidden=false;
-    $("#revisionLevelHeading").textContent="CA "+level;
+    $("#revisionHeroIntro").textContent="Select a subject and chapter to create your summary and mind map PDFs.";
     const subject=$("#revisionSubjectFilter"),chapter=$("#revisionChapterFilter"),official=$("#revisionIcaiLink"),generate=$("#generateRevisionPack");
     const publishedGrid=$("#adminResourcesGrid"),publishedSection=$("#revisionPublishedSection");
     $("#openPublishedPdfs").addEventListener("click",()=>{$("#publishedPdfWindow").showModal()});
@@ -592,9 +592,9 @@
     generate.addEventListener("click",async()=>{
       const chapterName=chapter.value,subjectName=subject.value;
       if(!chapterName||!subjectName)return;
-      const buttonText=generate.textContent;generate.disabled=true;generate.textContent="CA Junction is preparing your PDFs…";msg("#revisionGenerateStatus","Preparing your chapter summary and mind map. This may take up to 2 minutes.");
+      const buttonText=generate.textContent;generate.disabled=true;generate.textContent="CA Junction is preparing your PDFs…";msg("#revisionGenerateStatus","");
       const timer=$("#revisionElapsed"),started=Date.now();timer.hidden=false;
-      const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent=String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0")+" elapsed";};
+      const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent="Preparing your PDFs · this can take up to 2 minutes · "+String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");};
       tick();const timerId=setInterval(tick,1000);
       try{
         const {data:{session}}=await sb.auth.getSession();
@@ -612,7 +612,7 @@
         $("#revisionGeneratedFiles").hidden=false;
         msg("#revisionGenerateStatus","Both PDFs are ready. Check them against the linked ICAI material before relying on exam-specific details.");
       }catch(error){msg("#revisionGenerateStatus",error.message||"CA Junction could not create these PDFs. Please try again.","error")}
-      finally{clearInterval(timerId);tick();generate.disabled=!chapter.value;generate.textContent=buttonText}
+      finally{clearInterval(timerId);timer.hidden=true;generate.disabled=!chapter.value;generate.textContent=buttonText}
     });
     if(!ready()){msg("#revisionGenerateStatus",backendMessage,"error");generate.disabled=true}
   }
