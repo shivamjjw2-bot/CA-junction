@@ -341,7 +341,7 @@
     const studentGrid=$("#studentNotesGrid");
     const adminGrid=$("#adminResourcesGrid");
     const revisionLevelApps=$("#revisionLevelApps"),revisionResources=$("#revisionResources");
-    const revisionLevelFilter=$("#revisionLevelFilter"),revisionSubjectFilter=$("#revisionSubjectFilter"),revisionChapterFilter=$("#revisionChapterFilter"),revisionCount=$("#revisionResourceCount"),revisionIcaiLink=$("#revisionIcaiLink");
+    const revisionLevelFilter=$("#revisionLevelFilter"),revisionSubjectFilter=$("#revisionSubjectFilter"),revisionChapterFilter=$("#revisionChapterFilter"),revisionCount=$("#revisionResourceCount"),revisionIcaiLink=$("#revisionIcaiLink"),revisionLevelTabs=$("[data-revision-level]");
     const requestedLevel=new URLSearchParams(location.search).get("level")||"";
     const savedLevel=revisionLevelApps?requestedLevel:(requestedLevel||localStorage.getItem("caJunctionLevel")||"");
     if(levelFilter&&["Foundation","Intermediate","Final"].includes(savedLevel))levelFilter.value=savedLevel;
@@ -368,12 +368,12 @@
         if(row.category==="student_note"){const icon=document.createElement("span");icon.className="note-app-icon";icon.setAttribute("aria-hidden","true");icon.textContent="📄";card.append(icon)}
         const title=document.createElement("h3");title.textContent=row.title;
         card.append(title);
-        if((revisionLevelApps||revisionLevelFilter)&&grid===adminGrid){const kind=document.createElement("small");kind.className="resource-kind";kind.textContent=({revision:"Summary chart",mind_map:"Mind map",formula:"Formula sheet"})[row.category]||"Study resource";card.append(kind)}
+        if((revisionLevelApps||revisionLevelFilter)&&grid===adminGrid){const kind=document.createElement("small");kind.className="resource-kind";kind.textContent=({revision:"Chapter summary PDF",mind_map:"Chapter mind map PDF",formula:"Formula sheet"})[row.category]||"Study resource";card.append(kind)}
         if(row.category!=="student_note"&&row.is_premium){const access=document.createElement("small");access.className="resource-access premium";access.textContent="Premium";card.append(access)}
         if(row.category==="student_note"){
           const detail=document.createElement("p");detail.textContent=row.description||"";if(detail.textContent)card.append(detail);
         }else{
-          const detail=document.createElement("p");detail.textContent=revisionLevelApps&&grid===adminGrid?(row.description||row.subject||""):(row.description||[row.subject,row.level].filter(Boolean).join(" · "));if(detail.textContent)card.append(detail);
+          const detail=document.createElement("p");detail.textContent=grid===adminGrid&&String(row.description||"").startsWith("CAJ_AI_REVISION_V1|")?"AI-created study aid. Verify with the official ICAI chapter material.":(revisionLevelApps&&grid===adminGrid?(row.description||row.subject||""):(row.description||[row.subject,row.level].filter(Boolean).join(" · ")));if(detail.textContent)card.append(detail);
         }
         if(row.category==="student_note"){
           const author=document.createElement("small");author.className="note-author";author.textContent="Shared by "+(row.contributor_name||"CA Junction student");card.append(author);
@@ -381,10 +381,9 @@
           if(row.linkedin_url){try{const profileUrl=new URL(row.linkedin_url);if(profileUrl.protocol==="https:"&&(profileUrl.hostname==="linkedin.com"||profileUrl.hostname.endsWith(".linkedin.com"))){const profile=document.createElement("a");profile.className="link";profile.href=profileUrl.href;profile.target="_blank";profile.rel="noopener";profile.textContent="LinkedIn profile ↗";card.append(profile)}}catch{}}
         }
         const meta=document.createElement("small");meta.textContent=row.category==="student_note"?[row.level,row.subject&&("Subject: "+row.subject),row.chapter&&("Chapter: "+row.chapter)].filter(Boolean).join(" · "):((revisionLevelApps||revisionLevelFilter)&&grid===adminGrid?[row.level,row.subject,row.chapter].filter(Boolean):[row.level,row.subject].filter(Boolean)).join(" · ");if(meta.textContent)card.append(meta);
-        const action=row.external_url?document.createElement("a"):document.createElement("button");
-        action.className="link";
-        if(row.external_url){action.href=row.external_url;action.target="_blank";action.rel="noopener";action.textContent="Open PDF ↗"}
-        else{action.type="button";action.textContent="Open PDF";action.addEventListener("click",()=>downloadMaterial(row,statusId))}
+        const action=document.createElement("button");action.className="link";action.type="button";
+        if(row.file_bucket&&row.file_path){action.textContent="Open PDF ↗";action.addEventListener("click",()=>downloadMaterial(row,statusId))}
+        else if(row.external_url){action.textContent="Open resource ↗";action.addEventListener("click",()=>window.open(row.external_url,"_blank","noopener"))}
         card.append(action);
         if(row.category==="student_note"&&currentUserId&&row.submitted_by===currentUserId&&row.student_submission_id){
           const remove=document.createElement("button");remove.type="button";remove.className="link remove-note";remove.textContent="Remove my PDF";
@@ -408,7 +407,7 @@
       const selected=revisionLevelFilter?.value?[revisionLevelFilter.value]:revisionLevels;
       const names=[...new Set(selected.flatMap(level=>subjectsByLevel[level]||[]))];
       if(revisionSubjectFilter){revisionSubjectFilter.replaceChildren(new Option("All subjects",""),...names.map(name=>new Option(name,name)));if(names.includes(current))revisionSubjectFilter.value=current}
-      if(revisionIcaiLink){const chosen=revisionLevelFilter?.value||"";revisionIcaiLink.hidden=!chosen;if(chosen)revisionIcaiLink.href=materialUrls[chosen]}
+      if(revisionIcaiLink){const chosen=revisionLevelFilter?.value||"";revisionIcaiLink.hidden=!chosen;if(chosen){revisionIcaiLink.href=materialUrls[chosen];revisionIcaiLink.textContent="Open official ICAI material ↗"}}
       if(revisionChapterFilter&&!revisionSubjectFilter?.value){revisionChapterFilter.replaceChildren(new Option("All chapters",""));revisionChapterFilter.disabled=true}
     };
     let revisionChapterRequest=0;
@@ -427,10 +426,13 @@
           const response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}});
           const result=await response.json().catch(()=>({}));
           if(!response.ok)return[];
-          return Array.isArray(result.outlines)?result.outlines.flatMap(item=>Array.isArray(item.chapters)?item.chapters:[]):[];
+          return Array.isArray(result.outlines)?result.outlines:[];
         }));
         if(requestId!==revisionChapterRequest)return;
-        const chapters=[...new Set(outlines.flat().map(name=>String(name).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+        const chapterNames=outlines.flatMap(items=>Array.isArray(items)?items.flatMap(item=>Array.isArray(item.chapters)?item.chapters:[]):[]);
+        const chapters=[...new Set(chapterNames.map(name=>String(name).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+        const officialOutline=outlines.flatMap(items=>Array.isArray(items)?items:[]).find(item=>item.url);
+        if(revisionIcaiLink&&officialOutline?.url){revisionIcaiLink.href=officialOutline.url;revisionIcaiLink.textContent="Open official ICAI material for "+subjectName+" ↗"}
         revisionChapterFilter.replaceChildren(new Option("All chapters",""),...chapters.map(name=>new Option(name,name)));
         revisionChapterFilter.disabled=!chapters.length;
         if(chapters.includes(current))revisionChapterFilter.value=current;
@@ -467,10 +469,13 @@
       if(levelLabel)levelLabel.textContent=studentGrid?(activeLevel()?"Showing "+activeLevel()+" student PDFs.":"Showing student PDFs across all levels."):(activeLevel()?"Showing "+activeLevel()+" resources.":"Choose your CA level on the homepage.");
       const count=$("#studentPdfCount");if(count)count.textContent=students.length+" PDF"+(students.length===1?"":"s");
       draw(studentGrid,students,activeLevel()?"Student contributions are on their way! No PDFs have been shared for this level yet. Be the first to help another CA student.":"Student contributions are on their way! No PDFs have been shared yet. Be the first to help another CA student.","#materialStatus");
-      draw(adminGrid,admin,revisionLevelApps?"No resources published for this level yet.":"No summary charts or mind maps have been uploaded for this level yet.","#adminResourcesStatus");
+      draw(adminGrid,admin,revisionLevelApps?"No resources published for this level yet.":(revisionSubjectFilter?.value&&revisionChapterFilter?.value?"No summary or mind map PDFs have been uploaded for this chapter yet.":"Choose a subject and chapter to find its summary and mind map PDFs."),"#adminResourcesStatus");
     };
     revisionSubjects();
-    revisionLevelFilter?.addEventListener("change",()=>{if(revisionSubjectFilter)revisionSubjectFilter.value="";if(revisionChapterFilter)revisionChapterFilter.value="";revisionSubjects();loadRevisionChapters().then(render);render()});
+    const syncRevisionLevelTabs=()=>revisionLevelTabs.forEach(tab=>{const active=tab.dataset.revisionLevel===revisionLevelFilter?.value;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active))});
+    syncRevisionLevelTabs();
+    revisionLevelTabs.forEach(tab=>tab.addEventListener("click",()=>{if(!revisionLevelFilter)return;revisionLevelFilter.value=tab.dataset.revisionLevel;revisionLevelFilter.dispatchEvent(new Event("change",{bubbles:true}))}));
+    revisionLevelFilter?.addEventListener("change",()=>{localStorage.setItem("caJunctionLevel",revisionLevelFilter.value);syncRevisionLevelTabs();if(revisionSubjectFilter)revisionSubjectFilter.value="";if(revisionChapterFilter)revisionChapterFilter.value="";revisionSubjects();loadRevisionChapters().then(render);render()});
     revisionSubjectFilter?.addEventListener("change",()=>{if(revisionChapterFilter)revisionChapterFilter.value="";loadRevisionChapters().then(render);render()});
     revisionChapterFilter?.addEventListener("change",render);
     levelFilter?.addEventListener("change",()=>{if(subjectFilter)subjectFilter.value="";if(chapterFilter)chapterFilter.value="";if(authorFilter)authorFilter.value="";render()});
