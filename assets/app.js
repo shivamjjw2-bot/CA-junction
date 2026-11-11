@@ -431,7 +431,7 @@
         if(requestId!==revisionChapterRequest)return;
         const chapterNames=outlines.flatMap(items=>Array.isArray(items)?items.flatMap(item=>Array.isArray(item.chapters)?item.chapters:[]):[]);
         let chapters=[...new Set(chapterNames.map(name=>String(name).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-        if(!chapters.length&&selectedLevels.includes("Final")&&canonical.toLowerCase().replace(/\\s+/g," ")==="advanced auditing, assurance and professional ethics")chapters=["Chapter 1: Quality Control","Chapter 2: General Auditing Principles and Auditors Responsibilities","Chapter 3: Audit Planning, Strategy and Execution","Chapter 4: Materiality, Risk Assessment and Internal Control","Chapter 5: Audit Evidence","Chapter 6: Completion and Review","Chapter 7: Reporting","Chapter 8: Specialised Areas","Chapter 9: Related Services","Chapter 10: Review of Financial Information","Chapter 11: Prospective Financial Information and Other Assurance Services","Chapter 12: Digital Auditing & Assurance","Chapter 13: Group Audits","Chapter 14: Special Features of Audit of Banks & Non-Banking Financial Companies","Chapter 15: Overview of Audit of Public Sector Undertakings","Chapter 16: Internal Audit","Chapter 17: Due Diligence, Investigation & Forensic Accounting","Chapter 18: Sustainable Development Goals (SDG) & Environment, Social and Governance (ESG) Assurance","Chapter 19: Professional Ethics & Liabilities of Auditors"];
+        if(!chapters.length&&selectedLevels.includes("Final")&&canonical.toLowerCase().replace(/\s+/g," ")==="advanced auditing, assurance and professional ethics")chapters=["Chapter 1: Quality Control","Chapter 2: General Auditing Principles and Auditors Responsibilities","Chapter 3: Audit Planning, Strategy and Execution","Chapter 4: Materiality, Risk Assessment and Internal Control","Chapter 5: Audit Evidence","Chapter 6: Completion and Review","Chapter 7: Reporting","Chapter 8: Specialised Areas","Chapter 9: Related Services","Chapter 10: Review of Financial Information","Chapter 11: Prospective Financial Information and Other Assurance Services","Chapter 12: Digital Auditing & Assurance","Chapter 13: Group Audits","Chapter 14: Special Features of Audit of Banks & Non-Banking Financial Companies","Chapter 15: Overview of Audit of Public Sector Undertakings","Chapter 16: Internal Audit","Chapter 17: Due Diligence, Investigation & Forensic Accounting","Chapter 18: Sustainable Development Goals (SDG) & Environment, Social and Governance (ESG) Assurance","Chapter 19: Professional Ethics & Liabilities of Auditors"];
         const officialOutline=outlines.flatMap(items=>Array.isArray(items)?items:[]).find(item=>item.url);
         if(revisionIcaiLink&&officialOutline?.url){revisionIcaiLink.href=officialOutline.url;revisionIcaiLink.textContent="Open official ICAI material for "+subjectName+" ↗"}
         revisionChapterFilter.replaceChildren(new Option("All chapters",""),...chapters.map(name=>new Option(name,name)));
@@ -1323,10 +1323,10 @@
       const list=$("#adminAiUsageUsers");if(!list)return;
       const {data,error}=await sb.rpc("admin_ai_mcq_usage_today");
       const total=$("#adminAiTotal");
-      if(error||!data){if(total)total.textContent="—";emptyRow(list,error?"Could not load Gemini MCQ usage. Apply the Gemini usage migration in Supabase.":"No usage data is available.");return}
+      if(error||!data){if(total)total.textContent="—";emptyRow(list,error?"Could not load AI practice usage. Apply the AI usage setup in Supabase.":"No usage data is available.");return}
       if(total)total.textContent=Number(data.request_count||0).toLocaleString("en-IN");
       const rows=Array.isArray(data.users)?data.users:[];
-      if(!rows.length){emptyRow(list,"No Gemini MCQ requests have been recorded today.");return}
+      if(!rows.length){emptyRow(list,"No AI practice requests have been recorded today.");return}
       list.replaceChildren();
       rows.forEach(row=>{
         const last=row.last_used_at?new Date(row.last_used_at).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"time unavailable";
