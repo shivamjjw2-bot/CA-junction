@@ -48,6 +48,7 @@ export async function onRequestPost({request,env}) {
     });
     const result=await aiResponse.json().catch(()=>({}));
     if(!aiResponse.ok){
+      console.error("AI MCQ Gemini request failed",JSON.stringify({httpStatus:aiResponse.status,providerStatus:result?.error?.status||null,providerCode:result?.error?.code||null}));
       if(aiResponse.status===429)return json({error:"Gemini’s free shared limit is busy or used for now. Please try again later."},429);
       if(aiResponse.status===403)return json({error:"Gemini free access is unavailable for this project. Please try again later."},503);
       return json({error:"Gemini could not create a question set right now. Please try again shortly."},502);
