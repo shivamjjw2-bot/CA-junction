@@ -2,9 +2,9 @@ const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:
 const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
 const AI_MODEL="@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-async function reserveAiNeurons(token,neurons){
+async function reserveAiNeurons(token,neurons,feature){
  try{
-  const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_neurons",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:JSON.stringify({p_neurons:neurons})});
+  const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_neurons",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:JSON.stringify({p_neurons:neurons,p_feature:feature})});
   if(!response.ok)return{ok:false,allowed:false};
   return{ok:true,allowed:(await response.json())===true};
  }catch{return{ok:false,allowed:false}}
@@ -82,7 +82,7 @@ export async function onRequestPost({request,env}){
  "Assign time separately to each subject session: 60–180 minutes for two sessions per day, 90–240 for one session.","Return compact JSON with all days in exact order and one short activity mode per session."].join("\n");
  const modes=["learn","practice","recall","revise","timed_test"],schema={type:"object",additionalProperties:false,properties:{schedule:{type:"array",items:{type:"object",additionalProperties:false,properties:{day:{type:"integer"},sessions:{type:"array",items:{type:"object",additionalProperties:false,properties:{subject_index:{type:"integer"},chapter_index:{type:"integer"},mode:{type:"string",enum:modes},study_minutes:{type:"integer"}},required:["subject_index","chapter_index","mode","study_minutes"]}}},required:["day","sessions"]}}},required:["schedule"]};
  if(prompt.length>16000)return json({error:"This plan request is too large for the free AI limit. Choose fewer subjects and try again."},413);
- const quota=await reserveAiNeurons(token,1500);
+ const quota=await reserveAiNeurons(token,1500,"ai_planner");
  if(!quota.ok)return json({error:"The free AI limit could not be checked, so no AI request was sent. Please try again later."},503);
  if(!quota.allowed)return json({error:"Today's shared 9,000-neuron AI allowance is used. It resets at midnight India time."},429);
  try{
