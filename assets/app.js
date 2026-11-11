@@ -1136,7 +1136,8 @@
       const summary=$("#revisionSummaryDraft").value.trim(),mindMap=$("#revisionMindMapDraft").value.trim();
       if(summary.length<40||mindMap.length<40){msg("#revisionPackStatus","Add more detail to both drafts before saving.","error");return}
       const button=$("#publishRevisionPack");button.disabled=true;msg("#revisionPackStatus","Uploading both PDFs…");
-      const uploaded=[];
+      const uploaded=[],insertedRows=[];
+      let published=false;
       try{
         const userResult=await sb.auth.getUser(),user=userResult.data?.user;
         if(userResult.error||!user)throw new Error("Your admin session expired. Please sign in again.");
@@ -1155,24 +1156,32 @@
         }
         for(const entry of uploaded){
           const marker="CAJ_AI_REVISION_V1|"+entry.item.kind+"|";
-          const rowData={title:entry.item.title,description:marker+"AI-generated study aid. Verify with the linked official ICAI material.",level:revisionDraftMeta.level,subject:revisionDraftMeta.subject,chapter:revisionDraftMeta.chapter,category:entry.item.category,file_bucket:"ca-materials",file_path:entry.path,external_url:revisionDraftMeta.sourceUrl,is_premium:false,is_published:true,created_by:user.id};
-          const {data:oldRows,error:findError}=await sb.from("materials").select("id,file_bucket,file_path").eq("level",revisionDraftMeta.level).eq("subject",revisionDraftMeta.subject).eq("chapter",revisionDraftMeta.chapter).eq("category",entry.item.category).like("description",marker+"%").limit(1);
+          const {data:oldRows,error:findError}=await sb.from("materials").select("id,file_bucket,file_path").eq("level",revisionDraftMeta.level).eq("subject",revisionDraftMeta.subject).eq("chapter",revisionDraftMeta.chapter).eq("category",entry.item.category).like("description",marker+"%").limit(20);
           if(findError)throw findError;
-          if(oldRows?.length){
-            const {error:updateError}=await sb.from("materials").update(rowData).eq("id",oldRows[0].id);
-            if(updateError)throw updateError;
-            entry.old=oldRows[0];
-          }else{
-            const {error:insertError}=await sb.from("materials").insert(rowData);
-            if(insertError)throw insertError;
+          entry.oldRows=oldRows||[];
+        }
+        for(const entry of uploaded){
+          const marker="CAJ_AI_REVISION_V1|"+entry.item.kind+"|";
+          const rowData={title:entry.item.title,description:marker+"AI-generated study aid. Verify with the linked official ICAI material.",level:revisionDraftMeta.level,subject:revisionDraftMeta.subject,chapter:revisionDraftMeta.chapter,category:entry.item.category,file_bucket:"ca-materials",file_path:entry.path,external_url:revisionDraftMeta.sourceUrl,is_premium:false,is_published:true,created_by:user.id};
+          const {data:newRow,error:insertError}=await sb.from("materials").insert(rowData).select("id").single();
+          if(insertError)throw insertError;
+          insertedRows.push(newRow.id);
+        }
+        published=true;
+        for(const entry of uploaded){
+          for(const old of entry.oldRows||[]){
+            const {error:deleteError}=await sb.from("materials").delete().eq("id",old.id);
+            if(!deleteError&&old.file_bucket&&old.file_path)await sb.storage.from(old.file_bucket).remove([old.file_path]);
           }
         }
-        for(const entry of uploaded)if(entry.old?.file_bucket&&entry.old?.file_path)await sb.storage.from(entry.old.file_bucket).remove([entry.old.file_path]);
         msg("#revisionPackStatus","Both PDFs are published and visible in the student chapter page.");
         loadAdminResources();loadAdminMindMaps();
       }catch(error){
-        for(const entry of uploaded)await sb.storage.from("ca-materials").remove([entry.path]);
-        msg("#revisionPackStatus",error.message||"The PDFs could not be saved. Please try again.","error");
+        if(!published){
+          for(const id of insertedRows)await sb.from("materials").delete().eq("id",id);
+          for(const entry of uploaded)await sb.storage.from("ca-materials").remove([entry.path]);
+        }
+        msg("#revisionPackStatus",published?"The new PDFs are published, but an older version could not be removed. Check the resource list.":(error.message||"The PDFs could not be saved. Please try again."),"error");
       }finally{button.disabled=false}
     }
     const revisionForm=$("#adminRevisionPackForm");
@@ -1372,7 +1381,8 @@
         if((row.category==="revision"||row.category==="mind_map")&&String(row.description||"").startsWith("CAJ_AI_REVISION_V1|")){
           const update=document.createElement("button");update.className="btn";update.type="button";update.textContent="Edit / update PDFs";
           update.addEventListener("click",async()=>{
-            $("#adminRevisionLevel").value=row.level;fillRevisionAdminSubjects();$("#adminRevisionSubject").value=row.subject;
+            $("#adminRevisionLevel").value=row.level;
+            const subjectControl=$("#adminRevisionSubject");subjectControl.replaceChildren(...(adminSubjectsByLevel[row.level]||[]).map(name=>new Option(name,name)));subjectControl.value=row.subject;
             await loadAdminRevisionChapters();$("#adminRevisionChapter").value=row.chapter;revisionDraftMeta={level:row.level,subject:row.subject,chapter:row.chapter,sourceUrl:revisionSourceUrl};
             $("#revisionDraftPanel").hidden=true;$("#admin-ai-revision-pack").scrollIntoView({behavior:"smooth",block:"start"});
             msg("#revisionPackStatus","Chapter selected. Generate new drafts, edit them, then save to replace both PDFs.");
