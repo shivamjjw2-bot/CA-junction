@@ -581,7 +581,7 @@
       const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,category,is_premium,file_bucket,file_path,external_url").eq("is_published",true).eq("level",level).eq("subject",subjectName).eq("chapter",chapterName).in("category",["revision","mind_map"]).order("created_at",{ascending:false}).limit(20);
       if(error){emptyRow(publishedGrid,"Shared PDFs could not be loaded.");return}
       const rows=data||[];publishedGrid.replaceChildren();
-      if(!rows.length){emptyRow(publishedGrid,"No published PDFs for this chapter yet. Your next revision breakthrough starts here.");return}
+      if(!rows.length){emptyRow(publishedGrid,"No PDFs yet. Keep learning—new resources are on their way!");return}
       rows.forEach(row=>{const card=document.createElement("article");card.className="note";const kind=document.createElement("small");kind.className="resource-kind";kind.textContent=row.category==="mind_map"?"CHAPTER MIND MAP":"CHAPTER SUMMARY";const title=document.createElement("h3");title.textContent=row.title;const meta=document.createElement("small");meta.textContent=[row.level,row.subject,row.chapter].join(" · ");const open=document.createElement("button");open.className="link";open.type="button";open.textContent="Open PDF ↗";open.addEventListener("click",()=>downloadMaterial(row,"#adminResourcesStatus"));card.append(kind,title,meta,open);publishedGrid.append(card)});
     };
     const setLevel=(newLevel)=>{location.href="revision.html?level="+encodeURIComponent(newLevel)};
