@@ -41,7 +41,7 @@ function normalizeOutput(output){
   return{summary,mind_map:{topic,branches}};
 }
 export async function onRequestPost({request,env}){
-  if(!env.GEMINI_API_KEY)return json({error:"Gemini chapter pack generation is temporarily unavailable."},503);
+  if(!env.GEMINI_API_KEY)return json({error:"Chapter study aids are temporarily unavailable. Please try again later."},503);
   if(!(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return json({error:"Send a valid chapter request."},415);
   if(Number(request.headers.get("content-length")||0)>6000)return json({error:"That chapter request is too large."},413);
   const token=(request.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];
@@ -107,7 +107,7 @@ export async function onRequestPost({request,env}){
     if(!response.ok){
       lastStatus=response.status;lastProviderStatus=result?.error?.status||"";
       console.warn("AI revision model request failed; trying fallback",JSON.stringify({model,httpStatus:response.status,providerStatus:lastProviderStatus}));
-      if(response.status===401||response.status===403)return json({error:"Gemini access is not enabled for this API key. Please check the key's Gemini API access."},503);
+      if(response.status===401||response.status===403)return json({error:"CA Junction could not reach its study aid service. Please try again later."},503);
       continue;
     }
     const raw=result?.candidates?.[0]?.content?.parts?.map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
@@ -120,7 +120,7 @@ export async function onRequestPost({request,env}){
       console.warn("AI revision response did not match expected chapter pack",JSON.stringify({model,finishReason:result?.candidates?.[0]?.finishReason||"unknown"}));
     }
   }
-  if(lastStatus===429||lastProviderStatus==="RESOURCE_EXHAUSTED")return json({error:"Gemini's free shared limit is busy right now. Please try again shortly."},429);
-  if(lastStatus===401||lastStatus===403)return json({error:"Gemini access is not enabled for this API key. Please check the key's Gemini API access."},503);
-  return json({error:"Gemini could not create a chapter summary and mind map after trying its available models. Please try again shortly."},502);
+  if(lastStatus===429||lastProviderStatus==="RESOURCE_EXHAUSTED")return json({error:"CA Junction is busy right now. Please try again shortly."},429);
+  if(lastStatus===401||lastStatus===403)return json({error:"CA Junction could not reach its study aid service. Please try again later."},503);
+  return json({error:"CA Junction could not create this chapter summary and mind map. Please try again shortly."},502);
 }
