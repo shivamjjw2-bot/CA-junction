@@ -628,8 +628,8 @@ grant execute on function public.admin_platform_overview() to authenticated;
 -- on conflict do nothing;
 -- Never assign admin roles from the browser or expose a service-role key.
 
--- Reserve no more than 9,000 estimated Neurons each UTC day across CA Junction AI features.
--- The remaining 2,000 Neurons are a safety buffer under Cloudflare's free allocation.
+-- Reserve no more than 9,000 estimated Neurons each India day across CA Junction AI features.
+-- The remaining 1,000 Neurons are a safety buffer under Cloudflare's 10,000-Neuron free allocation.
 create table if not exists public.ca_ai_daily_usage (
   usage_day date primary key,
   estimated_neurons integer not null default 0
@@ -655,10 +655,10 @@ begin
   end if;
 
   delete from public.ca_ai_daily_usage
-  where usage_day < (timezone('utc', now())::date);
+  where usage_day < (timezone('Asia/Kolkata', now())::date);
 
   insert into public.ca_ai_daily_usage as current_usage (usage_day, estimated_neurons)
-  values (timezone('utc', now())::date, p_neurons)
+  values (timezone('Asia/Kolkata', now())::date, p_neurons)
   on conflict (usage_day) do update
     set estimated_neurons = current_usage.estimated_neurons + p_neurons
     where current_usage.estimated_neurons + p_neurons <= 9000
