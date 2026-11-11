@@ -42,7 +42,7 @@ export async function onRequestPost({request,env}) {
       method:"POST",
       headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},
       body:JSON.stringify({
-        contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\\n\\n"+userPrompt}]}],
+        contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\n\n"+userPrompt}]}],
         generationConfig:{responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000,temperature:0.35}
       })
     });
