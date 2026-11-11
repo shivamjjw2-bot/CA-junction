@@ -1,7 +1,7 @@
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
 const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
-const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.5-flash-lite","gemini-2.5-flash-lite"];
+const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.5-flash","gemini-2.5-flash-lite"];
 const SUBJECTS={
   Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
   Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
@@ -23,31 +23,35 @@ async function reserveAiNeurons(token,neurons){
     return{ok:true,allowed:(await response.json())===true};
   }catch{return{ok:false,allowed:false}}
 }
-async function isAdmin(token,userId){
-  try{
-    const url=SUPABASE_URL+"/rest/v1/user_roles?user_id=eq."+encodeURIComponent(userId)+"&role=eq.admin&select=role";
-    const response=await fetch(url,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,accept:"application/json"}});
-    if(!response.ok)return false;
-    const roles=await response.json();
-    return Array.isArray(roles)&&roles.some(row=>row.role==="admin");
-  }catch{return false}
+function cleanText(value,max){return typeof value==="string"?value.trim().slice(0,max):""}
+function parseOutput(raw){
+  let text=String(raw||"").trim().replace(/^\x60{3}(?:json)?\s*/i,"").replace(/\s*\x60{3}$/,"");
+  const start=text.indexOf("{"),end=text.lastIndexOf("}");
+  if(start>=0&&end>start)text=text.slice(start,end+1);
+  return JSON.parse(text);
 }
-function cleanText(value,max){
-  return typeof value==="string"?value.trim().slice(0,max):"";
+function normalizeOutput(output){
+  const summary=cleanText(output?.summary,12000);
+  const topic=cleanText(output?.mind_map?.topic,240);
+  const branches=Array.isArray(output?.mind_map?.branches)?output.mind_map.branches.slice(0,7).map(branch=>({
+    title:cleanText(branch?.title,180),
+    points:Array.isArray(branch?.points)?branch.points.slice(0,4).map(point=>cleanText(point,240)).filter(Boolean):[]
+  })).filter(branch=>branch.title&&branch.points.length):[];
+  if(summary.length<120||!topic||branches.length<3)throw new Error("quality");
+  return{summary,mind_map:{topic,branches}};
 }
 export async function onRequestPost({request,env}){
   if(!env.GEMINI_API_KEY)return json({error:"Gemini chapter pack generation is temporarily unavailable."},503);
   if(!(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return json({error:"Send a valid chapter request."},415);
   if(Number(request.headers.get("content-length")||0)>6000)return json({error:"That chapter request is too large."},413);
   const token=(request.headers.get("authorization")||"").match(/^Bearer\s+(.+)$/i)?.[1];
-  if(!token||token.length>5000)return json({error:"Please sign in with an admin account."},401);
-  let user;
+  if(!token||token.length>5000)return json({error:"Please sign in to generate chapter PDFs."},401);
   try{
     const auth=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token}});
     if(!auth.ok)return json({error:"Your sign-in has expired. Please sign in again."},401);
-    user=await auth.json();
-  }catch{return json({error:"Could not verify your admin sign-in."},502)}
-  if(!user?.id)return json({error:"Please sign in to generate chapter PDFs."},401);
+    const user=await auth.json();
+    if(!user?.id)return json({error:"Please sign in to generate chapter PDFs."},401);
+  }catch{return json({error:"Could not verify your sign-in. Please try again."},502)}
   let body;
   try{body=await request.json()}catch{return json({error:"The chapter request could not be read."},400)}
   const level=cleanText(body.level,24),subject=cleanText(body.subject,120),chapter=cleanText(body.chapter,180);
@@ -56,91 +60,67 @@ export async function onRequestPost({request,env}){
   if(!SUBJECTS[level].includes(subject))return json({error:"Choose a subject from this ICAI level."},400);
   if(!chapter)return json({error:"Choose an ICAI chapter."},400);
   let officialUrl=MATERIAL_URL[level];
-  if(sourceUrl){
-    try{
-      const parsed=new URL(sourceUrl);
-      if(parsed.protocol==="https:"&&["www.icai.org","icai.org","boslive.icai.org"].includes(parsed.hostname))officialUrl=parsed.href;
-    }catch{}
-  }
+  if(sourceUrl){try{const parsed=new URL(sourceUrl);if(parsed.protocol==="https:"&&["www.icai.org","icai.org","boslive.icai.org"].includes(parsed.hostname))officialUrl=parsed.href}catch{}}
   const quota=await reserveAiNeurons(token,1500);
   if(!quota.ok)return json({error:"The shared AI allowance could not be checked, so no chapter draft was generated. Please try again later."},503);
   if(!quota.allowed)return json({error:"Today's shared AI allowance is used. It resets at midnight India time."},429);
   const schema={
-    type:"object",additionalProperties:false,
+    type:"OBJECT",
     properties:{
-      summary:{type:"string"},
-      mind_map:{type:"object",additionalProperties:false,properties:{
-        topic:{type:"string"},
-        branches:{type:"array",items:{type:"object",additionalProperties:false,properties:{
-          title:{type:"string"},
-          points:{type:"array",items:{type:"string"}}
+      summary:{type:"STRING"},
+      mind_map:{type:"OBJECT",properties:{
+        topic:{type:"STRING"},
+        branches:{type:"ARRAY",items:{type:"OBJECT",properties:{
+          title:{type:"STRING"},points:{type:"ARRAY",items:{type:"STRING"}}
         },required:["title","points"]}}
       },required:["topic","branches"]}
     },
     required:["summary","mind_map"]
   };
   const prompt=[
-    "Create two concise original CA study aids for one chapter. The student must verify all law, standards, limits, dates and exam-specific details against the linked official ICAI material.",
+    "Create two concise, original CA study aids for one chapter.",
     "Level: "+level,
     "Subject: "+subject,
     "Exact ICAI chapter title: "+chapter,
-    "Official reference page: "+officialUrl,
-    "Return a useful, accurate high-level summary (about 8 to 12 short bullet points) and a mind map with one central topic and 4 to 7 branches, each with 2 to 4 short points.",
-    "Use clear exam revision language. Do not invent section numbers, amendments, case citations, or claim that you read the linked page. If a detail may vary by syllabus edition, explicitly say to verify it in the official material.",
-    "The summary must be plain text with short paragraphs or bullets. The mind map should be suitable for a clean one-page PDF."
+    "Official reference page for student verification: "+officialUrl,
+    "Return a useful summary with 8 to 12 short bullet points and a mind map with one central topic and 4 to 7 branches, each with 2 to 4 short points.",
+    "Use clear exam revision language. Do not invent section numbers, amendments, case citations, or say you read the linked page. Tell the student to verify law, standards, limits, dates, and syllabus-edition details against official ICAI material.",
+    "Return only JSON with this shape: {summary:string, mind_map:{topic:string, branches:[{title:string, points:string[]}]}}."
   ].join("\n");
-  try{
-    let providerResponse=null,providerResult={},lastFailureStatus=0;
-    for(const model of GEMINI_MODELS){
-      const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:2600,temperature:0.2};
-      if(model.startsWith("gemini-3."))generationConfig.thinkingConfig={thinkingLevel:"low"};
-      const requestBody={
-        systemInstruction:{parts:[{text:"You are a careful CA revision tutor. Use the official ICAI page context when Gemini can retrieve it. Produce original study aids, follow the exact chapter and level supplied, and do not invent legal details or claim to have read content that was not retrieved."}]},
-        contents:[{role:"user",parts:[{text:prompt}]}],
-        tools:[{urlContext:{}}],
-        generationConfig
-      };
-      try{
-        providerResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
-          method:"POST",
-          headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},
-          body:JSON.stringify(requestBody),
-          signal:AbortSignal.timeout(45000)
-        });
-      }catch(error){
-        lastFailureStatus=503;
-        console.warn("AI revision Gemini model timed out or could not be reached",JSON.stringify({model,errorName:error?.name||"Error"}));
-        continue;
-      }
-      providerResult=await providerResponse.json().catch(()=>({}));
-      if(providerResponse.ok)break;
-      lastFailureStatus=providerResponse.status;
-      if([429,500,503].includes(providerResponse.status)){
-        console.warn("AI revision Gemini model unavailable; trying next free model",JSON.stringify({model,httpStatus:providerResponse.status,providerStatus:providerResult?.error?.status||null}));
-        continue;
-      }
-      console.error("AI revision Gemini request failed",JSON.stringify({model,httpStatus:providerResponse.status,providerStatus:providerResult?.error?.status||null,providerCode:providerResult?.error?.code||null}));
-      if(providerResponse.status===403)return json({error:"Gemini free access is unavailable for this project. Please check its free API access."},503);
-      return json({error:"Gemini could not create this chapter draft. Please try again shortly."},502);
+  let lastStatus=0,lastProviderStatus="";
+  for(const model of GEMINI_MODELS){
+    let response,result;
+    const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:3600,temperature:0.2};
+    if(model.startsWith("gemini-3."))generationConfig.thinkingConfig={thinkingLevel:"low"};
+    try{
+      response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
+        method:"POST",headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},
+        body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig}),
+        signal:AbortSignal.timeout(45000)
+      });
+    }catch(error){
+      lastStatus=503;
+      console.warn("AI revision model unavailable",JSON.stringify({model,errorName:error?.name||"Error"}));
+      continue;
     }
-    if(!providerResponse?.ok){
-      if(lastFailureStatus===429)return json({error:"Gemini’s free shared limit is busy or used for now. Please try again later."},429);
-      return json({error:"Gemini is temporarily busy. Please try again shortly."},503);
+    result=await response.json().catch(()=>({}));
+    if(!response.ok){
+      lastStatus=response.status;lastProviderStatus=result?.error?.status||"";
+      console.warn("AI revision model request failed; trying fallback",JSON.stringify({model,httpStatus:response.status,providerStatus:lastProviderStatus}));
+      if(response.status===401||response.status===403)return json({error:"Gemini access is not enabled for this API key. Please check the key's Gemini API access."},503);
+      continue;
     }
-    const candidate=providerResult?.candidates?.[0];
-    const raw=Array.isArray(candidate?.content?.parts)?candidate.content.parts.map(part=>part.text||"").join(""):"";
-    if(!raw)return json({error:"Gemini did not return a chapter draft. Please try again."},502);
-    const output=JSON.parse(raw);
-    const summary=cleanText(output?.summary,12000);
-    const topic=cleanText(output?.mind_map?.topic,240);
-    const branches=Array.isArray(output?.mind_map?.branches)?output.mind_map.branches.slice(0,7).map(branch=>({
-      title:cleanText(branch?.title,180),
-      points:Array.isArray(branch?.points)?branch.points.slice(0,4).map(point=>cleanText(point,240)).filter(Boolean):[]
-    })).filter(branch=>branch.title&&branch.points.length):[];
-    if(summary.length<120||!topic||branches.length<3)return json({error:"The AI chapter draft did not pass quality checks. Please generate it again."},502);
-    return json({level,subject,chapter,source_url:officialUrl,summary,mind_map:{topic,branches}});
-  }catch(error){
-    console.error("Gemini revision pack generation failed",JSON.stringify({errorName:error?.name||"Error"}));
-    return json({error:"Could not create the chapter draft right now. Please try again shortly."},502);
+    const raw=result?.candidates?.[0]?.content?.parts?.map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
+    if(!raw){lastStatus=502;continue}
+    try{
+      const output=normalizeOutput(parseOutput(raw));
+      return json({level,subject,chapter,source_url:officialUrl,...output});
+    }catch{
+      lastStatus=502;
+      console.warn("AI revision response did not match expected chapter pack",JSON.stringify({model,finishReason:result?.candidates?.[0]?.finishReason||"unknown"}));
+    }
   }
+  if(lastStatus===429||lastProviderStatus==="RESOURCE_EXHAUSTED")return json({error:"Gemini's free shared limit is busy right now. Please try again shortly."},429);
+  if(lastStatus===401||lastStatus===403)return json({error:"Gemini access is not enabled for this API key. Please check the key's Gemini API access."},503);
+  return json({error:"Gemini could not create a chapter summary and mind map after trying its available models. Please try again shortly."},502);
 }
