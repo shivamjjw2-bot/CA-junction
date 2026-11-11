@@ -653,7 +653,7 @@
     const review=$("#aiPracticeReview"),reviewSummary=$("#aiPracticeReviewSummary"),reviewCase=$("#aiPracticeReviewCaseStudy"),reviewItems=$("#aiPracticeReviewItems");
     let questions=[],score=0,answers=[],reviewOrder=[],currentDifficulty=1,currentQuestionIndex=-1,preparationTimer=null,preparationStarted=0,caseStudyText="";
     const stopPreparationTimer=()=>{if(preparationTimer)clearInterval(preparationTimer);preparationTimer=null;$("#aiPracticeTimer").hidden=true};
-    const updatePreparationTimer=()=>{const elapsed=Math.floor((Date.now()-preparationStarted)/1000),minutes=String(Math.floor(elapsed/60)).padStart(2,"0"),seconds=String(elapsed%60).padStart(2,"0");$("#aiPracticeTimer").textContent="Preparing your questions · this can take up to 1 minute · "+minutes+":"+seconds};
+    const updatePreparationTimer=()=>{const elapsed=Math.floor((Date.now()-preparationStarted)/1000),minutes=String(Math.floor(elapsed/60)).padStart(2,"0"),seconds=String(elapsed%60).padStart(2,"0");$("#aiPracticeTimer").textContent="Preparing your questions · this can take up to 2 minutes · "+minutes+":"+seconds};
     const marksForQuestion=q=>Number(q?.marks)===2?2:1;
     const maxMarks=()=>questions.reduce((sum,q)=>sum+marksForQuestion(q),0);
     const difficultyLabel=value=>["","Warm-up","Core","Applied","Advanced","Expert"][value]||"Adaptive";
