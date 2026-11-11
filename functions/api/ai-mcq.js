@@ -40,7 +40,7 @@ export async function onRequestPost({request,env}) {
   if(!logged)return json({error:"Your practice request could not be recorded. Please try again later."},503);
   try {
     const requestBody=JSON.stringify({
-      contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\\n\\n"+userPrompt}]}],
+      contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\n\n"+userPrompt}]}],
       generationConfig:{responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000,thinkingConfig:{thinkingLevel:"low"}}
     });
     let aiResponse,result={};
@@ -61,7 +61,7 @@ export async function onRequestPost({request,env}) {
       if(temporarilyUnavailable)return json({error:"Gemini is temporarily busy. Please try again in a moment."},503);
       return json({error:"Gemini could not create a question set right now. Please try again shortly."},502);
     }
-        const raw=result?.candidates?.[0]?.content?.parts?.map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
+    const raw=result?.candidates?.[0]?.content?.parts?.map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
     if(!raw)return json({error:"No questions were returned. Please try again."},502);
     const parsed=JSON.parse(raw);
     const rawQuestions=parsed?.questions;
