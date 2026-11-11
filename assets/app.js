@@ -532,14 +532,23 @@
       newPage();
       const blocks=String(body).split(/\n\s*\n/).filter(x=>x.trim());
       blocks.forEach((block,index)=>{
-        const lines=block.split(/\r?\n/).flatMap(line=>wrap(line,isMap?76:87));
+        const icon=block.match(/^\[(book|checklist|balance|process)\]/)?.[1]||"book";
+        const lines=block.replace(/^\[(book|checklist|balance|process)\]\s*/,"").split(/\r?\n/).flatMap(line=>wrap(line,isMap?72:87));
         let offset=0;
         while(offset<lines.length){
           if(y<120)newPage();
           const count=Math.min(lines.length-offset,Math.max(1,Math.floor((y-85)/15)));
           const chunk=lines.slice(offset,offset+count),height=chunk.length*15+26;
-          const accent=colors[index%colors.length],x=isMap?62:38,w=isMap?512:536;
+          const accent=colors[index%colors.length],x=isMap?90:38,w=isMap?484:536;
           if(isMap){commands.push(".65 .70 .82 RG 2 w 48 "+(y+12)+" m 48 "+(y-height/2)+" l "+x+" "+(y-height/2)+" l S")}
+          if(isMap){
+            const iy=y-26;commands.push("q "+accent.join(" ")+" RG 1.5 w");
+            if(icon==="checklist"){for(let k=0;k<3;k++){commands.push("60 "+(iy-k*8)+" 4 4 re S 68 "+(iy+2-k*8)+" m 80 "+(iy+2-k*8)+" l S")}}
+            else if(icon==="balance"){commands.push("70 "+(iy+8)+" m 70 "+(iy-18)+" l 60 "+(iy-18)+" m 80 "+(iy-18)+" l 57 "+iy+" m 83 "+iy+" l S 57 "+iy+" m 52 "+(iy-9)+" l 62 "+(iy-9)+" l h S 83 "+iy+" m 78 "+(iy-9)+" l 88 "+(iy-9)+" l h S")}
+            else if(icon==="process"){commands.push("57 "+iy+" 10 10 re S 74 "+(iy-18)+" 10 10 re S 62 "+iy+" m 62 "+(iy-13)+" l 74 "+(iy-13)+" l S")}
+            else{commands.push("55 "+(iy-15)+" 14 23 re S 69 "+(iy-15)+" 14 23 re S 59 "+(iy+2)+" m 65 "+(iy+2)+" l 73 "+(iy+2)+" m 79 "+(iy+2)+" l S")}
+            commands.push("Q");
+          }
           rect(x+3,y-height-3,w,height,[.85,.88,.94]);
           rect(x,y-height,w,height,[.99,.995,1]);rect(x,y-height,4,height,accent);
           commands.push(".80 .85 .94 RG .6 w "+x+" "+(y-height)+" "+w+" "+height+" re S");
@@ -553,7 +562,7 @@
       pages.forEach((stream,i)=>{objects[4+i*2]="<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream";objects[5+i*2]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents "+(4+i*2)+" 0 R >>"});
       let pdf="%PDF-1.4\n";const offsets=[0];for(let i=1;i<objects.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\n"+objects[i]+"\nendobj\n"}const xref=pdf.length;pdf+="xref\n0 "+objects.length+"\n0000000000 65535 f \n";for(let i=1;i<objects.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";pdf+="trailer\n<< /Size "+objects.length+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";return new Blob([pdf],{type:"application/pdf"});
     };
-    const mapText=map=>"Central topic: "+map.topic+"\n\n"+map.branches.map((branch,index)=>(index+1)+". "+branch.title+"\n"+branch.points.map(point=>"   - "+point).join("\n")).join("\n\n");
+    const mapText=map=>"Central topic: "+map.topic+"\n\n"+map.branches.map((branch,index)=>"["+branch.icon+"] "+(index+1)+". "+branch.title+"\nMemory aid: "+branch.mnemonic+"\nPicture this: "+branch.visual_cue+"\n"+branch.points.map(point=>"   - "+point).join("\n")).join("\n\n");
     const loadChapters=async()=>{
       const request=++chapterRequest,name=subject.value,canonical=aliases[name]||name;
       releaseGenerated();generate.disabled=true;
