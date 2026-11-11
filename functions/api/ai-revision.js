@@ -12,17 +12,6 @@ const MATERIAL_URL={
   Intermediate:"https://boslive.icai.org/study_material_new_paper_details.php?c=intermediate&language=English",
   Final:"https://boslive.icai.org/study_material_new_paper_details.php?c=final&language=English"
 };
-async function reserveAiNeurons(token,neurons){
-  try{
-    const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/reserve_ca_ai_neurons",{
-      method:"POST",
-      headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},
-      body:JSON.stringify({p_neurons:neurons,p_feature:"ai_planner"})
-    });
-    if(!response.ok)return{ok:false,allowed:false};
-    return{ok:true,allowed:(await response.json())===true};
-  }catch{return{ok:false,allowed:false}}
-}
 function cleanText(value,max){return typeof value==="string"?value.trim().slice(0,max):""}
 function parseOutput(raw){
   let text=String(raw||"").trim().replace(/^\x60{3}(?:json)?\s*/i,"").replace(/\s*\x60{3}$/,"");
@@ -61,9 +50,6 @@ export async function onRequestPost({request,env}){
   if(!chapter)return json({error:"Choose an ICAI chapter."},400);
   let officialUrl=MATERIAL_URL[level];
   if(sourceUrl){try{const parsed=new URL(sourceUrl);if(parsed.protocol==="https:"&&["www.icai.org","icai.org","boslive.icai.org"].includes(parsed.hostname))officialUrl=parsed.href}catch{}}
-  const quota=await reserveAiNeurons(token,1500);
-  if(!quota.ok)return json({error:"The shared AI allowance could not be checked, so no chapter draft was generated. Please try again later."},503);
-  if(!quota.allowed)return json({error:"Today's shared AI allowance is used. It resets at midnight India time."},429);
   const schema={
     type:"OBJECT",
     properties:{
