@@ -48,14 +48,23 @@ export async function onRequestPost({request,env}) {
     const raw=result?.choices?.[0]?.message?.content??result?.response;
     if(!raw)return json({error:"No questions were returned. Please try again."},502);
     const parsed=typeof raw==="string"?JSON.parse(raw):raw;
-    const questions=parsed?.questions;
-    const difficultyCounts=[0,0,0,0,0,0];
-    if(Array.isArray(questions))questions.forEach(q=>{if(Number.isInteger(q?.difficulty)&&q.difficulty>=1&&q.difficulty<=5)difficultyCounts[q.difficulty]++});
-    const valid=typeof parsed.case_study==="string"&&parsed.case_study.length>=100&&parsed.case_study.length<=2300&&Array.isArray(questions)&&questions.length===questionCount&&difficultyCounts.slice(1).every(count=>count===2)&&questions.every((q,index)=>
-      typeof q.question==="string"&&q.question.length<=1200&&q.kind===(index<5?"individual":"case-linked")&&q.marks===(index<5?1:2)&&Array.isArray(q.options)&&q.options.length===4&&q.options.every(o=>typeof o==="string"&&o.length<=500)&&
-      Number.isInteger(q.correct_index)&&q.correct_index>=0&&q.correct_index<=3&&typeof q.explanation==="string"&&q.explanation.length<=1500&&Number.isInteger(q.difficulty)&&q.difficulty>=1&&q.difficulty<=5);
+    const rawQuestions=parsed?.questions;
+    const caseStudy=typeof parsed?.case_study==="string"?parsed.case_study.trim():"";
+    if(!Array.isArray(rawQuestions)||rawQuestions.length!==questionCount)return json({error:"The AI returned an incomplete question set. Please generate a new set."},502);
+    const questions=rawQuestions.map((q,index)=>({
+      question:typeof q?.question==="string"?q.question.trim():"",
+      kind:index<5?"individual":"case-linked",
+      marks:index<5?1:2,
+      options:Array.isArray(q?.options)?q.options.map(option=>typeof option==="string"?option.trim():"") : [],
+      correct_index:Number(q?.correct_index),
+      explanation:typeof q?.explanation==="string"?q.explanation.trim():"",
+      difficulty:Math.min(5,Math.floor(index/2)+1)
+    }));
+    const valid=caseStudy.length>=80&&caseStudy.length<=3000&&questions.every(q=>
+      q.question.length>0&&q.question.length<=1200&&q.options.length===4&&q.options.every(option=>option.length>0&&option.length<=500)&&
+      Number.isInteger(q.correct_index)&&q.correct_index>=0&&q.correct_index<=3&&q.explanation.length>0&&q.explanation.length<=1500);
     if(!valid)return json({error:"The question set did not pass checks. Please generate a new set."},502);
-    return json({questions,case_study:parsed.case_study,max_marks:15,question_count:questionCount});
+    return json({questions,case_study:caseStudy,max_marks:15,question_count:questionCount});
   } catch(error) {
     const detail=String(error?.message||"").toLowerCase();
     if(/daily.*(limit|allowance)|neuron.*(limit|allowance)|quota.*(exceed|limit)|limit.*(exceed|reached)|429/.test(detail))
