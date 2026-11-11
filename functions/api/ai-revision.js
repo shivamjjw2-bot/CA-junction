@@ -31,11 +31,11 @@ function parseOutput(raw){
   return JSON.parse(text);
 }
 function normalizeOutput(output){
-  const summary=cleanText(output?.summary,12000);
+  const summary=cleanText(output?.summary,18000);
   const topic=cleanText(output?.mind_map?.topic,240);
   const branches=Array.isArray(output?.mind_map?.branches)?output.mind_map.branches.slice(0,7).map(branch=>({
     title:cleanText(branch?.title,180),
-    points:Array.isArray(branch?.points)?branch.points.slice(0,4).map(point=>cleanText(point,240)).filter(Boolean):[]
+    points:Array.isArray(branch?.points)?branch.points.slice(0,4).map(point=>cleanText(point,420)).filter(Boolean):[]
   })).filter(branch=>branch.title&&branch.points.length):[];
   if(summary.length<120||!topic||branches.length<3)throw new Error("quality");
   return{summary,mind_map:{topic,branches}};
@@ -78,19 +78,19 @@ export async function onRequestPost({request,env}){
     required:["summary","mind_map"]
   };
   const prompt=[
-    "Create two concise, original CA study aids for one chapter.",
+    "Create two detailed, original CA study aids for one chapter.",
     "Level: "+level,
     "Subject: "+subject,
     "Exact ICAI chapter title: "+chapter,
     "Official reference page for student verification: "+officialUrl,
-    "Return a useful summary with 8 to 12 short bullet points and a mind map with one central topic and 4 to 7 branches, each with 2 to 4 short points.",
+    "Return a structured 600 to 900 word summary covering key concepts, procedures, distinctions, one brief illustrative example, common mistakes and revision checkpoints. Separate sections with blank lines and clear plain-text headings. Create a mind map with one central topic and 5 to 7 branches, each with 3 to 4 informative points. Use concise full explanations, not just labels.",
     "Use clear exam revision language. Do not invent section numbers, amendments, case citations, or say you read the linked page. Tell the student to verify law, standards, limits, dates, and syllabus-edition details against official ICAI material.",
     "Return only JSON with this shape: {summary:string, mind_map:{topic:string, branches:[{title:string, points:string[]}]}}."
   ].join("\n");
   let lastStatus=0,lastProviderStatus="";
   for(const model of GEMINI_MODELS){
     let response,result;
-    const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:3600,temperature:0.2};
+    const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000,temperature:0.2};
     if(model.startsWith("gemini-3."))generationConfig.thinkingConfig={thinkingLevel:"low"};
     try{
       response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
