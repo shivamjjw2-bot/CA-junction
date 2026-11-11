@@ -1065,7 +1065,7 @@
     $("#virtualLibraryFinalForm")?.addEventListener("submit",e=>saveManagedLink(e,"virtual_library_final","Final Virtual Library study room","#virtualLibraryFinalUrl","#virtualLibraryFinalStatus"));
     [["Foundation","virtual_library_foundation"],["Intermediate","virtual_library_intermediate"],["Final","virtual_library_final"]].forEach(([level,key])=>$("#virtualLibrary"+level+"Remove")?.addEventListener("click",()=>removeManagedLink(key,level)));
     $("#doubtSolvingForm")?.addEventListener("submit",e=>saveManagedLink(e,"doubt_solving","Doubt-solving group","#doubtSolvingUrl","#doubtSolvingStatus"));
-    await Promise.all([loadAdminOverview(),loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadAdminJobs(),loadAdminStudents(),loadAdminRoles(),loadManagedLinks()]);window.setInterval(loadAdminOverview,30000);
+    await Promise.all([loadAdminOverview(),loadAdminAiUsage(),loadAdminResources(),loadAdminMtpPapers(),loadAdminMindMaps(),loadNoteSubmissions(),loadAdminJobs(),loadAdminStudents(),loadAdminRoles(),loadManagedLinks()]);window.setInterval(()=>{loadAdminOverview();loadAdminAiUsage()},30000);
     async function loadAdminOverview(){
       const {data,error}=await sb.rpc("admin_platform_overview");
       const row=Array.isArray(data)?data[0]:data;
@@ -1075,6 +1075,22 @@
       const hours=$("#overviewStudyHours");if(hours)hours.textContent=(Number(row.study_seconds_30d||0)/3600).toFixed(1);
       set("overviewStudySessions",row.study_sessions_30d);set("overviewMaterials",row.published_materials);
       set("overviewPendingNotes",row.pending_notes);set("overviewJobs",row.published_opportunities);set("overviewRequests",row.open_requests);
+    }
+    async function loadAdminAiUsage(){
+      const list=$("#adminAiUsageUsers");if(!list)return;
+      const {data,error}=await sb.rpc("admin_ai_usage_today");
+      const total=$("#adminAiTotal"),remaining=$("#adminAiRemaining");
+      if(error||!data){if(total)total.textContent="—";if(remaining)remaining.textContent="—";emptyRow(list,error?"Could not load AI usage. Apply the daily AI usage tracking migration in Supabase.":"No usage data is available.");return}
+      const used=Number(data.estimated_neurons||0),cap=Number(data.cap||9000);
+      if(total)total.textContent=used.toLocaleString("en-IN");
+      if(remaining)remaining.textContent=Math.max(0,cap-used).toLocaleString("en-IN");
+      const rows=Array.isArray(data.users)?data.users:[];
+      if(!rows.length){emptyRow(list,"No tracked student requests today. Earlier requests may be included in the shared total above.");return}
+      list.replaceChildren();
+      rows.forEach(row=>{
+        const last=row.last_used_at?new Date(row.last_used_at).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"time unavailable";
+        addRow(list,row.full_name||"Student",[row.email||"No email on record",row.ca_level||"Level unavailable",Number(row.request_count||0)+" AI request(s)",Number(row.estimated_neurons||0).toLocaleString("en-IN")+" estimated neurons","Last used "+last].join(" · "));
+      });
     }
     async function loadAdminResourceSubjects(){
       const level=$("#resourceLevel"),subject=$("#resourceSubject"),chapter=$("#resourceChapter");if(!level||!subject||!chapter)return;
