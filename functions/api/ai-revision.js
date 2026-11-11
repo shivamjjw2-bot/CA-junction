@@ -63,7 +63,7 @@ export async function onRequestPost({request,env}){
     }catch{}
   }
   const quota=await reserveAiNeurons(token,1200);
-  if(!quota.ok)return json({error:"The shared AI allowance could not be checked, so no questions were generated. Please try again later."},503);
+  if(!quota.ok)return json({error:"The shared AI allowance could not be checked, so no chapter draft was generated. Please try again later."},503);
   if(!quota.allowed)return json({error:"Today's shared AI allowance is used. It resets at midnight India time."},429);
   const schema={
     type:"object",additionalProperties:false,
