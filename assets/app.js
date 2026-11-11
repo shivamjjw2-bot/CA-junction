@@ -506,6 +506,8 @@
     $("#revisionLevelHeading").textContent="CA "+level;
     const subject=$("#revisionSubjectFilter"),chapter=$("#revisionChapterFilter"),official=$("#revisionIcaiLink"),generate=$("#generateRevisionPack");
     const publishedGrid=$("#adminResourcesGrid"),publishedSection=$("#revisionPublishedSection");
+    $("#openPublishedPdfs").addEventListener("click",()=>{$("#publishedPdfWindow").showModal()});
+    $("#closePublishedPdfs").addEventListener("click",()=>{$("#publishedPdfWindow").close()});
     const subjects=levelOptions[level],selected=new URLSearchParams(location.search).get("subject")||"";
     subject.replaceChildren(new Option("Choose a subject",""),...subjects.map(name=>new Option(name,name)));
     if(subjects.includes(selected))subject.value=selected;
@@ -515,17 +517,49 @@
     const slug=value=>String(value||"chapter").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"chapter";
     const pdfSafe=value=>String(value||"").replace(/•/g,"-").replace(/→|➜/g,"->").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g," ");
     const makePdf=(title,meta,body)=>{
-      const wrap=(line,width)=>{const words=pdfSafe(line).split(/\s+/),out=[];let current="";words.forEach(word=>{if(!word)return;if((current+" "+word).trim().length>width&&current){out.push(current);current=word}else current=(current?current+" ":"")+word});out.push(current);return out};
-      const lines=[];String(body||"").split(/\r?\n/).forEach(line=>{if(!line.trim()){lines.push("");return}lines.push(...wrap(line,88))});
-      const pages=[];for(let i=0;i<lines.length||!pages.length;i+=48)pages.push(lines.slice(i,i+48));
+      const esc=v=>pdfSafe(v).replace(/([\\()])/g,"\\$1");
+      const wrap=(v,width)=>{const out=[];let line="";for(const word of pdfSafe(v).split(/\s+/)){if((line+" "+word).length>width&&line){out.push(line);line=""}line+=(line?" ":"")+word}if(line)out.push(line);return out};
+      const isMap=title.includes("Mind Map"),pages=[],colors=[[.42,.28,.82],[.02,.52,.52],[.14,.40,.77],[.70,.28,.48]];
+      let commands=[],y=0,page=0;
+      const rect=(x,y,w,h,rgb)=>commands.push(rgb.join(" ")+" rg "+x+" "+y+" "+w+" "+h+" re f");
+      const text=(value,x,y,size=11,color=[.12,.16,.28])=>commands.push("BT /F1 "+size+" Tf "+color.join(" ")+" rg 1 0 0 1 "+x+" "+y+" Tm ("+esc(value)+") Tj ET");
+      const newPage=()=>{
+        if(commands.length)pages.push(commands.join("\n"));commands=[];page++;
+        rect(0,0,612,842,[.94,.96,1]);rect(0,716,612,126,[.12,.15,.32]);
+        rect(0,716,612,5,[.43,.83,.76]);text("CA JUNCTION  /  "+(isMap?"MIND MAP":"CHAPTER SUMMARY"),38,811,11,[.54,.91,.83]);
+        wrap(title,61).slice(0,3).forEach((line,i)=>text(line,38,786-i*19,16,[1,1,1]));
+        wrap(meta,100).slice(0,3).forEach((line,i)=>text(line,38,696-i*12,8,[.30,.36,.49]));
+        text("CA Junction  |  Verify exam-specific details with official ICAI material",38,25,8);
+        text(String(page),560,25,9);y=638;
+      };
+      newPage();
+      const blocks=String(body).split(/\n\s*\n/).filter(x=>x.trim());
+      blocks.forEach((block,index)=>{
+        const lines=block.split(/\r?\n/).flatMap(line=>wrap(line,isMap?76:87));
+        let offset=0;
+        while(offset<lines.length){
+          if(y<120)newPage();
+          const count=Math.min(lines.length-offset,Math.max(1,Math.floor((y-85)/15)));
+          const chunk=lines.slice(offset,offset+count),height=chunk.length*15+26;
+          const accent=colors[index%colors.length],x=isMap?62:38,w=isMap?512:536;
+          if(isMap){commands.push(".65 .70 .82 RG 2 w 48 "+(y+12)+" m 48 "+(y-height/2)+" l "+x+" "+(y-height/2)+" l S")}
+          rect(x+3,y-height-3,w,height,[.85,.88,.94]);
+          rect(x,y-height,w,height,[.99,.995,1]);rect(x,y-height,4,height,accent);
+          commands.push(".80 .85 .94 RG .6 w "+x+" "+(y-height)+" "+w+" "+height+" re S");
+          rect(x+4,y-2,w-4,2,[1,1,1]);
+          chunk.forEach((line,i)=>text(line,x+16,y-20-i*15,i===0?11:10,i===0?accent:[.16,.20,.31]));
+          y-=height+14;offset+=count;
+        }
+      });
+      pages.push(commands.join("\n"));
       const objects=[];objects[1]="<< /Type /Catalog /Pages 2 0 R >>";objects[2]="<< /Type /Pages /Kids ["+pages.map((_,i)=>(5+i*2)+" 0 R").join(" ")+"] /Count "+pages.length+" >>";objects[3]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
-      pages.forEach((page,index)=>{const esc=text=>pdfSafe(text).replace(/([\\()])/g,"\\$1");const content=["BT","/F1 17 Tf","50 790 Td","("+esc(title)+") Tj","/F1 9 Tf","0 -23 Td","("+esc(meta)+") Tj","0 -25 Td","/F1 10 Tf"];page.forEach(line=>content.push("("+esc(line)+") Tj","0 -14 Td"));content.push("ET");const stream=content.join("\n"),contentId=4+index*2,pageId=5+index*2;objects[contentId]="<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream";objects[pageId]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents "+contentId+" 0 R >>"});
+      pages.forEach((stream,i)=>{objects[4+i*2]="<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream";objects[5+i*2]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents "+(4+i*2)+" 0 R >>"});
       let pdf="%PDF-1.4\n";const offsets=[0];for(let i=1;i<objects.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\n"+objects[i]+"\nendobj\n"}const xref=pdf.length;pdf+="xref\n0 "+objects.length+"\n0000000000 65535 f \n";for(let i=1;i<objects.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";pdf+="trailer\n<< /Size "+objects.length+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";return new Blob([pdf],{type:"application/pdf"});
     };
     const mapText=map=>"Central topic: "+map.topic+"\n\n"+map.branches.map((branch,index)=>(index+1)+". "+branch.title+"\n"+branch.points.map(point=>"   - "+point).join("\n")).join("\n\n");
     const loadChapters=async()=>{
       const request=++chapterRequest,name=subject.value,canonical=aliases[name]||name;
-      releaseGenerated();generate.disabled=true;
+      releaseGenerated();generate.disabled=true;$("#openPublishedPdfs").disabled=true;
       if(!name){chapter.replaceChildren(new Option("Choose a subject first",""));chapter.disabled=true;official.href=materialUrls[level];official.textContent="Open official ICAI study material ↗";if(publishedSection)publishedSection.hidden=true;return}
       chapter.replaceChildren(new Option("Loading ICAI chapters…",""));chapter.disabled=true;
       try{
@@ -539,7 +573,7 @@
       }catch{if(request===chapterRequest){chapter.replaceChildren(new Option("ICAI chapters unavailable",""));chapter.disabled=true;msg("#revisionGenerateStatus","The official ICAI chapter list could not be loaded. Please try again.","error")}}
     };
     const loadPublished=async()=>{
-      releaseGenerated();generate.disabled=!chapter.value;
+      releaseGenerated();generate.disabled=!chapter.value;$("#openPublishedPdfs").disabled=!chapter.value;
       const chapterName=chapter.value,subjectName=subject.value;
       if(!chapterName||!ready()){if(publishedSection)publishedSection.hidden=true;return}
       if(publishedSection)publishedSection.hidden=false;
@@ -547,7 +581,7 @@
       const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,category,is_premium,file_bucket,file_path,external_url").eq("is_published",true).eq("level",level).eq("subject",subjectName).eq("chapter",chapterName).in("category",["revision","mind_map"]).order("created_at",{ascending:false}).limit(20);
       if(error){emptyRow(publishedGrid,"Shared PDFs could not be loaded.");return}
       const rows=data||[];publishedGrid.replaceChildren();
-      if(!rows.length){emptyRow(publishedGrid,"No shared PDFs have been uploaded for this chapter yet. Generate your own PDFs below.");return}
+      if(!rows.length){emptyRow(publishedGrid,"No published PDFs for this chapter yet. Your next revision breakthrough starts here.");return}
       rows.forEach(row=>{const card=document.createElement("article");card.className="note";const kind=document.createElement("small");kind.className="resource-kind";kind.textContent=row.category==="mind_map"?"CHAPTER MIND MAP":"CHAPTER SUMMARY";const title=document.createElement("h3");title.textContent=row.title;const meta=document.createElement("small");meta.textContent=[row.level,row.subject,row.chapter].join(" · ");const open=document.createElement("button");open.className="link";open.type="button";open.textContent="Open PDF ↗";open.addEventListener("click",()=>downloadMaterial(row,"#adminResourcesStatus"));card.append(kind,title,meta,open);publishedGrid.append(card)});
     };
     const setLevel=(newLevel)=>{location.href="revision.html?level="+encodeURIComponent(newLevel)};
@@ -559,6 +593,9 @@
       const chapterName=chapter.value,subjectName=subject.value;
       if(!chapterName||!subjectName)return;
       const buttonText=generate.textContent;generate.disabled=true;generate.textContent="CA Junction is preparing your PDFs…";msg("#revisionGenerateStatus","Preparing your chapter summary and mind map. This may take up to 2 minutes.");
+      const timer=$("#revisionElapsed"),started=Date.now();timer.hidden=false;
+      const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent=String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0")+" elapsed";};
+      tick();const timerId=setInterval(tick,1000);
       try{
         const {data:{session}}=await sb.auth.getSession();
         if(!session?.access_token){location.href="account.html?next="+encodeURIComponent("revision.html?level="+level+"&subject="+encodeURIComponent(subjectName));return}
@@ -575,7 +612,7 @@
         $("#revisionGeneratedFiles").hidden=false;
         msg("#revisionGenerateStatus","Both PDFs are ready. Check them against the linked ICAI material before relying on exam-specific details.");
       }catch(error){msg("#revisionGenerateStatus",error.message||"CA Junction could not create these PDFs. Please try again.","error")}
-      finally{generate.disabled=!chapter.value;generate.textContent=buttonText}
+      finally{clearInterval(timerId);tick();generate.disabled=!chapter.value;generate.textContent=buttonText}
     });
     if(!ready()){msg("#revisionGenerateStatus",backendMessage,"error");generate.disabled=true}
   }
