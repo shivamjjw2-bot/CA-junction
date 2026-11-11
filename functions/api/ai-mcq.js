@@ -2,8 +2,7 @@ const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:
 const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
 const LEVELS=new Set(["Foundation","Intermediate","Final"]);
-const GEMINI_MODEL="gemini-3.8-flash";
-const GEMINI_FALLBACK_MODEL="gemini-3.5-flash-lite";
+const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.5-flash-lite","gemini-2.5-flash-lite"];
 async function logAiMcqRequest(token){
   try{
     const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/log_ca_ai_mcq_request",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:"{}"});
@@ -39,33 +38,37 @@ export async function onRequestPost({request,env}) {
   const logged=await logAiMcqRequest(token);
   if(!logged)return json({error:"Your practice request could not be recorded. Please try again later."},503);
   try {
-    const requestBody=JSON.stringify({
-      contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\n\n"+userPrompt}]}],
-      generationConfig:{responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000,thinkingConfig:{thinkingLevel:"low"}}
-    });
-    let aiResponse,result={};
-    for(const model of [GEMINI_MODEL,GEMINI_FALLBACK_MODEL]){
+    let aiResponse,result={},lastFailureStatus=0;
+    for(const model of GEMINI_MODELS){
+      const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000};
+      if(model.startsWith("gemini-3."))generationConfig.thinkingConfig={thinkingLevel:"low"};
+      const requestBody=JSON.stringify({
+        contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\\n\\n"+userPrompt}]}],
+        generationConfig
+      });
       try{
         aiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
-          method:"POST",headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},body:requestBody,signal:AbortSignal.timeout(20000)
+          method:"POST",headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},body:requestBody,signal:AbortSignal.timeout(18000)
         });
       }catch(error){
+        lastFailureStatus=503;
         console.warn("AI MCQ Gemini model timed out or could not be reached",JSON.stringify({model,errorName:error?.name||"Error"}));
-        if(model===GEMINI_MODEL)continue;
-        return json({error:"Gemini is temporarily busy. Please try again in a moment."},503);
+        continue;
       }
       result=await aiResponse.json().catch(()=>({}));
       if(aiResponse.ok)break;
-      const temporarilyUnavailable=aiResponse.status===500||aiResponse.status===503;
-      if(temporarilyUnavailable&&model===GEMINI_MODEL){
-        console.warn("AI MCQ primary Gemini model temporarily unavailable; trying free fallback",JSON.stringify({httpStatus:aiResponse.status,providerStatus:result?.error?.status||null}));
+      lastFailureStatus=aiResponse.status;
+      if(aiResponse.status===429||aiResponse.status===500||aiResponse.status===503){
+        console.warn("AI MCQ model unavailable; trying next free model",JSON.stringify({model,httpStatus:aiResponse.status,providerStatus:result?.error?.status||null}));
         continue;
       }
       console.error("AI MCQ Gemini request failed",JSON.stringify({model,httpStatus:aiResponse.status,providerStatus:result?.error?.status||null,providerCode:result?.error?.code||null,providerMessage:String(result?.error?.message||"").slice(0,320)}));
-      if(aiResponse.status===429)return json({error:"Gemini’s free shared limit is busy or used for now. Please try again later."},429);
       if(aiResponse.status===403)return json({error:"Gemini free access is unavailable for this project. Please try again later."},503);
-      if(temporarilyUnavailable)return json({error:"Gemini is temporarily busy. Please try again in a moment."},503);
       return json({error:"Gemini could not create a question set right now. Please try again shortly."},502);
+    }
+    if(!aiResponse?.ok){
+      if(lastFailureStatus===429)return json({error:"Gemini’s free shared limit is busy or used for now. Please try again later."},429);
+      return json({error:"Gemini is temporarily busy. Please try again in a moment."},503);
     }
     const raw=result?.candidates?.[0]?.content?.parts?.map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
     if(!raw)return json({error:"No questions were returned. Please try again."},502);
