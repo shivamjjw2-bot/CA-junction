@@ -489,6 +489,95 @@
     });
   }
 
+  function initRevisionPage(){
+    const levelOptions={
+      Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
+      Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
+      Final:["Financial Reporting","Advanced Financial Management","Advanced Auditing, Assurance and Professional Ethics","Direct Tax Laws & International Taxation","Indirect Tax Laws","Integrated Business Solutions"]
+    };
+    const aliases={"Taxation — Income-tax Law":"Taxation","Taxation — Goods and Services Tax":"Taxation","Financial Management":"Financial Management and Strategic Management","Strategic Management":"Financial Management and Strategic Management","Integrated Business Solutions":"Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)"};
+    const materialUrls={Foundation:"https://boslive.icai.org/study_material_new_paper_details.php?c=foundation&language=English",Intermediate:"https://boslive.icai.org/study_material_new_paper_details.php?c=intermediate&language=English",Final:"https://boslive.icai.org/study_material_new_paper_details.php?c=final&language=English"};
+    const level=new URLSearchParams(location.search).get("level")||"";
+    const levelPage=$("#revisionLevelPage"),chapterPage=$("#revisionChapterPage");
+    if(!levelOptions[level]){if(levelPage)levelPage.hidden=false;if(chapterPage)chapterPage.hidden=true;return}
+    if(levelPage)levelPage.hidden=true;if(chapterPage)chapterPage.hidden=false;
+    $("#revisionLevelHeading").textContent="CA "+level;
+    const subject=$("#revisionSubjectFilter"),chapter=$("#revisionChapterFilter"),official=$("#revisionIcaiLink"),generate=$("#generateRevisionPack");
+    const publishedGrid=$("#adminResourcesGrid"),publishedSection=$("#revisionPublishedSection");
+    const subjects=levelOptions[level],selected=new URLSearchParams(location.search).get("subject")||"";
+    subject.replaceChildren(new Option("Choose a subject",""),...subjects.map(name=>new Option(name,name)));
+    if(subjects.includes(selected))subject.value=selected;
+    if(official){official.href=materialUrls[level];official.hidden=false;official.textContent="Open official ICAI study material ↗"}
+    let sourceUrl=materialUrls[level],chapterRequest=0,generatedUrls=[];
+    const releaseGenerated=()=>{generatedUrls.forEach(url=>URL.revokeObjectURL(url));generatedUrls=[];$("#revisionGeneratedFiles").hidden=true};
+    const slug=value=>String(value||"chapter").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"chapter";
+    const pdfSafe=value=>String(value||"").replace(/•/g,"-").replace(/→|➜/g,"->").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g," ");
+    const makePdf=(title,meta,body)=>{
+      const wrap=(line,width)=>{const words=pdfSafe(line).split(/\s+/),out=[];let current="";words.forEach(word=>{if(!word)return;if((current+" "+word).trim().length>width&&current){out.push(current);current=word}else current=(current?current+" ":"")+word});out.push(current);return out};
+      const lines=[];String(body||"").split(/\r?\n/).forEach(line=>{if(!line.trim()){lines.push("");return}lines.push(...wrap(line,88))});
+      const pages=[];for(let i=0;i<lines.length||!pages.length;i+=48)pages.push(lines.slice(i,i+48));
+      const objects=[];objects[1]="<< /Type /Catalog /Pages 2 0 R >>";objects[2]="<< /Type /Pages /Kids ["+pages.map((_,i)=>(5+i*2)+" 0 R").join(" ")+"] /Count "+pages.length+" >>";objects[3]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+      pages.forEach((page,index)=>{const esc=text=>pdfSafe(text).replace(/([\\()])/g,"\\$1");const content=["BT","/F1 17 Tf","50 790 Td","("+esc(title)+") Tj","/F1 9 Tf","0 -23 Td","("+esc(meta)+") Tj","0 -25 Td","/F1 10 Tf"];page.forEach(line=>content.push("("+esc(line)+") Tj","0 -14 Td"));content.push("ET");const stream=content.join("\n"),contentId=4+index*2,pageId=5+index*2;objects[contentId]="<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream";objects[pageId]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents "+contentId+" 0 R >>"});
+      let pdf="%PDF-1.4\n";const offsets=[0];for(let i=1;i<objects.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\n"+objects[i]+"\nendobj\n"}const xref=pdf.length;pdf+="xref\n0 "+objects.length+"\n0000000000 65535 f \n";for(let i=1;i<objects.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";pdf+="trailer\n<< /Size "+objects.length+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";return new Blob([pdf],{type:"application/pdf"});
+    };
+    const mapText=map=>"Central topic: "+map.topic+"\n\n"+map.branches.map((branch,index)=>(index+1)+". "+branch.title+"\n"+branch.points.map(point=>"   - "+point).join("\n")).join("\n\n");
+    const loadChapters=async()=>{
+      const request=++chapterRequest,name=subject.value,canonical=aliases[name]||name;
+      releaseGenerated();generate.disabled=true;
+      if(!name){chapter.replaceChildren(new Option("Choose a subject first",""));chapter.disabled=true;official.href=materialUrls[level];official.textContent="Open official ICAI study material ↗";if(publishedSection)publishedSection.hidden=true;return}
+      chapter.replaceChildren(new Option("Loading ICAI chapters…",""));chapter.disabled=true;
+      try{
+        const params=new URLSearchParams({mode:"chapters",level,subjects:canonical}),response=await fetch("/api/ai-planner?"+params.toString(),{headers:{accept:"application/json"}}),result=await response.json().catch(()=>({}));
+        if(request!==chapterRequest)return;
+        const outlines=response.ok&&Array.isArray(result.outlines)?result.outlines:[],outline=outlines.find(item=>Array.isArray(item.chapters)&&item.chapters.length);
+        const names=[...new Set(outlines.flatMap(item=>Array.isArray(item.chapters)?item.chapters:[]).map(item=>String(item).trim()).filter(Boolean))];
+        sourceUrl=outline?.url||materialUrls[level];official.href=sourceUrl;official.textContent="Open official ICAI chapter material ↗";
+        chapter.replaceChildren(new Option("Choose a chapter",""),...names.map(name=>new Option(name,name)));chapter.disabled=!names.length;
+        if(!names.length){chapter.replaceChildren(new Option("ICAI chapters unavailable",""));msg("#revisionGenerateStatus","The official ICAI chapter list could not be loaded. Please try again.","error")}
+      }catch{if(request===chapterRequest){chapter.replaceChildren(new Option("ICAI chapters unavailable",""));chapter.disabled=true;msg("#revisionGenerateStatus","The official ICAI chapter list could not be loaded. Please try again.","error")}}
+    };
+    const loadPublished=async()=>{
+      releaseGenerated();generate.disabled=!chapter.value;
+      const chapterName=chapter.value,subjectName=subject.value;
+      if(!chapterName||!ready()){if(publishedSection)publishedSection.hidden=true;return}
+      if(publishedSection)publishedSection.hidden=false;
+      publishedGrid.replaceChildren();addRow(publishedGrid,"Checking shared chapter PDFs…");
+      const {data,error}=await sb.from("materials").select("id,title,description,level,subject,chapter,category,is_premium,file_bucket,file_path,external_url").eq("is_published",true).eq("level",level).eq("subject",subjectName).eq("chapter",chapterName).in("category",["revision","mind_map"]).order("created_at",{ascending:false}).limit(20);
+      if(error){emptyRow(publishedGrid,"Shared PDFs could not be loaded.");return}
+      const rows=data||[];publishedGrid.replaceChildren();
+      if(!rows.length){emptyRow(publishedGrid,"No shared PDFs have been uploaded for this chapter yet. Generate your own PDFs below.");return}
+      rows.forEach(row=>{const card=document.createElement("article");card.className="note";const kind=document.createElement("small");kind.className="resource-kind";kind.textContent=row.category==="mind_map"?"CHAPTER MIND MAP":"CHAPTER SUMMARY";const title=document.createElement("h3");title.textContent=row.title;const meta=document.createElement("small");meta.textContent=[row.level,row.subject,row.chapter].join(" · ");const open=document.createElement("button");open.className="link";open.type="button";open.textContent="Open PDF ↗";open.addEventListener("click",()=>downloadMaterial(row,"#adminResourcesStatus"));card.append(kind,title,meta,open);publishedGrid.append(card)});
+    };
+    const setLevel=(newLevel)=>{location.href="revision.html?level="+encodeURIComponent(newLevel)};
+    document.querySelectorAll("[data-revision-level]").forEach(link=>link.addEventListener("click",event=>{event.preventDefault();setLevel(link.dataset.revisionLevel)}));
+    subject.addEventListener("change",loadChapters);
+    chapter.addEventListener("change",loadPublished);
+    if(selected){subject.value=selected;loadChapters()}
+    generate.addEventListener("click",async()=>{
+      const chapterName=chapter.value,subjectName=subject.value;
+      if(!chapterName||!subjectName)return;
+      const buttonText=generate.textContent;generate.disabled=true;generate.textContent="Gemini is preparing your PDFs…";msg("#revisionGenerateStatus","Gemini is preparing the chapter summary and mind map. This may take up to 2 minutes.");
+      try{
+        const {data:{session}}=await sb.auth.getSession();
+        if(!session?.access_token){location.href="account.html?next="+encodeURIComponent("revision.html?level="+level+"&subject="+encodeURIComponent(subjectName));return}
+        const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl})});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(result.error||"Gemini could not create these PDFs.");
+        const map=mapText(result.mind_map),meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
+        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,result.summary)),mapUrl=URL.createObjectURL(makePdf(chapterName+" — Mind Map",meta,map));
+        generatedUrls.push(summaryUrl,mapUrl);
+        const base=slug(chapterName);const summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
+        summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";mapLink.href=mapUrl;mapLink.download=base+"-mind-map.pdf";
+        $("#generatedSummaryTitle").textContent=chapterName+" — Summary";
+        $("#generatedMindMapTitle").textContent=chapterName+" — Mind Map";
+        $("#revisionGeneratedFiles").hidden=false;
+        msg("#revisionGenerateStatus","Both PDFs are ready. Check them against the linked ICAI material before relying on exam-specific details.");
+      }catch(error){msg("#revisionGenerateStatus",error.message||"Gemini could not create these PDFs. Please try again.","error")}
+      finally{generate.disabled=!chapter.value;generate.textContent=buttonText}
+    });
+    if(!ready()){msg("#revisionGenerateStatus",backendMessage,"error");generate.disabled=true}
+  }
+
   async function downloadMaterial(material,statusId="#materialStatus"){
     const {data:{user}}=await sb.auth.getUser();
     if(!user){location.href="account.html?next="+encodeURIComponent(location.pathname.split("/").pop()+location.search);return}
@@ -1576,6 +1665,7 @@
     if(page==="account")initAccount();
     if(page==="dashboard")initDashboard();
     if(page==="study")initStudy();
+    if(page==="revision")initRevisionPage();
     if(page==="resource-link")initResourceLink();
     if(page==="mtp")initMtp();
     if(page==="tests")initTests();
