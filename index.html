@@ -43,10 +43,18 @@ footer{border-top:1px solid var(--line);padding:28px 0 36px;color:var(--muted);f
 :focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}[hidden]{display:none!important}
 @media(max-width:900px){.navlinks{display:none}.menu{display:block}.navlinks.open{display:flex;position:absolute;top:72px;left:0;right:0;background:#0b0e1b;border-bottom:1px solid var(--line);padding:12px 4%;flex-direction:column;align-items:stretch;gap:0}.navlinks.open a{padding:10px}.categories{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.hero{padding-top:48px}.hero h1{letter-spacing:-1.8px}.levels,.services,.footgrid{grid-template-columns:1fr}.categories{grid-template-columns:1fr 1fr}.search{flex-direction:column}.hero-actions{flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap}.hero-actions .btn{width:calc(50% - 4px);min-width:0;min-height:48px;padding:8px 5px;font-size:13px;white-space:nowrap}.whatsapp{align-items:flex-start;flex-direction:column}section{padding:30px 0}}
-.hero{padding-top:28px}.brand b{color:#f4cc79}.brand-icon{background:linear-gradient(145deg,#ffe2a1,#b87923);color:#171726;border-color:#f4cc79}@media(max-width:650px){.hero{padding-top:20px}.hero h1{font-size:36px}}.nav-brand-image{display:block;width:128px;height:60px;object-fit:cover;border-radius:9px;border:1px solid rgba(244,204,121,.28)} </style></head>
+.hero{padding-top:28px}.brand b{color:#f4cc79}.brand-icon{background:linear-gradient(145deg,#ffe2a1,#b87923);color:#171726;border-color:#f4cc79}@media(max-width:650px){.hero{padding-top:20px}.hero h1{font-size:36px}} 
+.hero{position:relative;isolation:isolate;overflow:hidden;margin-top:20px;padding:72px 24px 62px;border:1px solid rgba(244,204,121,.16);border-radius:24px;background:#0a1020}
+.hero::before{content:"";position:absolute;inset:0;z-index:-2;background:url("assets/ca-junction-journey.jpeg") center 52%/cover no-repeat;filter:saturate(.8) brightness(.85)}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(8,11,22,.58),rgba(8,11,22,.83) 40%,rgba(8,11,22,.78) 70%,rgba(8,11,22,.68))}
+.hero h1{text-shadow:0 2px 24px rgba(0,0,0,.9)}
+.hero p{color:#e1e4ee;text-shadow:0 1px 8px #080b16}
+.hero .eyebrow{color:#e5d6ff}
+@media(max-width:650px){.hero{padding:48px 14px 40px;border-radius:18px;margin-top:14px}.hero::before{background-position:45% center}.hero h1{font-size:clamp(34px,8.8vw,44px)}}
+</style></head>
 <body data-page="home">
 <header><div class="container nav">
-<a class="brand" href="index.html" aria-label="CA Junction home"><img class="nav-brand-image" src="assets/ca-junction-journey.jpeg" alt="CA Junction" width="128" height="60"></a>
+<a class="brand" href="index.html" aria-label="CA Junction home"><span>CA <b>Junction</b></span></a>
 <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="siteNav">☰</button>
 <nav class="navlinks" id="siteNav" aria-label="Main navigation"><a href="#study-material">Study Material</a><a href="#test-series">Test Series</a><a href="#study-planner">Study Planner</a><a href="#study-tracker">Countdown & Study Timer</a><a href="#virtual-library">Virtual Library</a><a href="#career-hub">Career Hub</a><a class="login" id="accountNavLink" href="account.html">Login / Sign up</a></nav>
 </div></header>
