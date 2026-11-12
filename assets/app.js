@@ -617,7 +617,7 @@
         const meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
         const base=slug(chapterName),summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
         mapLink.closest("article").hidden=true;
-        if(!pack.summary){const result=await prepare("summary");pack.summary=result.summary;pack.formula_cards=result.formula_cards;pack.topic_cards=result.topic_cards;}
+        if(!pack.summary){const result=await prepare("summary");pack.summary=result.summary;pack.reference_documents=result.reference_documents||0;pack.formula_cards=result.formula_cards;pack.topic_cards=result.topic_cards;}
         if(!pack.mind_map)pack.mind_map=(await prepare("mind_map")).mind_map;
         const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.topic_cards?.length?pack.topic_cards.map(card=>(card.main_topic?card.main_topic.toUpperCase()+" / ":"")+card.title+"\n"+card.points.map(point=>"- "+point).join("\n")+"\nREMEMBER: "+card.takeaway+(card.memory_aid?"\nMEMORY AID: "+card.memory_aid:"")):pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\nFORMULA: "+card.formula+"\n"+[["Symbols",card.symbols],["Use when",card.use_when],["Conditions",card.conditions],["Example",card.example]].map(([label,value])=>label+":\n"+String(value||"").split(/[;\n]+/).filter(part=>part.trim()).map(part=>"- "+part.trim()).join("\n")).join("\n")):pack.summary));generatedUrls.push(summaryUrl);
         summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";
@@ -627,7 +627,7 @@
         $("#generatedMindMapTitle").textContent=chapterName+" — Mind Map";
         mapLink.closest("article").hidden=false;
         $("#revisionGeneratedFiles").hidden=false;
-        msg("#revisionGenerateStatus","Both PDFs are ready. Check them against the linked ICAI material before relying on exam-specific details.");
+        msg("#revisionGenerateStatus",pack.reference_documents?"Both PDFs are ready. Based on "+pack.reference_documents+" official chapter/unit PDF(s). Check the source for any missing details and exam-specific amendments.":"Both PDFs are ready. The official chapter PDFs could not be read, so coverage is syllabus-based and may be incomplete.");
       }catch(error){msg("#revisionGenerateStatus",error.message||"CA Junction could not create these PDFs. Please try again.","error")}
       finally{clearInterval(timerId);timer.hidden=true;subject.disabled=false;chapter.disabled=false;generate.disabled=!chapter.value;generate.textContent=buttonText}
     });
