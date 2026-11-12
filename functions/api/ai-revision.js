@@ -1,7 +1,7 @@
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
 const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
-const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.5-flash","gemini-2.5-flash-lite"];
+const GEMINI_MODELS=["gemini-3.5-flash-lite","gemini-3.1-flash-lite","gemini-3.8-flash"];
 const SUBJECTS={
   Foundation:["Accounting","Business Laws","Quantitative Aptitude","Business Economics"],
   Intermediate:["Advanced Accounting","Corporate and Other Laws","Taxation — Income-tax Law","Taxation — Goods and Services Tax","Cost and Management Accounting","Auditing and Ethics","Financial Management","Strategic Management"],
