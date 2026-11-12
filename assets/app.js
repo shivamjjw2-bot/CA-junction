@@ -961,12 +961,13 @@
           subjectsMessage=result.source==="icai"?"Subjects loaded from ICAI’s official course listing.":"Showing the current ICAI course subject list.";
         }catch(error){loadingSubjects=false;subjectsMessage=error?.message||"Could not load the ICAI subject list. Please try again.";updateSelection();countInput.disabled=true;countInput.max="12";createButton.disabled=true}
       };
-      const renderSchedule=schedule=>{
+      const renderSchedule=(schedule,workload)=>{
         results.replaceChildren();
+        if(workload){const note=document.createElement("p");note.className="notice";note.textContent=(workload.feasible?"Estimated workload fits your time budget. ":"Your deadline is tight: some chapters remain unfinished. ")+"Estimated chapter work: "+workload.estimated_chapter_hours+" hours · Suggested duration: "+workload.estimated_days+" days at "+workload.daily_hours+" focused hours/day. "+workload.note;results.append(note);if(workload.remaining_chapters?.length){const remaining=document.createElement("p");remaining.className="helper";remaining.textContent="Still to cover after this plan: "+workload.remaining_chapters.map(c=>c.subject+" — "+c.chapter+" ("+c.remaining_minutes+" min)").join("; ");results.append(remaining);}}
         schedule.forEach(day=>{
           const card=document.createElement("article");card.className="plan-day";
           const sessions=Array.isArray(day.sessions)?day.sessions:(day.subject?[day]:[]);
-          const title=document.createElement("strong");title.textContent="Day "+day.day+" · "+sessions.length+" subject session"+(sessions.length===1?"":"s");
+          const title=document.createElement("strong");title.textContent="Day "+day.day+" · "+sessions.reduce((sum,s)=>sum+Number(s.study_minutes||0),0)+" focused minutes";
           const list=document.createElement("div");list.className="day-sessions";
           sessions.forEach(session=>{
             const block=document.createElement("section");block.className="study-session";
@@ -981,7 +982,7 @@
           card.append(title,list);results.append(card);
         });
       };
-      if(savedPlan?.subjects&&savedPlan?.days){daysInput.value=savedPlan.days;if(["Foundation","Intermediate","Final"].includes(savedPlan.level))level.value=savedPlan.level;if(Array.isArray(savedPlan.schedule))renderSchedule(savedPlan.schedule)}
+      if(savedPlan?.subjects&&savedPlan?.days){daysInput.value=savedPlan.days;$("#plannerDailyHours").value=savedPlan.daily_hours||4;$("#plannerStudyStage").value=savedPlan.study_stage||"first_study";if(["Foundation","Intermediate","Final"].includes(savedPlan.level))level.value=savedPlan.level;if(Array.isArray(savedPlan.schedule))renderSchedule(savedPlan.schedule,savedPlan.workload)}
       countInput.addEventListener("change",()=>{
         const target=Number(countInput.value)||0;
         const selected=[...choices.querySelectorAll('input[type="checkbox"]:checked')];
@@ -999,11 +1000,11 @@
         try{
           const {data:{session},error:authError}=await sb.auth.getSession();
           if(authError||!session?.access_token){msg("#plannerBuilderStatus","Please sign in to create an AI study plan.","error");return}
-          const response=await fetch("/api/ai-planner",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},body:JSON.stringify({level:level.value,subjects,subject_count:subjectCount,days})});
+          const response=await fetch("/api/ai-planner",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},body:JSON.stringify({level:level.value,subjects,subject_count:subjectCount,days,daily_hours:Number($("#plannerDailyHours").value),study_stage:$("#plannerStudyStage").value})});
           const result=await response.json().catch(()=>({}));
           if(!response.ok)throw new Error(result.error||"Could not create your plan. Please try again.");
-          const plan={level:level.value,subjects,subject_count:subjectCount,days,schedule:result.schedule};
-          localStorage.setItem("caJunctionCustomPlan",JSON.stringify(plan));renderSchedule(plan.schedule);
+          const plan={level:level.value,subjects,subject_count:subjectCount,days,daily_hours:Number($("#plannerDailyHours").value),study_stage:$("#plannerStudyStage").value,schedule:result.schedule,workload:result.workload};
+          localStorage.setItem("caJunctionCustomPlan",JSON.stringify(plan));renderSchedule(plan.schedule,plan.workload);
           msg("#plannerBuilderStatus","Your "+days+"-day AI plan for "+subjectCount+" subjects is ready and saved in this browser.");results.scrollIntoView({behavior:"smooth",block:"nearest"});
         }catch(error){msg("#plannerBuilderStatus",error?.message||"Could not create your plan. Please try again.","error")}
         finally{createButton.textContent="Create my AI plan";updateSelection()}
