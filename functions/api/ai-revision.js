@@ -19,7 +19,7 @@ function parseOutput(raw){
   if(start>=0&&end>start)text=text.slice(start,end+1);
   return JSON.parse(text);
 }
-function normalizeOutput(output,mode="combined"){
+function normalizeOutput(output,mode="combined",formulaFirst=false){
   const summary=cleanText(output?.summary,32000);
   const topic=cleanText(output?.mind_map?.topic,240);
   const branches=Array.isArray(output?.mind_map?.branches)?output.mind_map.branches.slice(0,12).map(branch=>({
@@ -29,7 +29,7 @@ function normalizeOutput(output,mode="combined"){
     icon:["book","checklist","balance","process"].includes(branch?.icon)?branch.icon:"book",
     points:Array.isArray(branch?.points)?branch.points.slice(0,6).map(point=>cleanText(point,420)).filter(Boolean):[]
   })).filter(branch=>branch.title&&branch.points.length):[];
-  if(mode!=="mind_map"&&summary.split(/\s+/).length<700)throw new Error("summary_too_short");
+  if(mode!=="mind_map"&&(formulaFirst?summary.length<1000:summary.split(/\s+/).length<700))throw new Error("summary_too_short");
   if(mode!=="summary"&&(!topic||branches.length<5))throw new Error("incomplete_map");
   if(mode!=="summary"&&branches.some(branch=>!branch.mnemonic||!branch.visual_cue))throw new Error("missing_memory_aids");
   return mode==="summary"?{summary}:mode==="mind_map"?{mind_map:{topic,branches}}:{summary,mind_map:{topic,branches}};
@@ -59,6 +59,9 @@ export async function onRequestPost({request,env}){
   if(!chapter)return json({error:"Choose an ICAI chapter."},400);
   let officialUrl=MATERIAL_URL[level];
   if(sourceUrl){try{const parsed=new URL(sourceUrl);if(parsed.protocol==="https:"&&["www.icai.org","icai.org","boslive.icai.org"].includes(parsed.hostname))officialUrl=parsed.href}catch{}}
+  const formulaFirst=(level==="Foundation"&&subject==="Quantitative Aptitude")||
+    (level==="Intermediate"&&["Financial Management","Cost and Management Accounting"].includes(subject))||
+    (level==="Final"&&subject==="Advanced Financial Management");
   const schema={
     type:"OBJECT",
     properties:{
@@ -79,10 +82,12 @@ export async function onRequestPost({request,env}){
     "Subject: "+subject,
     "Exact ICAI chapter title: "+chapter,
     "Official reference page for student verification: "+officialUrl,
+    formulaFirst?
+    "Produce a FORMULA-FIRST REVISION SHEET, not a theoretical essay. Organise the chapter into topic-wise formula blocks. For each relevant formula provide: formula and variants; symbols and units; when to apply it; assumptions and constraints; calculation sequence; and a compact numerical example. Add 2 to 3 complete worked problems, common calculation traps, and a final quick-reference formula checklist. Keep prose to brief instructions needed to use formulas correctly. No long introduction, definitions essay, history, advantages/disadvantages or artificial word-count padding. Use plain-text mathematical notation with /, *, ^ and parentheses. Cover reliably known relevant formulas in detail; never invent a formula just to fill a section. For logical reasoning or other non-numerical topics within these subjects, provide solution rules, step-by-step methods and worked problems instead of fabricated formulas.":
     "Write a detailed 1400 to 2200 word topic-wise summary. Start with a topic checklist, then explain each relevant topic and subtopic with definitions, essential key points, procedures, distinctions, exceptions and short examples where useful. Include exam pitfalls and finish with active-recall questions and a revision checklist. Use blank lines between plain-text headed sections. Do not substitute a handful of general bullets for chapter notes.",
     "Adapt the notes to the selected chapter, not just the subject label. For numerical or practical chapters in Accounting, Advanced Accounting, Financial Reporting, Quantitative Aptitude, Cost and Management Accounting, Financial Management, Advanced Financial Management, Taxation, Direct Tax or Indirect Tax, include a clearly headed FORMULA AND METHODS SUMMARY. Include every relevant formula you can reliably identify for the chapter, define each symbol and unit, explain when to use it and its assumptions, and flag common calculation mistakes. Use readable plain-text notation such as /, *, ^ and parentheses, not LaTeX. Where the chapter is procedure-based, use calculation steps, journal-entry formats or reconciliation methods instead of inventing formulas.",
     "Include 2 to 3 short worked numerical examples where appropriate, showing given data, formula or method, substitution, calculation and final answer with units. Check arithmetic and rounding consistency. For tax examples, label assumed rates and assessment periods explicitly; do not invent current statutory rates, limits or amendments. Add a quick formula-recall checklist at the end. In mixed theory/practical chapters include both concepts and formulas. For purely theoretical chapters do not force a formula section.",
-    "For practical chapter mind maps, dedicate branches to key formulas and choosing the correct method. Include symbol meanings, units and conditions in short points, and use mnemonics or visual cues to remember the calculation sequence without distorting the formula.",
+    formulaFirst?"Make this mind map a formula-recall map: group related equations and calculation methods, include formula variants, symbol meanings, units, decision rules and memory aids. Theory should only explain how to choose and apply the formulas.":"For practical chapter mind maps, dedicate branches to key formulas and choosing the correct method. Include symbol meanings, units and conditions in short points, and use mnemonics or visual cues to remember the calculation sequence without distorting the formula.",
     "The actual chapter text has not been supplied. Say briefly that coverage is syllabus-based and must be checked against the official chapter; never claim exhaustive or verified chapter coverage. Do not invent missing topics or legal details.",
     "Create a pictorial memory map with 5 to 12 topic branches. Each branch must have a memorable mnemonic, spell out what EVERY letter or word stands for, a concrete visual_cue describing an image the student can imagine, and 3 to 6 short important points. Choose icon book for concepts, checklist for checks, balance for comparisons or duties, process for sequences. Mnemonics are original learning aids, never official ICAI terminology. Cover the important summary topics, prioritise understanding and accurate recall.",
     "Use clear exam revision language. Do not invent section numbers, amendments, case citations, or say you read the linked page. Tell the student to verify law, standards, limits, dates, and syllabus-edition details against official ICAI material.",
@@ -119,11 +124,12 @@ export async function onRequestPost({request,env}){
     const raw=candidate?.content?.parts?.filter(part=>!part.thought).map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
     if(!raw){lastStatus=502;lastFailure="empty";continue}
     try{
-      const output=normalizeOutput(parseOutput(raw),mode);
+      const output=normalizeOutput(parseOutput(raw),mode,formulaFirst);
       return json({level,subject,chapter,mode,source_url:officialUrl,...output});
     }catch(error){
       lastStatus=502;lastFailure=error instanceof SyntaxError?"invalid_json":error.message;
       repair="\nReturn complete JSON for the requested step only. "+(mode==="summary"?"The summary must have at least 700 words.":mode==="mind_map"?"Include at least 5 branches with mnemonic and visual_cue.":"The summary must have at least 700 words and map at least 5 branches with mnemonic and visual_cue.");
+      if(formulaFirst)repair="\nReturn complete JSON for the requested step. Provide a substantive formula sheet with explained symbols, calculation steps and worked examples; do not pad it with theory. The map must contain at least 5 branches with mnemonic and visual_cue.";
       console.warn("AI revision response did not match expected chapter pack",JSON.stringify({model,reason:lastFailure,finishReason:candidate?.finishReason||"unknown"}));
     }
   }
