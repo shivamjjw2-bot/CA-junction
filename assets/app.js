@@ -596,6 +596,7 @@
       const timer=$("#revisionElapsed"),started=Date.now();timer.hidden=false;
       const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent="Preparing detailed chapter PDFs · elapsed "+String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");};
       tick();const timerId=setInterval(tick,1000);
+      const generationDeadline=Date.now()+175000,generationController=new AbortController();const deadlineTimer=setTimeout(()=>generationController.abort(),175000);
       try{
         const {data:{session}}=await sb.auth.getSession();
         if(!session?.access_token){location.href="account.html?next="+encodeURIComponent("revision.html?level="+level+"&subject="+encodeURIComponent(subjectName));return}
@@ -603,15 +604,17 @@
         const pack=chapterPacks.get(key)||{};chapterPacks.set(key,pack);
         const prepare=async(mode,extra={},progress="")=>{
           for(let attempt=0;attempt<2;attempt++){
+            if(generationController.signal.aborted||Date.now()>=generationDeadline)throw new Error("The 3-minute preparation limit was reached. Retry to continue from completed topics.");
             msg("#revisionGenerateStatus",(progress||(mode==="summary"?"Preparing your detailed summary":"Preparing your memory map; both PDFs will appear together"))+(attempt?" — retrying automatically…":"…"));
             try{
-              const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl,mode,...extra,...(mode==="mind_map"?{summary:pack.summary}:{})})});
+              const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},signal:generationController.signal,body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl,mode,time_budget_ms:Math.max(1000,generationDeadline-Date.now()),...extra,...(mode==="mind_map"?{summary:pack.summary}:{})})});
               const result=await response.json().catch(()=>({}));
               if(response.ok)return result;
               const error=new Error(result.error||"CA Junction could not finish this step.");
               error.retryable=[502,503,504].includes(response.status);
               throw error;
             }catch(error){
+              if(generationController.signal.aborted)throw new Error("The 3-minute preparation limit was reached. Retry to continue from completed topics.");
               if(attempt===1||!(error.retryable||error instanceof TypeError))throw error;
               await new Promise(resolve=>setTimeout(resolve,1500));
             }
@@ -622,12 +625,15 @@
         const base=slug(chapterName),summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
         mapLink.closest("article").hidden=true;
         if(!pack.outline){const outline=await prepare("outline",{},"Reading the ICAI chapter and listing its topics and subtopics");pack.outline=outline.topics;pack.reference_documents=outline.reference_documents;pack.sections=[];}
-        for(let offset=0;offset<pack.outline.length;offset+=4){
-          const batch=pack.outline.slice(offset,offset+4);
-          if(batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))continue;
-          const result=await prepare("sections",{topics:batch},"Preparing topics "+(offset+1)+"–"+Math.min(offset+4,pack.outline.length)+" of "+pack.outline.length+"; preparation may take up to 3 minutes");
+        const batches=[];for(let offset=0;offset<pack.outline.length;offset+=6){const batch=pack.outline.slice(offset,offset+6);if(!batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))batches.push(batch);}
+        let nextBatch=0;
+        const worker=async()=>{while(nextBatch<batches.length){
+          const batch=batches[nextBatch++];const result=await prepare("sections",{topics:batch},"Preparing chapter topics · "+pack.sections.length+" of "+pack.outline.length+" ready");
+          if(generationController.signal.aborted)throw new Error("The 3-minute preparation limit was reached. Retry to continue.");
           for(const section of result.sections){pack.sections=pack.sections.filter(row=>row.id!==section.id);pack.sections.push(section);}
-        }
+        }};
+        const outcomes=await Promise.allSettled(Array.from({length:Math.min(3,batches.length)},worker));
+        const failed=outcomes.find(outcome=>outcome.status==="rejected");if(failed)throw failed.reason;
         if(pack.sections.length!==pack.outline.length)throw new Error("Some chapter topics are unfinished. Retry to continue.");
         pack.sections.sort((a,b)=>a.id-b.id);
         pack.topic_cards=pack.sections.map(section=>({title:section.title,main_topic:section.main_topic,points:section.points,takeaway:section.takeaway,memory_aid:section.mnemonic}));
@@ -643,7 +649,7 @@
         $("#revisionGeneratedFiles").hidden=false;
         msg("#revisionGenerateStatus",pack.reference_documents?"Both PDFs are ready: "+pack.outline.length+" identified topics and subtopics covered in both documents, using "+pack.reference_documents+" official chapter/unit PDF(s). Review the topic list against your syllabus edition.":"Both PDFs are ready. The official chapter PDFs could not be read, so coverage is syllabus-based and may be incomplete.");
       }catch(error){msg("#revisionGenerateStatus",error.message||"CA Junction could not create these PDFs. Please try again.","error")}
-      finally{clearInterval(timerId);timer.hidden=true;subject.disabled=false;chapter.disabled=false;generate.disabled=!chapter.value;generate.textContent=buttonText}
+      finally{clearTimeout(deadlineTimer);generationController.abort();clearInterval(timerId);timer.hidden=true;subject.disabled=false;chapter.disabled=false;generate.disabled=!chapter.value;generate.textContent=buttonText}
     });
     if(!ready()){msg("#revisionGenerateStatus",backendMessage,"error");generate.disabled=true}
   }
