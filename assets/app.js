@@ -906,11 +906,30 @@
     pauseButton?.addEventListener("click",()=>{pauseStudyTimer();renderTimer();msg("#timerStatus","Paused and saved. Resume to continue from this time.")});
     resetButton?.addEventListener("click",()=>{if(studyTimer.runningSince)pauseStudyTimer();studyTimer=readTimerState();studyTimer.elapsed=0;studyTimer.runningSince=null;studyTimer.focusMode=false;saveTimerState();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});msg("#timerStatus","Session finished. All paused time remains in your study-hours total.")});
     minimizeButton?.addEventListener("click",()=>{studyTimer=readTimerState();studyTimer.minimized=true;saveTimerState();renderTimer()});
-    focusButton?.addEventListener("click",async()=>{studyTimer=readTimerState();if(studyTimer.focusMode){pauseStudyTimer();if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});renderTimer();msg("#timerStatus","Focus mode ended. Your study time is saved; you can use other resources now.");return}try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();studyTimer.focusMode=true;if(!studyTimer.runningSince)studyTimer.runningSince=Date.now();saveTimerState();msg("#timerStatus","Focus mode is on. Leaving this page will pause and save your session.")}catch{studyTimer.focusMode=false;saveTimerState();msg("#timerStatus","Fullscreen is unavailable in this browser. You can still use the timer normally.","error")}renderTimer()});
+    focusButton?.addEventListener("click",async()=>{studyTimer=readTimerState();if(studyTimer.focusMode){pauseStudyTimer();if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});renderTimer();msg("#timerStatus","Focus mode ended. Your study time is saved; you can use other resources now.");return}try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen()}catch{}}studyTimer.focusMode=true;if(!studyTimer.runningSince)studyTimer.runningSince=Date.now();saveTimerState();msg("#timerStatus","Focus mode is on. Leaving this page will pause and save your session.")}catch{studyTimer.focusMode=false;saveTimerState();msg("#timerStatus","Fullscreen is unavailable in this browser. You can still use the timer normally.","error")}renderTimer()});
     const leaveFocusPage=()=>{studyTimer=readTimerState();if(studyTimer.focusMode)pauseStudyTimer()};
     document.addEventListener("visibilitychange",()=>{studyTimer=readTimerState();if(document.visibilityState==="hidden"&&studyTimer.focusMode){pauseStudyTimer();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}});
     window.addEventListener("pagehide",leaveFocusPage);
     window.addEventListener("ca:timer-update",renderTimer);setInterval(renderTimer,1000);renderTimer();
+    if($("#trackerSteps")){
+      const compact=$("#compactCountdown"),compactText=$("#compactCountdownText");
+      const updateCompact=()=>{compact.hidden=daysDisplay.hidden;compactText.textContent=daysDisplay.textContent;document.body.classList.toggle("tracker-focus",readTimerState().focusMode);};
+      const showView=(timer)=>{
+        if(readTimerState().focusMode&&!timer){msg("#timerStatus","Pause focus mode before changing your exam date.");return}
+        countdownPanel.hidden=timer;panel.hidden=!timer;
+        studyTimer=readTimerState();if(timer)studyTimer.minimized=false;else studyTimer.countdownMinimized=false;saveTimerState();
+        $("#showCountdown").setAttribute("aria-pressed",String(!timer));$("#showStudyTimer").setAttribute("aria-pressed",String(timer));
+        updateCompact();$("#trackerSteps").scrollIntoView({behavior:"smooth",block:"start"});
+      };
+      $("#showCountdown").addEventListener("click",()=>showView(false));
+      $("#editExamDate").addEventListener("click",()=>showView(false));
+      $("#showStudyTimer").addEventListener("click",()=>showView(true));
+      $("#countdownButton").addEventListener("click",()=>{renderCountdown();updateCompact();if(!daysDisplay.hidden)showView(true);else date.focus();});
+      date.addEventListener("change",updateCompact);
+      window.addEventListener("ca:timer-update",updateCompact);
+      document.addEventListener("click",event=>{if(readTimerState().focusMode&&event.target.closest("a")){event.preventDefault();event.stopImmediatePropagation();msg("#timerStatus","Pause focus mode before opening another page.");}},true);
+      showView(Boolean(date.value));updateCompact();
+    }
     const loadHours=async()=>{const label=$("#todayHours");if(!label)return;if(ready()){try{const {data:{user}}=await sb.auth.getUser();if(user){const start=new Date();start.setHours(0,0,0,0);const {data}=await sb.from("study_sessions").select("duration_seconds").eq("user_id",user.id).gte("started_at",start.toISOString());label.textContent=Math.round((data||[]).reduce((sum,row)=>sum+Number(row.duration_seconds||0),0)/60)+" minutes";return}}catch{}}label.textContent=Math.round(Number(localStorage.getItem("caJunctionLocalStudySeconds")||0)/60)+" minutes"};
     const builder=$("#plannerBuilderForm");
     if(builder){
