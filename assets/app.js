@@ -625,7 +625,7 @@
         for(let offset=0;offset<pack.outline.length;offset+=4){
           const batch=pack.outline.slice(offset,offset+4);
           if(batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))continue;
-          const result=await prepare("sections",{topics:batch},"Preparing topics "+(offset+1)+"–"+Math.min(offset+4,pack.outline.length)+" of "+pack.outline.length+"; longer chapters take several minutes");
+          const result=await prepare("sections",{topics:batch},"Preparing topics "+(offset+1)+"–"+Math.min(offset+4,pack.outline.length)+" of "+pack.outline.length+"; preparation may take up to 3 minutes");
           for(const section of result.sections){pack.sections=pack.sections.filter(row=>row.id!==section.id);pack.sections.push(section);}
         }
         if(pack.sections.length!==pack.outline.length)throw new Error("Some chapter topics are unfinished. Retry to continue.");
