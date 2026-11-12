@@ -510,6 +510,7 @@
     if(subjects.includes(selected))subject.value=selected;
     if(official){official.href=materialUrls[level];official.hidden=false;official.textContent="Open official ICAI study material ↗"}
     let sourceUrl=materialUrls[level],chapterRequest=0,generatedUrls=[];
+    const chapterPacks=new Map();
     const releaseGenerated=()=>{generatedUrls.forEach(url=>URL.revokeObjectURL(url));generatedUrls=[];$("#revisionGeneratedFiles").hidden=true};
     const slug=value=>String(value||"chapter").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"chapter";
     const pdfSafe=value=>String(value||"").replace(/•/g,"-").replace(/→|➜/g,"->").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g," ");
@@ -586,27 +587,48 @@
     generate.addEventListener("click",async()=>{
       const chapterName=chapter.value,subjectName=subject.value;
       if(!chapterName||!subjectName)return;
-      const buttonText=generate.textContent;generate.disabled=true;generate.textContent="CA Junction is preparing your PDFs…";msg("#revisionGenerateStatus","");
+      const buttonText=generate.textContent;generate.disabled=true;generate.textContent="CA Junction is preparing your PDFs…";subject.disabled=true;chapter.disabled=true;msg("#revisionGenerateStatus","");
       const timer=$("#revisionElapsed"),started=Date.now();timer.hidden=false;
-      const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent="Preparing your PDFs · this can take up to 2 minutes · "+String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");};
+      const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent="Preparing your PDFs · usually up to 2 minutes · "+String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");};
       tick();const timerId=setInterval(tick,1000);
       try{
         const {data:{session}}=await sb.auth.getSession();
         if(!session?.access_token){location.href="account.html?next="+encodeURIComponent("revision.html?level="+level+"&subject="+encodeURIComponent(subjectName));return}
-        const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl})});
-        const result=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(result.error||"CA Junction could not create these PDFs.");
-        const map=mapText(result.mind_map),meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
-        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,result.summary)),mapUrl=URL.createObjectURL(makePdf(chapterName+" — Mind Map",meta,map));
-        generatedUrls.push(summaryUrl,mapUrl);
-        const base=slug(chapterName);const summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
-        summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";mapLink.href=mapUrl;mapLink.download=base+"-mind-map.pdf";
+        const key=JSON.stringify([level,subjectName,chapterName]);
+        const pack=chapterPacks.get(key)||{};chapterPacks.set(key,pack);
+        const prepare=async(mode)=>{
+          for(let attempt=0;attempt<2;attempt++){
+            msg("#revisionGenerateStatus",(mode==="summary"?"Preparing your detailed summary":"Summary ready. Preparing your memory map")+(attempt?" — retrying automatically…":"…"));
+            try{
+              const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl,mode,...(mode==="mind_map"?{summary:pack.summary}:{})})});
+              const result=await response.json().catch(()=>({}));
+              if(response.ok)return result;
+              const error=new Error(result.error||"CA Junction could not finish this step.");
+              error.retryable=[502,503,504].includes(response.status);
+              throw error;
+            }catch(error){
+              if(attempt===1||!(error.retryable||error instanceof TypeError))throw error;
+              await new Promise(resolve=>setTimeout(resolve,1500));
+            }
+          }
+        };
+        releaseGenerated();
+        const meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
+        const base=slug(chapterName),summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
+        mapLink.closest("article").hidden=true;
+        if(!pack.summary)pack.summary=(await prepare("summary")).summary;
+        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.summary));generatedUrls.push(summaryUrl);
+        summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";
         $("#generatedSummaryTitle").textContent=chapterName+" — Summary";
-        $("#generatedMindMapTitle").textContent=chapterName+" — Mind Map";
         $("#revisionGeneratedFiles").hidden=false;
+        if(!pack.mind_map)pack.mind_map=(await prepare("mind_map")).mind_map;
+        const mapUrl=URL.createObjectURL(makePdf(chapterName+" — Mind Map",meta,mapText(pack.mind_map)));generatedUrls.push(mapUrl);
+        mapLink.href=mapUrl;mapLink.download=base+"-mind-map.pdf";
+        $("#generatedMindMapTitle").textContent=chapterName+" — Mind Map";
+        mapLink.closest("article").hidden=false;
         msg("#revisionGenerateStatus","Both PDFs are ready. Check them against the linked ICAI material before relying on exam-specific details.");
       }catch(error){msg("#revisionGenerateStatus",error.message||"CA Junction could not create these PDFs. Please try again.","error")}
-      finally{clearInterval(timerId);timer.hidden=true;generate.disabled=!chapter.value;generate.textContent=buttonText}
+      finally{clearInterval(timerId);timer.hidden=true;subject.disabled=false;chapter.disabled=false;generate.disabled=!chapter.value;generate.textContent=buttonText}
     });
     if(!ready()){msg("#revisionGenerateStatus",backendMessage,"error");generate.disabled=true}
   }
