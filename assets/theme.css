@@ -29,3 +29,14 @@ html[data-theme="light"] .hero p{color:#3d563f}
 html[data-theme="light"] .hero .eyebrow{color:#4a6c42}
 html[data-theme="light"] .navlinks.open{background:#faf6e9}
 @media print{.theme-toggle{display:none}header .nav{padding-right:0}}
+
+/* Shared frosted-glass surfaces in both themes. */
+header .nav{padding-right:124px}
+.theme-toggle{width:112px;padding:7px 9px;font-size:12px;font-weight:750;white-space:nowrap;box-shadow:inset 0 1px 0 #ffffff60,inset 0 -1px 0 #ffffff12,0 5px 20px #0002;backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%)}
+:is(.panel,.card,.app,.note,.level-app,.service-group,.service-tile,.resource-filters,.study-session,.plan-day,.action-app,.notice,.timer-dock,.compact-countdown,dialog){backdrop-filter:blur(20px) saturate(135%);-webkit-backdrop-filter:blur(20px) saturate(135%);box-shadow:inset 0 1px 0 #ffffff18,0 8px 28px #00000012}
+header{backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%)}
+html[data-theme="dark"] :is(.panel,.card,.app,.note,.service-group,.service-tile,.resource-filters){background:linear-gradient(140deg,rgba(255,255,255,.075),rgba(24,30,55,.58))}
+html[data-theme="light"] :is(.panel,.card,.app,.note,.service-group,.service-tile,.resource-filters){background:linear-gradient(140deg,rgba(255,255,250,.78),rgba(226,235,211,.40));box-shadow:inset 0 1px 0 #ffffffcf,0 8px 30px #4164380d}
+:is(.btn,.generate-button,.login,.tracker-steps button){backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:inset 0 1px 0 #ffffff35,0 4px 14px #00000012}
+@media(min-width:901px) and (max-width:1150px){.navlinks{gap:10px;font-size:11px}}
+@media print{header .nav{padding-right:0}}
