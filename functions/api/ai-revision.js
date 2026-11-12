@@ -81,7 +81,7 @@ async function readChapterDocuments(pageUrl,chapter){
    docs.push({inline_data:{mime_type:"application/pdf",data:btoa(binary)}});
   }
   return docs;
- }catch(error){return failed("SOURCE_"+(error?.name||"ERROR")+"_"+String(error?.message||"").slice(0,120));}
+ }catch(error){console.warn("ICAI chapter source read failed",{errorName:error?.name||"Error"});return failed("SOURCE_UNAVAILABLE");}
 }
 
 
@@ -89,7 +89,7 @@ async function createCoveredRevision({env,mode,officialUrl,chapter,level,subject
  const topics=body.topics;
  if(mode==="sections"&&(!Array.isArray(topics)||!topics.length||topics.length>4||topics.some(t=>!Number.isInteger(t.id)||typeof t.title!=="string"||t.title.length>240||typeof t.parent!=="string"||t.parent.length>240)||new Set(topics.map(t=>t.id)).size!==topics.length))return json({error:"Choose valid chapter sections."},400);
  const docs=await readChapterDocuments(officialUrl,chapter);
- if(!docs.length)return json({error:"CA Junction could not read the official chapter PDFs. Detailed chapter notes cannot be prepared without the source. Please retry later or use the official material link. ("+(docs.failure||"source unavailable")+")",code:"CHAPTER_SOURCE_UNAVAILABLE",source_status:docs.failure||"unknown"},422);
+ if(!docs.length)return json({error:"CA Junction could not read the official chapter PDFs. Detailed chapter notes cannot be prepared without the source. Please retry later or use the official material link.",code:"CHAPTER_SOURCE_UNAVAILABLE",source_status:docs.failure||"unknown"},422);
  const outlineSchema={type:"OBJECT",properties:{topics:{type:"ARRAY",items:{type:"OBJECT",properties:{title:{type:"STRING"},parent:{type:"STRING"}},required:["title","parent"]}}},required:["topics"]};
  const sectionSchema={type:"OBJECT",properties:{sections:{type:"ARRAY",items:{type:"OBJECT",properties:{id:{type:"INTEGER"},points:{type:"ARRAY",items:{type:"STRING"}},takeaway:{type:"STRING"},mnemonic:{type:"STRING"},visual_cue:{type:"STRING"},connections:{type:"STRING"},icon:{type:"STRING",enum:["book","checklist","balance","process"]}},required:["id","points","takeaway","mnemonic","visual_cue","connections","icon"]}}},required:["sections"]};
  const instructions=mode==="outline"?
