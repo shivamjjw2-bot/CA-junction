@@ -564,7 +564,7 @@
       pages.forEach((stream,i)=>{objects[4+i*2]="<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream";objects[5+i*2]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents "+(4+i*2)+" 0 R >>"});
       let pdf="%PDF-1.4\n";const offsets=[0];for(let i=1;i<objects.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\n"+objects[i]+"\nendobj\n"}const xref=pdf.length;pdf+="xref\n0 "+objects.length+"\n0000000000 65535 f \n";for(let i=1;i<objects.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";pdf+="trailer\n<< /Size "+objects.length+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";return new Blob([pdf],{type:"application/pdf"});
     };
-    const mapText=map=>"Central topic: "+map.topic+"\n\n"+map.branches.map((branch,index)=>"["+branch.icon+"] "+(index+1)+". "+branch.title+"\nMemory aid: "+branch.mnemonic+"\nPicture this: "+branch.visual_cue+"\n"+branch.points.map(point=>"   - "+point).join("\n")).join("\n\n");
+    const mapText=map=>"Central topic: "+map.topic+"\n\n"+map.branches.map((branch,index)=>"["+branch.icon+"] "+(index+1)+". "+branch.title+"\nMemory aid: "+branch.mnemonic+"\nPicture this: "+branch.visual_cue+(branch.connections?"\nLINKS: "+branch.connections:"")+"\n"+branch.points.map(point=>"   - "+point).join("\n")).join("\n\n");
     const loadChapters=async()=>{
       const request=++chapterRequest,name=subject.value,canonical=aliases[name]||name;
       releaseGenerated();generate.disabled=true;
@@ -619,7 +619,7 @@
         mapLink.closest("article").hidden=true;
         if(!pack.summary){const result=await prepare("summary");pack.summary=result.summary;pack.formula_cards=result.formula_cards;pack.topic_cards=result.topic_cards;}
         if(!pack.mind_map)pack.mind_map=(await prepare("mind_map")).mind_map;
-        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.topic_cards?.length?pack.topic_cards.map(card=>card.title+"\n"+card.points.map(point=>"- "+point).join("\n")+"\nREMEMBER: "+card.takeaway):pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\nFORMULA: "+card.formula+"\n"+[["Symbols",card.symbols],["Use when",card.use_when],["Conditions",card.conditions],["Example",card.example]].map(([label,value])=>label+":\n"+String(value||"").split(/[;\n]+/).filter(part=>part.trim()).map(part=>"- "+part.trim()).join("\n")).join("\n")):pack.summary));generatedUrls.push(summaryUrl);
+        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.topic_cards?.length?pack.topic_cards.map(card=>(card.main_topic?card.main_topic.toUpperCase()+" / ":"")+card.title+"\n"+card.points.map(point=>"- "+point).join("\n")+"\nREMEMBER: "+card.takeaway+(card.memory_aid?"\nMEMORY AID: "+card.memory_aid:"")):pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\nFORMULA: "+card.formula+"\n"+[["Symbols",card.symbols],["Use when",card.use_when],["Conditions",card.conditions],["Example",card.example]].map(([label,value])=>label+":\n"+String(value||"").split(/[;\n]+/).filter(part=>part.trim()).map(part=>"- "+part.trim()).join("\n")).join("\n")):pack.summary));generatedUrls.push(summaryUrl);
         summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";
         $("#generatedSummaryTitle").textContent=chapterName+" — Summary";
         const mapUrl=URL.createObjectURL(makePdf(chapterName+" — Mind Map",meta,mapText(pack.mind_map)));generatedUrls.push(mapUrl);

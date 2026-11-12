@@ -2,7 +2,7 @@ const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:
 const SUPABASE_URL="https://acfwnunfglnjnxoxhxfd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_kQX9-4ob68XddAoymggAaA_Tlx-r7yg";
 const LEVELS=new Set(["Foundation","Intermediate","Final"]);
-const GEMINI_MODELS=["gemini-3.8-flash","gemini-3.5-flash-lite","gemini-2.5-flash-lite"];
+const GEMINI_MODELS=["gemini-3.5-flash-lite","gemini-3.1-flash-lite","gemini-3.8-flash"];
 async function logAiMcqRequest(token){
   try{
     const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/log_ca_ai_mcq_request",{method:"POST",headers:{apikey:SUPABASE_PUBLISHABLE_KEY,authorization:"Bearer "+token,"content-type":"application/json"},body:"{}"});
@@ -11,6 +11,31 @@ async function logAiMcqRequest(token){
   }catch{return false}
 }
 
+function validateMcqResult(result){
+    if(result?.candidates?.[0]?.finishReason==="MAX_TOKENS")throw new Error("truncated");
+    const questionCount=10;
+    const raw=result?.candidates?.[0]?.content?.parts?.filter(part=>!part.thought).map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
+    if(!raw)throw new Error("invalid_set");
+    const parsed=JSON.parse(raw.replace(/^\x60{3}(?:json)?\s*/i,"").replace(/\s*\x60{3}$/,""));
+    const rawQuestions=parsed?.questions;
+    const caseStudy=typeof parsed?.case_study==="string"?parsed.case_study.trim():"";
+    if(!Array.isArray(rawQuestions)||rawQuestions.length!==questionCount)throw new Error("invalid_set");
+    const questions=rawQuestions.map((q,index)=>({
+      question:typeof q?.question==="string"?q.question.trim():"",
+      kind:index<5?"individual":"case-linked",
+      marks:index<5?1:2,
+      options:Array.isArray(q?.options)?q.options.map(option=>typeof option==="string"?option.trim():"") : [],
+      correct_index:Number(q?.correct_index),
+      explanation:typeof q?.explanation==="string"?q.explanation.trim():"",
+      difficulty:Math.min(5,Math.floor(index/2)+1)
+    }));
+    const valid=caseStudy.length>=80&&caseStudy.length<=3000&&questions.every(q=>
+      q.question.length>0&&q.question.length<=1200&&q.options.length===4&&q.options.every(option=>option.length>0&&option.length<=500)&&
+      Number.isInteger(q.correct_index)&&q.correct_index>=0&&q.correct_index<=3&&q.explanation.length>0&&q.explanation.length<=1500);
+    if(!valid)throw new Error("invalid_set");
+    return {questions,case_study:caseStudy,max_marks:15,question_count:questionCount};
+
+}
 export async function onRequestPost({request,env}) {
   if(!env.GEMINI_API_KEY)return json({error:"Free AI practice is temporarily unavailable. Please try again later."},503);
   if(!(request.headers.get("content-type")||"").toLowerCase().includes("application/json"))return json({error:"Send a valid practice request."},415);
@@ -39,16 +64,19 @@ export async function onRequestPost({request,env}) {
   if(!logged)return json({error:"Your practice request could not be recorded. Please try again later."},503);
   try {
     let aiResponse,result={},lastFailureStatus=0;
+    const deadline=Date.now()+110000;
+    let repair="";
     for(const model of GEMINI_MODELS){
+      if(deadline-Date.now()<5000)break;
       const generationConfig={responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:6000};
       if(model.startsWith("gemini-3."))generationConfig.thinkingConfig={thinkingLevel:"low"};
       const requestBody=JSON.stringify({
-        contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\n\n"+userPrompt}]}],
+        contents:[{role:"user",parts:[{text:"You are a careful CA exam practice tutor. Return only valid JSON matching the required schema.\n\n"+userPrompt+repair}]}],
         generationConfig
       });
       try{
         aiResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
-          method:"POST",headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},body:requestBody,signal:AbortSignal.timeout(18000)
+          method:"POST",headers:{"content-type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},body:requestBody,signal:AbortSignal.timeout(Math.min(45000,deadline-Date.now()))
         });
       }catch(error){
         lastFailureStatus=503;
@@ -56,43 +84,26 @@ export async function onRequestPost({request,env}) {
         continue;
       }
       result=await aiResponse.json().catch(()=>({}));
-      if(aiResponse.ok)break;
+      if(aiResponse.ok){
+        try{return json(validateMcqResult(result));}catch(error){repair="\nYour last response failed validation. Return exactly 10 complete questions and a case study, with four distinct options per question, valid 0-based answer indices, and concise explanations. Complete the JSON.";lastFailureStatus=502;continue;}
+      }
       lastFailureStatus=aiResponse.status;
-      if(aiResponse.status===429||aiResponse.status===500||aiResponse.status===503){
+      if([400,404,408,429,500,502,503,504].includes(aiResponse.status)){
         console.warn("AI MCQ model unavailable; trying next free model",JSON.stringify({model,httpStatus:aiResponse.status,providerStatus:result?.error?.status||null}));
         continue;
       }
       console.error("AI MCQ Gemini request failed",JSON.stringify({model,httpStatus:aiResponse.status,providerStatus:result?.error?.status||null,providerCode:result?.error?.code||null,providerMessage:String(result?.error?.message||"").slice(0,320)}));
-      if(aiResponse.status===403)return json({error:"Gemini free access is unavailable for this project. Please try again later."},503);
-      return json({error:"Gemini could not create a question set right now. Please try again shortly."},502);
+      if(aiResponse.status===403)return json({error:"AI practice is unavailable for this project. Please try again later."},503);
+      return json({error:"CA Junction could not create a question set right now. Please try again shortly."},502);
     }
     if(!aiResponse?.ok){
-      if(lastFailureStatus===429)return json({error:"Gemini’s free shared limit is busy or used for now. Please try again later."},429);
-      return json({error:"Gemini is temporarily busy. Please try again in a moment."},503);
+      if(lastFailureStatus===429)return json({error:"CA Junction’s free shared limit is busy or used for now. Please try again later."},429);
+      return json({error:"CA Junction is temporarily busy. Please try again in a moment."},503);
     }
-    const raw=result?.candidates?.[0]?.content?.parts?.map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
-    if(!raw)return json({error:"No questions were returned. Please try again."},502);
-    const parsed=JSON.parse(raw);
-    const rawQuestions=parsed?.questions;
-    const caseStudy=typeof parsed?.case_study==="string"?parsed.case_study.trim():"";
-    if(!Array.isArray(rawQuestions)||rawQuestions.length!==questionCount)return json({error:"The AI returned an incomplete question set. Please generate a new set."},502);
-    const questions=rawQuestions.map((q,index)=>({
-      question:typeof q?.question==="string"?q.question.trim():"",
-      kind:index<5?"individual":"case-linked",
-      marks:index<5?1:2,
-      options:Array.isArray(q?.options)?q.options.map(option=>typeof option==="string"?option.trim():"") : [],
-      correct_index:Number(q?.correct_index),
-      explanation:typeof q?.explanation==="string"?q.explanation.trim():"",
-      difficulty:Math.min(5,Math.floor(index/2)+1)
-    }));
-    const valid=caseStudy.length>=80&&caseStudy.length<=3000&&questions.every(q=>
-      q.question.length>0&&q.question.length<=1200&&q.options.length===4&&q.options.every(option=>option.length>0&&option.length<=500)&&
-      Number.isInteger(q.correct_index)&&q.correct_index>=0&&q.correct_index<=3&&q.explanation.length>0&&q.explanation.length<=1500);
-    if(!valid)return json({error:"The question set did not pass checks. Please generate a new set."},502);
-    return json({questions,case_study:caseStudy,max_marks:15,question_count:questionCount});
+    return json({error:"CA Junction could not finish a valid practice set. Please try again shortly."},503);
   } catch(error) {
     const detail=String(error?.message||"").toLowerCase();
-    if(/429|quota|resource_exhausted/.test(detail))return json({error:"Gemini’s free shared limit is busy or used for now. Please try again later."},429);
+    if(/429|quota|resource_exhausted/.test(detail))return json({error:"CA Junction’s free shared limit is busy or used for now. Please try again later."},429);
     return json({error:"Could not create a question set. Please try again shortly."},502);
   }
 }
