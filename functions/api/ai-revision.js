@@ -51,7 +51,6 @@ export async function onRequestPost({request,env}){
   const mode=body.mode||"combined";
   if(!["combined","summary","mind_map"].includes(mode))return json({error:"Choose a valid chapter preparation step."},400);
   const suppliedSummary=cleanText(body.summary,32000);
-  if(mode==="mind_map"&&suppliedSummary.split(/\s+/).length<700)return json({error:"Prepare the chapter summary first."},400);
   const level=cleanText(body.level,24),subject=cleanText(body.subject,120),chapter=cleanText(body.chapter,180);
   const sourceUrl=cleanText(body.source_url,500);
   if(!Object.hasOwn(SUBJECTS,level))return json({error:"Choose Foundation, Intermediate or Final."},400);
@@ -62,6 +61,7 @@ export async function onRequestPost({request,env}){
   const formulaFirst=(level==="Foundation"&&subject==="Quantitative Aptitude")||
     (level==="Intermediate"&&["Financial Management","Cost and Management Accounting"].includes(subject))||
     (level==="Final"&&subject==="Advanced Financial Management");
+  if(mode==="mind_map"&&(formulaFirst?suppliedSummary.length<1000:suppliedSummary.split(/\s+/).length<700))return json({error:"Prepare the chapter summary first."},400);
   const schema={
     type:"OBJECT",
     properties:{
@@ -97,10 +97,14 @@ export async function onRequestPost({request,env}){
   ].join("\n");
   let lastStatus=0,lastProviderStatus="",lastFailure="",repair="";
   const deadline=Date.now()+110000;
-  for(const model of GEMINI_MODELS){
+  const attempts=GEMINI_MODELS.flatMap(model=>[{model,schemaMode:true},{model,schemaMode:false}]);
+  let allowPlainRetry=false;
+  for(const {model,schemaMode} of attempts){
+    if(!schemaMode&&!allowPlainRetry)continue;
+    allowPlainRetry=false;
     if(deadline-Date.now()<5000)break;
     let response,result;
-    const generationConfig={responseMimeType:"application/json",responseSchema,maxOutputTokens:mode==="summary"?7500:mode==="mind_map"?6500:12000,temperature:0.2};
+    const generationConfig={responseMimeType:"application/json",...(schemaMode?{responseSchema}:{}),maxOutputTokens:mode==="summary"?7500:mode==="mind_map"?6500:12000,temperature:0.2};
     if(model.startsWith("gemini-3."))generationConfig.thinkingConfig={thinkingLevel:"low"};
     try{
       response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{
@@ -116,10 +120,12 @@ export async function onRequestPost({request,env}){
     result=await response.json().catch(()=>({}));
     if(!response.ok){
       lastFailure="provider";lastStatus=response.status;lastProviderStatus=result?.error?.status||"";
-      console.warn("AI revision model request failed; trying fallback",JSON.stringify({model,httpStatus:response.status,providerStatus:lastProviderStatus}));
+      allowPlainRetry=schemaMode&&response.status===400;
+      console.warn("AI revision model request failed; trying fallback",JSON.stringify({model,httpStatus:response.status,providerStatus:lastProviderStatus,schemaMode,providerMessage:String(result?.error?.message||"").replaceAll(env.GEMINI_API_KEY,"[redacted]").slice(0,400)}));
       if(response.status===401||response.status===403)return json({error:"CA Junction could not reach its study aid service. Please try again later."},503);
       continue;
     }
+    lastProviderStatus="";
     const candidate=result?.candidates?.[0];
     if(candidate?.finishReason==="MAX_TOKENS"){lastStatus=502;lastFailure="truncated";repair="\nKeep the summary near 1400 words and use 5 compact but complete memory-map branches. Complete the JSON within the output limit.";continue;}
     const raw=candidate?.content?.parts?.filter(part=>!part.thought).map(part=>typeof part?.text==="string"?part.text:"").join("")||"";
@@ -138,5 +144,5 @@ export async function onRequestPost({request,env}){
   if(lastStatus===401||lastStatus===403)return json({error:"CA Junction could not reach its study aid service. Please try again later."},503);
   if(lastFailure==="timeout")return json({error:"This detailed chapter took too long to prepare. Please retry.",code:"PREPARATION_TIMEOUT"},504);
   if(["summary_too_short","incomplete_map","missing_memory_aids","invalid_json","truncated","empty"].includes(lastFailure))return json({error:"CA Junction received an incomplete chapter pack. Please retry.",code:"INCOMPLETE_CHAPTER_PACK"},502);
-  return json({error:"CA Junction could not create this chapter summary and mind map. Please try again shortly.",code:"GENERATION_UNAVAILABLE"},502);
+  return json({error:"CA Junction could not create this chapter summary and mind map. Please try again shortly.",code:"GENERATION_UNAVAILABLE",reference:"CP-"+lastStatus},502);
 }
