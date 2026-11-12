@@ -513,7 +513,7 @@
     const chapterPacks=new Map();
     const releaseGenerated=()=>{generatedUrls.forEach(url=>URL.revokeObjectURL(url));generatedUrls=[];$("#revisionGeneratedFiles").hidden=true};
     const slug=value=>String(value||"chapter").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"chapter";
-    const pdfSafe=value=>String(value||"").replace(/•/g,"-").replace(/→|➜/g,"->").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g," ");
+    const pdfSafe=value=>String(value||"").replace(/[Σσμ√×÷−²³π∞≤≥≠αβΔδθ]/g,char=>({"Σ":"SUM","σ":"sigma","μ":"mu","√":"sqrt","×":" * ","÷":" / ","−":"-","²":"^2","³":"^3","π":"pi","∞":"infinity","≤":" <= ","≥":" >= ","≠":" != ","α":"alpha","β":"beta","Δ":"Delta","δ":"delta","θ":"theta"}[char])).replace(/•/g,"-").replace(/→|➜/g,"->").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^\x20-\x7E]/g," ");
     const makePdf=(title,meta,body)=>{
       const esc=v=>pdfSafe(v).replace(/([\\()])/g,"\\$1");
       const wrap=(v,width)=>{const out=[];let line="";for(const word of pdfSafe(v).split(/\s+/)){if((line+" "+word).length>width&&line){out.push(line);line=""}line+=(line?" ":"")+word}if(line)out.push(line);return out};
