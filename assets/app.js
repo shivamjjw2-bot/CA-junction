@@ -531,7 +531,7 @@
         text(String(page),560,25,9);y=638;
       };
       newPage();
-      const blocks=String(body).split(isMap?/\n\s*\n/:/\n\s*\[CARD\]\s*\n|\n\s*\n/).filter(x=>x.trim());
+      const blocks=Array.isArray(body)?body:String(body).split(isMap?/\n\s*\n/:/\n\s*\[CARD\]\s*\n|\n\s*\n/).filter(x=>x.trim());
       blocks.forEach((block,index)=>{
         const icon=block.match(/^\[(book|checklist|balance|process)\]/)?.[1]||"book";
         const lines=block.replace(/^\[CARD\]\s*/,"").replace(/^\[(book|checklist|balance|process)\]\s*/,"").split(/\r?\n/).flatMap(line=>wrap(line,isMap?72:87));
@@ -617,8 +617,8 @@
         const meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
         const base=slug(chapterName),summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
         mapLink.closest("article").hidden=true;
-        if(!pack.summary)pack.summary=(await prepare("summary")).summary;
-        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.summary));generatedUrls.push(summaryUrl);
+        if(!pack.summary){const result=await prepare("summary");pack.summary=result.summary;pack.formula_cards=result.formula_cards;}
+        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\nFormula: "+card.formula+"\nSymbols: "+card.symbols+"\nUse when: "+card.use_when+"\nConditions: "+card.conditions+"\nExample: "+card.example):pack.summary));generatedUrls.push(summaryUrl);
         summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";
         $("#generatedSummaryTitle").textContent=chapterName+" — Summary";
         $("#revisionGeneratedFiles").hidden=false;
