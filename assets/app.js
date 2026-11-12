@@ -594,18 +594,18 @@
       if(!chapterName||!subjectName)return;
       const buttonText=generate.textContent;generate.disabled=true;generate.textContent="CA Junction is preparing your PDFs…";subject.disabled=true;chapter.disabled=true;msg("#revisionGenerateStatus","");
       const timer=$("#revisionElapsed"),started=Date.now();timer.hidden=false;
-      const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent="Preparing your PDFs · usually up to 2 minutes · "+String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");};
+      const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent="Preparing detailed chapter PDFs · elapsed "+String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");};
       tick();const timerId=setInterval(tick,1000);
       try{
         const {data:{session}}=await sb.auth.getSession();
         if(!session?.access_token){location.href="account.html?next="+encodeURIComponent("revision.html?level="+level+"&subject="+encodeURIComponent(subjectName));return}
         const key=JSON.stringify([level,subjectName,chapterName]);
         const pack=chapterPacks.get(key)||{};chapterPacks.set(key,pack);
-        const prepare=async(mode)=>{
+        const prepare=async(mode,extra={},progress="")=>{
           for(let attempt=0;attempt<2;attempt++){
-            msg("#revisionGenerateStatus",(mode==="summary"?"Preparing your detailed summary":"Preparing your memory map; both PDFs will appear together")+(attempt?" — retrying automatically…":"…"));
+            msg("#revisionGenerateStatus",(progress||(mode==="summary"?"Preparing your detailed summary":"Preparing your memory map; both PDFs will appear together"))+(attempt?" — retrying automatically…":"…"));
             try{
-              const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl,mode,...(mode==="mind_map"?{summary:pack.summary}:{})})});
+              const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl,mode,...extra,...(mode==="mind_map"?{summary:pack.summary}:{})})});
               const result=await response.json().catch(()=>({}));
               if(response.ok)return result;
               const error=new Error(result.error||"CA Junction could not finish this step.");
@@ -621,8 +621,18 @@
         const meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
         const base=slug(chapterName),summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
         mapLink.closest("article").hidden=true;
-        if(!pack.summary){const result=await prepare("summary");pack.summary=result.summary;pack.reference_documents=result.reference_documents||0;pack.formula_cards=result.formula_cards;pack.topic_cards=result.topic_cards;}
-        if(!pack.mind_map)pack.mind_map=(await prepare("mind_map")).mind_map;
+        if(!pack.outline){const outline=await prepare("outline",{},"Reading the ICAI chapter and listing its topics and subtopics");pack.outline=outline.topics;pack.reference_documents=outline.reference_documents;pack.sections=[];}
+        for(let offset=0;offset<pack.outline.length;offset+=4){
+          const batch=pack.outline.slice(offset,offset+4);
+          if(batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))continue;
+          const result=await prepare("sections",{topics:batch},"Preparing topics "+(offset+1)+"–"+Math.min(offset+4,pack.outline.length)+" of "+pack.outline.length+"; longer chapters take several minutes");
+          for(const section of result.sections){pack.sections=pack.sections.filter(row=>row.id!==section.id);pack.sections.push(section);}
+        }
+        if(pack.sections.length!==pack.outline.length)throw new Error("Some chapter topics are unfinished. Retry to continue.");
+        pack.sections.sort((a,b)=>a.id-b.id);
+        pack.topic_cards=pack.sections.map(section=>({title:section.title,main_topic:section.main_topic,points:section.points,takeaway:section.takeaway,memory_aid:section.mnemonic}));
+        pack.summary=pack.topic_cards.map(card=>card.main_topic+" / "+card.title+"\n"+card.points.join("\n")).join("\n\n");
+        pack.mind_map={topic:chapterName,branches:pack.sections.map(section=>({title:section.main_topic+" / "+section.title,points:section.points,mnemonic:section.mnemonic,visual_cue:section.visual_cue,connections:section.connections,icon:section.icon}))};
         const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.topic_cards?.length?pack.topic_cards.map(card=>(card.main_topic?card.main_topic.toUpperCase()+" / ":"")+card.title+"\n"+card.points.map(point=>"- "+point).join("\n")+"\nREMEMBER: "+card.takeaway+(card.memory_aid?"\nMEMORY AID: "+card.memory_aid:"")):pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\nFORMULA: "+card.formula+"\n"+[["Symbols",card.symbols],["Use when",card.use_when],["Conditions",card.conditions],["Example",card.example]].map(([label,value])=>label+":\n"+String(value||"").split(/[;\n]+/).filter(part=>part.trim()).map(part=>"- "+part.trim()).join("\n")).join("\n")):pack.summary));generatedUrls.push(summaryUrl);
         summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";
         $("#generatedSummaryTitle").textContent=chapterName+" — Summary";
@@ -631,7 +641,7 @@
         $("#generatedMindMapTitle").textContent=chapterName+" — Mind Map";
         mapLink.closest("article").hidden=false;
         $("#revisionGeneratedFiles").hidden=false;
-        msg("#revisionGenerateStatus",pack.reference_documents?"Both PDFs are ready. Based on "+pack.reference_documents+" official chapter/unit PDF(s). Check the source for any missing details and exam-specific amendments.":"Both PDFs are ready. The official chapter PDFs could not be read, so coverage is syllabus-based and may be incomplete.");
+        msg("#revisionGenerateStatus",pack.reference_documents?"Both PDFs are ready: "+pack.outline.length+" identified topics and subtopics covered in both documents, using "+pack.reference_documents+" official chapter/unit PDF(s). Review the topic list against your syllabus edition.":"Both PDFs are ready. The official chapter PDFs could not be read, so coverage is syllabus-based and may be incomplete.");
       }catch(error){msg("#revisionGenerateStatus",error.message||"CA Junction could not create these PDFs. Please try again.","error")}
       finally{clearInterval(timerId);timer.hidden=true;subject.disabled=false;chapter.disabled=false;generate.disabled=!chapter.value;generate.textContent=buttonText}
     });
