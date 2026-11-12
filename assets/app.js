@@ -617,9 +617,9 @@
         const meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
         const base=slug(chapterName),summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
         mapLink.closest("article").hidden=true;
-        if(!pack.summary){const result=await prepare("summary");pack.summary=result.summary;pack.formula_cards=result.formula_cards;}
+        if(!pack.summary){const result=await prepare("summary");pack.summary=result.summary;pack.formula_cards=result.formula_cards;pack.topic_cards=result.topic_cards;}
         if(!pack.mind_map)pack.mind_map=(await prepare("mind_map")).mind_map;
-        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\nFormula: "+card.formula+"\nSymbols: "+card.symbols+"\nUse when: "+card.use_when+"\nConditions: "+card.conditions+"\nExample: "+card.example):pack.summary));generatedUrls.push(summaryUrl);
+        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.topic_cards?.length?pack.topic_cards.map(card=>card.title+"\n"+card.points.map(point=>"- "+point).join("\n")+"\nREMEMBER: "+card.takeaway):pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\nFORMULA: "+card.formula+"\n"+[["Symbols",card.symbols],["Use when",card.use_when],["Conditions",card.conditions],["Example",card.example]].map(([label,value])=>label+":\n"+String(value||"").split(/[;\n]+/).filter(part=>part.trim()).map(part=>"- "+part.trim()).join("\n")).join("\n")):pack.summary));generatedUrls.push(summaryUrl);
         summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";
         $("#generatedSummaryTitle").textContent=chapterName+" — Summary";
         const mapUrl=URL.createObjectURL(makePdf(chapterName+" — Mind Map",meta,mapText(pack.mind_map)));generatedUrls.push(mapUrl);
