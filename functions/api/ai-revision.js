@@ -63,15 +63,16 @@ function chapterPdfLinks(html,chapter,pageUrl){
 async function readChapterDocuments(pageUrl,chapter){
  const sourceTimeout=AbortSignal.timeout(45000);
  const failed=reason=>Object.assign([],{failure:reason});
+ const fetchOfficial=async(input,options)=>{let url=new URL(input);for(let hop=0;hop<4;hop++){if(url.protocol!=="https:"||!["www.icai.org","icai.org","boslive.icai.org","resource.cdn.icai.org"].includes(url.hostname))throw new Error("UNAPPROVED_REDIRECT");const response=await fetch(url.href,{...options,redirect:"manual"});if(response.status>=300&&response.status<400){const next=response.headers.get("location");if(!next)throw new Error("REDIRECT_LOCATION");url=new URL(next,url);continue;}return response;}throw new Error("REDIRECT_LIMIT");};
  const sourceHeaders={accept:"text/html,application/pdf;q=0.9,*/*;q=0.8","user-agent":"CA-Junction-Study-Planner/1.0"};
  try{
-  const page=await fetch(pageUrl,{redirect:"error",headers:sourceHeaders,signal:sourceTimeout});
+  const page=await fetchOfficial(pageUrl,{headers:sourceHeaders,signal:sourceTimeout});
   if(!page.ok)return failed("PAGE_HTTP_"+page.status);
   const links=chapterPdfLinks(await page.text(),chapter,pageUrl);
   if(!links.length||links.length>12)return failed("CHAPTER_LINKS_"+links.length);
   let total=0;const docs=[];
   for(const url of links){
-   const response=await fetch(url,{redirect:"error",headers:sourceHeaders,signal:sourceTimeout});
+   const response=await fetchOfficial(url,{headers:sourceHeaders,signal:sourceTimeout});
    if(!response.ok)return failed("PDF_HTTP_"+response.status);
    if(Number(response.headers.get("content-length"))>12000000)return failed("PDF_SIZE");
    const bytes=new Uint8Array(await response.arrayBuffer());total+=bytes.length;
@@ -80,7 +81,7 @@ async function readChapterDocuments(pageUrl,chapter){
    docs.push({inline_data:{mime_type:"application/pdf",data:btoa(binary)}});
   }
   return docs;
- }catch(error){return failed("SOURCE_"+(error?.name||"ERROR"));}
+ }catch(error){return failed("SOURCE_"+(error?.name||"ERROR")+"_"+String(error?.message||"").slice(0,120));}
 }
 
 
