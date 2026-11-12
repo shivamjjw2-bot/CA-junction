@@ -599,7 +599,7 @@
         const pack=chapterPacks.get(key)||{};chapterPacks.set(key,pack);
         const prepare=async(mode)=>{
           for(let attempt=0;attempt<2;attempt++){
-            msg("#revisionGenerateStatus",(mode==="summary"?"Preparing your detailed summary":"Summary ready. Preparing your memory map")+(attempt?" — retrying automatically…":"…"));
+            msg("#revisionGenerateStatus",(mode==="summary"?"Preparing your detailed summary":"Preparing your memory map; both PDFs will appear together")+(attempt?" — retrying automatically…":"…"));
             try{
               const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl,mode,...(mode==="mind_map"?{summary:pack.summary}:{})})});
               const result=await response.json().catch(()=>({}));
@@ -618,15 +618,15 @@
         const base=slug(chapterName),summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
         mapLink.closest("article").hidden=true;
         if(!pack.summary){const result=await prepare("summary");pack.summary=result.summary;pack.formula_cards=result.formula_cards;}
+        if(!pack.mind_map)pack.mind_map=(await prepare("mind_map")).mind_map;
         const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\nFormula: "+card.formula+"\nSymbols: "+card.symbols+"\nUse when: "+card.use_when+"\nConditions: "+card.conditions+"\nExample: "+card.example):pack.summary));generatedUrls.push(summaryUrl);
         summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";
         $("#generatedSummaryTitle").textContent=chapterName+" — Summary";
-        $("#revisionGeneratedFiles").hidden=false;
-        if(!pack.mind_map)pack.mind_map=(await prepare("mind_map")).mind_map;
         const mapUrl=URL.createObjectURL(makePdf(chapterName+" — Mind Map",meta,mapText(pack.mind_map)));generatedUrls.push(mapUrl);
         mapLink.href=mapUrl;mapLink.download=base+"-mind-map.pdf";
         $("#generatedMindMapTitle").textContent=chapterName+" — Mind Map";
         mapLink.closest("article").hidden=false;
+        $("#revisionGeneratedFiles").hidden=false;
         msg("#revisionGenerateStatus","Both PDFs are ready. Check them against the linked ICAI material before relying on exam-specific details.");
       }catch(error){msg("#revisionGenerateStatus",error.message||"CA Junction could not create these PDFs. Please try again.","error")}
       finally{clearInterval(timerId);timer.hidden=true;subject.disabled=false;chapter.disabled=false;generate.disabled=!chapter.value;generate.textContent=buttonText}
