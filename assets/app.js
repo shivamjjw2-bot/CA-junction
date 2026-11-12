@@ -722,6 +722,23 @@
     }
   }
 
+  async function requestMcqWithRecovery(token,payload,onRetry){
+    for(let attempt=0;attempt<2;attempt++){
+      const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),120000);
+      try{
+        const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+token},body:payload,signal:controller.signal});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok){const error=new Error(result.error||"CA Junction could not start practice.");error.retryable=[408,500,502,503,504].includes(response.status);throw error;}
+        if(!Array.isArray(result.questions)||result.questions.length!==10){const error=new Error("The practice set was incomplete.");error.retryable=true;throw error;}
+        return result;
+      }catch(error){
+        const retryable=error.retryable||error.name==="AbortError"||error instanceof TypeError;
+        if(attempt===1||!retryable)throw new Error(error.name==="AbortError"?"Preparation timed out. Please try once more.":error.message);
+        onRetry();
+      }finally{clearTimeout(timeout);}
+      await new Promise(resolve=>setTimeout(resolve,2000));
+    }
+  }
   function initAiMcqPractice(){
     const form=$("#aiPracticeForm");if(!form)return;
     const level=$("#aiPracticeLevel"),preferred=new URLSearchParams(location.search).get("level")||localStorage.getItem("caJunctionLevel")||"";
@@ -803,7 +820,7 @@
     const review=$("#aiPracticeReview"),reviewSummary=$("#aiPracticeReviewSummary"),reviewCase=$("#aiPracticeReviewCaseStudy"),reviewItems=$("#aiPracticeReviewItems");
     let questions=[],score=0,answers=[],reviewOrder=[],currentDifficulty=1,currentQuestionIndex=-1,preparationTimer=null,preparationStarted=0,caseStudyText="";
     const stopPreparationTimer=()=>{if(preparationTimer)clearInterval(preparationTimer);preparationTimer=null;$("#aiPracticeTimer").hidden=true};
-    const updatePreparationTimer=()=>{const elapsed=Math.floor((Date.now()-preparationStarted)/1000),minutes=String(Math.floor(elapsed/60)).padStart(2,"0"),seconds=String(elapsed%60).padStart(2,"0");$("#aiPracticeTimer").textContent="Preparing your questions · this can take up to 2 minutes · "+minutes+":"+seconds};
+    const updatePreparationTimer=()=>{const elapsed=Math.floor((Date.now()-preparationStarted)/1000),minutes=String(Math.floor(elapsed/60)).padStart(2,"0"),seconds=String(elapsed%60).padStart(2,"0");$("#aiPracticeTimer").textContent="Preparing your questions · elapsed "+minutes+":"+seconds};
     const marksForQuestion=q=>Number(q?.marks)===2?2:1;
     const maxMarks=()=>questions.reduce((sum,q)=>sum+marksForQuestion(q),0);
     const difficultyLabel=value=>["","Warm-up","Core","Applied","Advanced","Expert"][value]||"Adaptive";
@@ -854,10 +871,8 @@
       try{
         const {data:{session:authSession},error:authError}=await sb.auth.getSession();
         if(authError||!authSession?.access_token){msg("#aiPracticeStatus","Please sign in to start AI practice.","error");return}
-        const response=await fetch("/api/ai-mcq",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+authSession.access_token},body:JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters})});
-        const result=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(result.error||"Could not start practice. Please try again.");
-        if(!Array.isArray(result.questions)||result.questions.length!==10)throw new Error("The practice set was incomplete. Please try again.");
+        const practicePayload=JSON.stringify({level:level.value,subject:$("#aiPracticeSubject").value.trim(),chapters});
+        const result=await requestMcqWithRecovery(authSession.access_token,practicePayload,()=>msg("#aiPracticeStatus","The first attempt took longer than expected. Retrying automatically—please keep this page open."));
         questions=result.questions;score=0;answers=[];reviewOrder=[];currentDifficulty=1;currentQuestionIndex=-1;caseStudyText=result.case_study||"";caseStudy.hidden=true;session.hidden=false;showQuestion();$("#aiPracticeScore").textContent="Score so far: 0 / "+maxMarks()+" marks";msg("#aiPracticeStatus","Your 10-question adaptive practice is ready.");session.scrollIntoView({behavior:"smooth",block:"center"});
       }catch(error){msg("#aiPracticeStatus",error?.message||"Could not start practice. Please try again.","error")}
       finally{stopPreparationTimer();start.disabled=false}
