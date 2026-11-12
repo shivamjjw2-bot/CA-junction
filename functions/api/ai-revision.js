@@ -61,23 +61,26 @@ function chapterPdfLinks(html,chapter,pageUrl){
  return [...new Set(out)];
 }
 async function readChapterDocuments(pageUrl,chapter){
- const sourceTimeout=AbortSignal.timeout(25000);
+ const sourceTimeout=AbortSignal.timeout(45000);
+ const failed=reason=>Object.assign([],{failure:reason});
+ const sourceHeaders={accept:"text/html,application/pdf;q=0.9,*/*;q=0.8","user-agent":"CA-Junction-Study-Planner/1.0"};
  try{
-  const page=await fetch(pageUrl,{redirect:"error",signal:sourceTimeout});
-  if(!page.ok)return [];
+  const page=await fetch(pageUrl,{redirect:"error",headers:sourceHeaders,signal:sourceTimeout});
+  if(!page.ok)return failed("PAGE_HTTP_"+page.status);
   const links=chapterPdfLinks(await page.text(),chapter,pageUrl);
-  if(!links.length||links.length>12)return [];
+  if(!links.length||links.length>12)return failed("CHAPTER_LINKS_"+links.length);
   let total=0;const docs=[];
   for(const url of links){
-   const response=await fetch(url,{redirect:"error",signal:sourceTimeout});
-   if(!response.ok||Number(response.headers.get("content-length"))>12000000)return [];
+   const response=await fetch(url,{redirect:"error",headers:sourceHeaders,signal:sourceTimeout});
+   if(!response.ok)return failed("PDF_HTTP_"+response.status);
+   if(Number(response.headers.get("content-length"))>12000000)return failed("PDF_SIZE");
    const bytes=new Uint8Array(await response.arrayBuffer());total+=bytes.length;
-   if(total>12000000||String.fromCharCode(...bytes.slice(0,5))!=="%PDF-")return [];
+   if(total>12000000||String.fromCharCode(...bytes.slice(0,5))!=="%PDF-")return failed("PDF_CONTENT");
    let binary="";for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
    docs.push({inline_data:{mime_type:"application/pdf",data:btoa(binary)}});
   }
   return docs;
- }catch{return []}
+ }catch(error){return failed("SOURCE_"+(error?.name||"ERROR"));}
 }
 
 
@@ -85,7 +88,7 @@ async function createCoveredRevision({env,mode,officialUrl,chapter,level,subject
  const topics=body.topics;
  if(mode==="sections"&&(!Array.isArray(topics)||!topics.length||topics.length>4||topics.some(t=>!Number.isInteger(t.id)||typeof t.title!=="string"||t.title.length>240||typeof t.parent!=="string"||t.parent.length>240)||new Set(topics.map(t=>t.id)).size!==topics.length))return json({error:"Choose valid chapter sections."},400);
  const docs=await readChapterDocuments(officialUrl,chapter);
- if(!docs.length)return json({error:"CA Junction could not read the official chapter PDFs. Detailed chapter notes cannot be prepared without the source. Please retry later or use the official material link.",code:"CHAPTER_SOURCE_UNAVAILABLE"},422);
+ if(!docs.length)return json({error:"CA Junction could not read the official chapter PDFs. Detailed chapter notes cannot be prepared without the source. Please retry later or use the official material link. ("+(docs.failure||"source unavailable")+")",code:"CHAPTER_SOURCE_UNAVAILABLE",source_status:docs.failure||"unknown"},422);
  const outlineSchema={type:"OBJECT",properties:{topics:{type:"ARRAY",items:{type:"OBJECT",properties:{title:{type:"STRING"},parent:{type:"STRING"}},required:["title","parent"]}}},required:["topics"]};
  const sectionSchema={type:"OBJECT",properties:{sections:{type:"ARRAY",items:{type:"OBJECT",properties:{id:{type:"INTEGER"},points:{type:"ARRAY",items:{type:"STRING"}},takeaway:{type:"STRING"},mnemonic:{type:"STRING"},visual_cue:{type:"STRING"},connections:{type:"STRING"},icon:{type:"STRING",enum:["book","checklist","balance","process"]}},required:["id","points","takeaway","mnemonic","visual_cue","connections","icon"]}}},required:["sections"]};
  const instructions=mode==="outline"?
