@@ -520,7 +520,7 @@
       const isMap=title.includes("Mind Map"),pages=[],colors=[[.42,.28,.82],[.02,.52,.52],[.14,.40,.77],[.70,.28,.48]];
       let commands=[],y=0,page=0;
       const rect=(x,y,w,h,rgb)=>commands.push(rgb.join(" ")+" rg "+x+" "+y+" "+w+" "+h+" re f");
-      const text=(value,x,y,size=11,color=[.12,.16,.28])=>commands.push("BT /F1 "+size+" Tf "+color.join(" ")+" rg 1 0 0 1 "+x+" "+y+" Tm ("+esc(value)+") Tj ET");
+      const text=(value,x,y,size=11,color=[.12,.16,.28],bold=false)=>commands.push("BT /"+(bold?"F2":"F1")+" "+size+" Tf "+color.join(" ")+" rg 1 0 0 1 "+x+" "+y+" Tm ("+esc(value)+") Tj ET");
       const newPage=()=>{
         if(commands.length)pages.push(commands.join("\n"));commands=[];page++;
         rect(0,0,612,842,[.94,.96,1]);rect(0,716,612,126,[.12,.15,.32]);
@@ -534,7 +534,7 @@
       const blocks=Array.isArray(body)?body:String(body).split(isMap?/\n\s*\n/:/\n\s*\[CARD\]\s*\n|\n\s*\n/).filter(x=>x.trim());
       blocks.forEach((block,index)=>{
         const icon=block.match(/^\[(book|checklist|balance|process)\]/)?.[1]||"book";
-        const lines=block.replace(/^\[CARD\]\s*/,"").replace(/^\[(book|checklist|balance|process)\]\s*/,"").split(/\r?\n/).flatMap(line=>wrap(line,isMap?72:87));
+        const lines=block.replace(/^\[CARD\]\s*/,"").replace(/^\[(book|checklist|balance|process)\]\s*/,"").split(/\r?\n/).flatMap(line=>line.trim()?wrap(line,isMap?68:87):[""]);
         let offset=0;
         while(offset<lines.length){
           if(y<120)newPage();
@@ -544,7 +544,7 @@
           const accent=colors[index%colors.length],x=isMap?90:38,w=isMap?484:536;
           if(isMap){commands.push(".65 .70 .82 RG 2 w 48 "+(y+12)+" m 48 "+(y-height/2)+" l "+x+" "+(y-height/2)+" l S")}
           if(isMap){
-            const iy=y-26;commands.push("q "+accent.join(" ")+" RG 1.5 w");
+            const iy=y-26;rect(50,iy-23,40,40,[.88,.93,1]);commands.push("q "+accent.join(" ")+" RG 1.8 w");
             if(icon==="checklist"){for(let k=0;k<3;k++){commands.push("60 "+(iy-k*8)+" 4 4 re S 68 "+(iy+2-k*8)+" m 80 "+(iy+2-k*8)+" l S")}}
             else if(icon==="balance"){commands.push("70 "+(iy+8)+" m 70 "+(iy-18)+" l 60 "+(iy-18)+" m 80 "+(iy-18)+" l 57 "+iy+" m 83 "+iy+" l S 57 "+iy+" m 52 "+(iy-9)+" l 62 "+(iy-9)+" l h S 83 "+iy+" m 78 "+(iy-9)+" l 88 "+(iy-9)+" l h S")}
             else if(icon==="process"){commands.push("57 "+iy+" 10 10 re S 74 "+(iy-18)+" 10 10 re S 62 "+iy+" m 62 "+(iy-13)+" l 74 "+(iy-13)+" l S")}
@@ -555,16 +555,20 @@
           rect(x,y-height,w,height,[.99,.995,1]);rect(x,y-height,4,height,accent);
           commands.push(".80 .85 .94 RG .6 w "+x+" "+(y-height)+" "+w+" "+height+" re S");
           rect(x+4,y-2,w-4,2,[1,1,1]);
-          chunk.forEach((line,i)=>text(line,x+16,y-20-i*15,i===0?11:10,i===0?accent:[.16,.20,.31]));
+          chunk.forEach((line,i)=>{
+            const heading=/^(MNEMONIC|PICTURE THIS|KEY POINTS|CONNECTIONS)$/.test(line);
+            if(heading)rect(x+12,y-24-i*15,w-24,16,[.91,.94,.99]);
+            if(line)text(line,x+16,y-20-i*15,i===0?11:10,(i===0||heading)?accent:[.16,.20,.31],i===0||heading);
+          });
           y-=height+14;offset+=count;
         }
       });
       pages.push(commands.join("\n"));
       const objects=[];objects[1]="<< /Type /Catalog /Pages 2 0 R >>";objects[2]="<< /Type /Pages /Kids ["+pages.map((_,i)=>(5+i*2)+" 0 R").join(" ")+"] /Count "+pages.length+" >>";objects[3]="<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
-      pages.forEach((stream,i)=>{objects[4+i*2]="<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream";objects[5+i*2]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents "+(4+i*2)+" 0 R >>"});
+      pages.forEach((stream,i)=>{objects[4+i*2]="<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream";objects[5+i*2]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> >> >> /Contents "+(4+i*2)+" 0 R >>"});
       let pdf="%PDF-1.4\n";const offsets=[0];for(let i=1;i<objects.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\n"+objects[i]+"\nendobj\n"}const xref=pdf.length;pdf+="xref\n0 "+objects.length+"\n0000000000 65535 f \n";for(let i=1;i<objects.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";pdf+="trailer\n<< /Size "+objects.length+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";return new Blob([pdf],{type:"application/pdf"});
     };
-    const mapText=map=>"Central topic: "+map.topic+"\n\n"+map.branches.map((branch,index)=>"["+branch.icon+"] "+(index+1)+". "+branch.title+"\nMemory aid: "+branch.mnemonic+"\nPicture this: "+branch.visual_cue+(branch.connections?"\nLINKS: "+branch.connections:"")+"\n"+branch.points.map(point=>"   - "+point).join("\n")).join("\n\n");
+    const mapText=map=>["Central topic: "+map.topic,...map.branches.map((branch,index)=>"["+branch.icon+"] "+(index+1)+". "+branch.title+"\n\nMNEMONIC\n"+branch.mnemonic+"\n\nPICTURE THIS\n"+branch.visual_cue+"\n\nKEY POINTS\n"+branch.points.map(point=>"- "+point).join("\n")+(branch.connections?"\n\nCONNECTIONS\n"+branch.connections:""))];
     const loadChapters=async()=>{
       const request=++chapterRequest,name=subject.value,canonical=aliases[name]||name;
       releaseGenerated();generate.disabled=true;
