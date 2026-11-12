@@ -524,20 +524,21 @@
       const newPage=()=>{
         if(commands.length)pages.push(commands.join("\n"));commands=[];page++;
         rect(0,0,612,842,[.94,.96,1]);rect(0,716,612,126,[.12,.15,.32]);
-        rect(0,716,612,5,[.43,.83,.76]);text("CA JUNCTION  /  "+(isMap?"MIND MAP":"CHAPTER SUMMARY"),38,811,11,[.54,.91,.83]);
+        rect(0,716,612,5,[.43,.83,.76]);text("CA JUNCTION  /  "+(isMap?"MIND MAP":"LAST-MINUTE REVISION"),38,811,11,[.54,.91,.83]);
         wrap(title,61).slice(0,3).forEach((line,i)=>text(line,38,786-i*19,16,[1,1,1]));
         wrap(meta,100).slice(0,3).forEach((line,i)=>text(line,38,696-i*12,8,[.30,.36,.49]));
         text("CA Junction  |  Verify exam-specific details with official ICAI material",38,25,8);
         text(String(page),560,25,9);y=638;
       };
       newPage();
-      const blocks=String(body).split(/\n\s*\n/).filter(x=>x.trim());
+      const blocks=String(body).split(isMap?/\n\s*\n/:/\n\s*\[CARD\]\s*\n|\n\s*\n/).filter(x=>x.trim());
       blocks.forEach((block,index)=>{
         const icon=block.match(/^\[(book|checklist|balance|process)\]/)?.[1]||"book";
-        const lines=block.replace(/^\[(book|checklist|balance|process)\]\s*/,"").split(/\r?\n/).flatMap(line=>wrap(line,isMap?72:87));
+        const lines=block.replace(/^\[CARD\]\s*/,"").replace(/^\[(book|checklist|balance|process)\]\s*/,"").split(/\r?\n/).flatMap(line=>wrap(line,isMap?72:87));
         let offset=0;
         while(offset<lines.length){
           if(y<120)newPage();
+          if(offset===0&&lines.length*15+26<=553&&lines.length*15+26>y-70)newPage();
           const count=Math.min(lines.length-offset,Math.max(1,Math.floor((y-85)/15)));
           const chunk=lines.slice(offset,offset+count),height=chunk.length*15+26;
           const accent=colors[index%colors.length],x=isMap?90:38,w=isMap?484:536;
