@@ -647,7 +647,7 @@
               const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},signal:generationController.signal,body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl,mode,time_budget_ms:Math.max(1000,generationDeadline-Date.now()),...extra,...(mode==="mind_map"?{summary:pack.summary}:{})})});
               const result=await response.json().catch(()=>({}));
               if(response.ok)return result;
-              const error=new Error(result.error||"CA Junction could not finish this step.");
+              const error=new Error(result.error||"CA Junction could not finish this step (HTTP "+response.status+").");
               error.retryable=[502,503,504].includes(response.status);
               throw error;
             }catch(error){
