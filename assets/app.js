@@ -678,7 +678,7 @@
         }
         const batches=[];
         for(const unit of pack.units){const topics=pack.outline.filter(topic=>topic.source_index===unit.index);
-          for(let offset=0;offset<topics.length;offset+=6){const batch=topics.slice(offset,offset+6);if(!batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))batches.push(batch);}
+          for(let offset=0;offset<topics.length;offset+=4){const batch=topics.slice(offset,offset+4);if(!batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))batches.push(batch);}
         }
         let nextBatch=0;
         const worker=async()=>{while(nextBatch<batches.length){
@@ -686,7 +686,7 @@
           if(generationController.signal.aborted)throw new Error("Preparation paused. Your completed topics are saved; retry to continue.");
           for(const section of result.sections){pack.sections=pack.sections.filter(row=>row.id!==section.id);pack.sections.push(section);}savePack();msg("#revisionGenerateStatus","Preparing chapter topics · "+pack.sections.length+" of "+pack.outline.length+" ready…");
         }};
-        const outcomes=await Promise.allSettled(Array.from({length:Math.min(3,batches.length)},worker));
+        const outcomes=await Promise.allSettled(Array.from({length:Math.min(4,batches.length)},worker));
         const failed=outcomes.find(outcome=>outcome.status==="rejected");if(failed)throw failed.reason;
         if(pack.sections.length!==pack.outline.length)throw new Error("Some chapter topics are unfinished. Retry to continue.");
         pack.sections.sort((a,b)=>a.id-b.id);
