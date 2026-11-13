@@ -142,7 +142,7 @@ export async function onRequestPost({request,env}){
   const mode=body.mode||"combined";
   if(!["combined","summary","mind_map","outline","sections"].includes(mode))return json({error:"Choose a valid chapter preparation step."},400);
   const suppliedSummary=cleanText(body.summary,80000);
-  const level=cleanText(body.level,24),subject=cleanText(body.subject,120),chapter=cleanText(body.chapter,180);
+  const level=cleanText(body.level,24),subject=cleanText(body.subject,120),chapter=cleanText(body.chapter,500);
   const sourceUrl=cleanText(body.source_url,500);
   if(!Object.hasOwn(SUBJECTS,level))return json({error:"Choose Foundation, Intermediate or Final."},400);
   if(!SUBJECTS[level].includes(subject))return json({error:"Choose a subject from this ICAI level."},400);

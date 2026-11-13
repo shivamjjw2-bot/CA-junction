@@ -27,9 +27,12 @@ const FINAL_AUDIT_CHAPTERS=[
 ];
 const SLUG={Foundation:"foundation",Intermediate:"intermediate",Final:"final"},LEVELS=new Set(Object.keys(CATALOG));
 function htmlText(html){return String(html||"").replace(/<(script|style|noscript)[^>]*>[\s\S]*?<\/\1>/gi," ").replace(/<!--[^]*?-->/g," ").replace(/<br\s*\/?>/gi,"\n").replace(/<\/(p|li|tr|h[1-6]|section|article|div)>/gi,"\n").replace(/<[^>]+>/g," ").replace(/&nbsp;|&#160;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&ndash;/gi,"–").replace(/&mdash;/gi,"—").replace(/[ \t\f\v]+/g," ").replace(/\n[ \t]+/g,"\n").replace(/\n{2,}/g,"\n").trim()}
-async function fetchHtml(url){try{const r=await fetch(url,{headers:{"accept":"text/html,application/xhtml+xml","user-agent":"CA-Junction-Study-Planner/1.0"},signal:AbortSignal.timeout(8000)});if(!r.ok)return "";const h=await r.text();return h.length<=1800000?h:""}catch{return ""}}
+async function fetchHtml(url){
+ for(let attempt=0;attempt<2;attempt++){try{const r=await fetch(url,{headers:{"accept":"text/html,application/xhtml+xml","user-agent":"CA-Junction-Study-Planner/1.0"},signal:AbortSignal.timeout(12000),cf:{cacheTtl:3600,cacheEverything:true}});if(!r.ok)continue;const h=await r.text();if(h.length<=1800000)return h;}catch{}}
+ return "";
+}
 function links(html){const out=[];for(const m of String(html||"").matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){const href=m[1].match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];if(!href)continue;try{const u=new URL(href.replace(/&amp;/gi,"&"),"https://www.icai.org");if(u.protocol==="https:"&&u.hostname==="www.icai.org"&&u.pathname.startsWith("/post/"))out.push({url:u.href,text:htmlText(m[2]).replace(/\s+/g," ").trim(),context:htmlText(String(html||"").slice(Math.max(0,m.index-650),m.index)).slice(-220)})}catch{}}return out}
-function chapterLines(html){const lines=htmlText(html).split("\n").map(x=>x.trim()).filter(x=>/^(chapter|ch\.)\s*(?:no\.?\s*)?\d+[a-z]?\s*[:.–-]?\s*\S/i.test(x)),out=[],seen=new Set();for(const line of lines){const x=line.replace(/\s+/g," ").slice(0,190),k=x.toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}return out.slice(0,80)}
+function chapterLines(html){const lines=htmlText(html).split("\n").map(x=>x.trim()).filter(x=>/^(chapter|ch\.)\s*(?:no\.?\s*)?\d+[a-z]?\s*[:.–-]?\s*\S/i.test(x)),out=[],seen=new Set();for(const line of lines){const x=line.replace(/\s+/g," ").slice(0,500),k=x.toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}return out.slice(0,80)}
 async function getOutline(level,subject){
  if(level==="Final"&&subject.toLowerCase()==="advanced auditing, assurance and professional ethics")return{subject,chapters:FINAL_AUDIT_CHAPTERS,url:"https://www.icai.org/post/sm-final-p3-may2027"};
  const i=CATALOG[level].findIndex(x=>x.toLowerCase()===subject.toLowerCase());if(i<0)return{subject,chapters:[],url:MATERIAL_URL[level]};
