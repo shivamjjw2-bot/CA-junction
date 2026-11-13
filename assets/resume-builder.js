@@ -30,7 +30,22 @@
   const feedback=$('resumeFit');feedback.className=fitOkay?'fit-good':'fit-error';feedback.textContent=tooTall?'More than one page — shorten content or use compact spacing.':horizontal?'Some content is too wide — shorten the long text.':longBullets?`${longBullets} bullet(s) wrap onto another line — condense or split them before export.`:'Fits one A4 page · bullets fit one line';
   const scale=Math.min(1,viewport.clientWidth/width);paper.style.transform=`scale(${scale})`;viewport.style.height=Math.ceil(paper.offsetHeight*scale)+'px';
  }
- templates.forEach(([id,title,desc,font])=>{const b=node('button','','template-choice');b.type='button';b.setAttribute('aria-pressed',String(id===selected));const mini=node('span','','template-mini '+id);mini.setAttribute('aria-hidden','true');mini.innerHTML='<b></b><em></em><i></i><i></i><em></em><i></i><i></i>';b.append(mini,node('strong',title),node('small',desc));b.addEventListener('click',()=>{selected=id;$('resumeFont').value=font;document.querySelectorAll('.template-choice').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));render()});$('resumeTemplates').append(b)});
+
+ const dialog=$('templateDialog');let previewId='bands';
+ const choose=(id,font)=>{selected=id;$('resumeFont').value=font;document.querySelectorAll('.template-choice').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.template===id)));render();};
+ templates.forEach(([id,title,desc,font])=>{
+  const card=node('article','','template-card'),b=node('button','','template-choice');b.type='button';b.dataset.template=id;b.setAttribute('aria-pressed',String(id===selected));
+  const img=node('img');img.src='assets/resume-previews/'+id+'.webp';img.alt=title+' — full-page sample resume';img.width=794;img.height=1123;img.loading='lazy';
+  b.append(img,node('strong',title),node('small',desc));b.addEventListener('click',()=>choose(id,font));
+  const zoom=node('button','View full resume ↗','template-zoom');zoom.type='button';zoom.setAttribute('aria-label','Preview '+title);
+  zoom.addEventListener('click',()=>{previewId=id;$('templateDialogTitle').textContent=title;$('templateDialogImage').src=img.src;$('templateDialogImage').alt=img.alt;dialog.showModal()});
+  card.append(b,zoom);$('resumeTemplates').append(card);
+ });
+ $('closeTemplateDialog').addEventListener('click',()=>dialog.close());
+ $('usePreviewTemplate').addEventListener('click',()=>{const t=templates.find(t=>t[0]===previewId);choose(t[0],t[3]);dialog.close()});
+ const palettes=[['Midnight navy','#233e68'],['Forest green','#255440'],['Ocean teal','#11666b'],['Burgundy','#792f46'],['Soft plum','#604578'],['Charcoal','#303640']];
+ palettes.forEach(([name,colour])=>{const b=node('button','','colour-swatch');b.type='button';b.setAttribute('aria-label',name);b.setAttribute('aria-pressed',String(colour===$('resumeColour').value));const dot=node('span','','colour-dot');dot.style.background=colour;b.append(dot,node('span',name));b.addEventListener('click',()=>{$('resumeColour').value=colour;document.querySelectorAll('.colour-swatch').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('selectedColourName').textContent=name;render()});$('resumeColourPalette').append(b)});
+
  $('resumeForm').addEventListener('input',render);document.querySelectorAll('.resume-controls input,.resume-controls select').forEach(x=>x.addEventListener('input',render));new ResizeObserver(checkFit).observe($('resumePreviewViewport'));
  $('resumeForm').addEventListener('reset',()=>setTimeout(()=>{render();status('Details cleared. No resume is saved on this site.')},0));
  $('downloadMaster').addEventListener('click',()=>{const text=[value('Master'),...sections.map(([id,label])=>value(id)?label+'\n'+value(id):'')].filter(Boolean).join('\n\n');if(!text){status('Add your master CV notes or career details first.',true);return}const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'})),a=node('a');a.href=url;a.download='my-master-cv.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
