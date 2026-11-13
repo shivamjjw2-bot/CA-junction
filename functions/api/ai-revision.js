@@ -76,27 +76,56 @@ if(response.status>=300&&response.status<400){const next=response.headers.get("l
   if(!page.ok)return failed("PAGE_HTTP_"+page.status);
   const links=chapterPdfLinks(await page.text(),chapter,pageUrl);
   if(!links.length||links.length>12)return failed("CHAPTER_LINKS_"+links.length);
-  let total=0;const docs=[];
-  for(const url of links){
+  let total=0;
+  const docs=new Array(links.length);let next=0;
+  const load=async()=>{while(next<links.length){
+   const index=next++,url=links[index];
    const encodedCache=typeof caches!=="undefined"?caches.default:null;
    const encodedKey=new Request(url+"?ca-junction-encoded=v1");
    let cachedData=null;try{cachedData=encodedCache?await encodedCache.match(encodedKey):null}catch{}
-   if(cachedData){const data=await cachedData.text();total+=Math.floor(data.length*3/4);if(total>12000000)return failed("PDF_SIZE");docs.push({inline_data:{mime_type:"application/pdf",data}});continue;}
+   if(cachedData){const data=await cachedData.text();total+=Math.floor(data.length*3/4);if(total>12000000)throw new Error("PDF_SIZE");docs[index]={inline_data:{mime_type:"application/pdf",data}};continue;}
    const response=await fetchOfficial(url,{headers:sourceHeaders,signal:sourceTimeout});
-   if(!response.ok)return failed("PDF_HTTP_"+response.status);
-   if(Number(response.headers.get("content-length"))>12000000)return failed("PDF_SIZE");
+   if(!response.ok)throw new Error("PDF_HTTP_"+response.status);
+   if(Number(response.headers.get("content-length"))>12000000)throw new Error("PDF_SIZE");
    const bytes=new Uint8Array(await response.arrayBuffer());total+=bytes.length;
-   if(total>12000000||String.fromCharCode(...bytes.slice(0,5))!=="%PDF-")return failed("PDF_CONTENT");
+   if(total>12000000||String.fromCharCode(...bytes.slice(0,5))!=="%PDF-")throw new Error("PDF_CONTENT");
    let data;if(typeof bytes.toBase64==="function")data=bytes.toBase64();else{let binary="";for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));data=btoa(binary);}
    if(encodedCache){try{await encodedCache.put(encodedKey,new Response(data,{headers:{"Cache-Control":"public,max-age=3600","Content-Type":"text/plain"}}))}catch{}}
-   docs.push({inline_data:{mime_type:"application/pdf",data}});
-  }
+   docs[index]={inline_data:{mime_type:"application/pdf",data}};
+  }};
+  await Promise.all(Array.from({length:Math.min(3,links.length)},load));
   return docs;
  }catch(error){console.warn("ICAI chapter source read failed",{errorName:error?.name||"Error"});return failed("SOURCE_UNAVAILABLE");}
 }
 
 
-async function createCoveredRevision({env,mode,officialUrl,chapter,level,subject,body}){
+
+// Only validated, successful study content is reused; authentication still runs before this function.
+// Bump the version whenever prompts, schemas or rendering requirements change.
+const REVISION_CACHE_VERSION="covered-v5";
+const pendingRevisions=new Map();
+async function createCoveredRevision(args){
+ const {mode,officialUrl,chapter,level,subject,body}=args;
+ const signature=JSON.stringify([REVISION_CACHE_VERSION,mode,officialUrl,level,subject,chapter,mode==="sections"?body.topics:null]);
+ const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(signature));
+ const hash=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,"0")).join("");
+ const key=new Request("https://ca-junction.pages.dev/__revision-cache/"+hash);
+ const cache=typeof caches!=="undefined"?caches.default:null;
+ try{const hit=cache&&await cache.match(key);if(hit){const data=await hit.json();return json({...data,reused:true});}}catch{}
+ // Coalesce only requests within this worker isolate. Never cache failures or authentication data.
+ if(pendingRevisions.has(hash)){const result=await pendingRevisions.get(hash);return json(result.data,result.status);}
+ const work=(async()=>{
+   const response=await generateCoveredRevision(args),data=await response.json();
+   if(response.ok&&cache){
+    try{await cache.put(key,new Response(JSON.stringify(data),{headers:{"content-type":"application/json","Cache-Control":"public,max-age=21600"}}));}catch{}
+   }
+   return {data,status:response.status};
+ })();
+ pendingRevisions.set(hash,work);
+ try{const result=await work;return json(result.data,result.status);}finally{pendingRevisions.delete(hash);}
+}
+
+async function generateCoveredRevision({env,mode,officialUrl,chapter,level,subject,body}){
  const requestDeadline=Date.now()+Math.min(110000,Math.max(1000,Number(body.time_budget_ms)||110000));
  const topics=body.topics;
  if(mode==="sections"&&(!Array.isArray(topics)||!topics.length||topics.length>6||topics.some(t=>!Number.isInteger(t.id)||typeof t.title!=="string"||t.title.length>240||typeof t.parent!=="string"||t.parent.length>240)||new Set(topics.map(t=>t.id)).size!==topics.length))return json({error:"Choose valid chapter sections."},400);
