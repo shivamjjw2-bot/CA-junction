@@ -36,9 +36,14 @@ footer{border-top:1px solid var(--line);margin-top:28px;padding:24px 0 32px;colo
    <button class="btn" type="submit">Save profile</button>
    <p id="profileStatus" class="status" role="status" aria-live="polite"></p>
   </form>
+<details class="password-settings" style="margin-top:22px;border-top:1px solid var(--line);padding-top:18px"><summary style="cursor:pointer;font-weight:700">Change password</summary><form id="changePasswordForm" autocomplete="on">
+<label for="currentPassword">Current password</label><input id="currentPassword" type="password" autocomplete="current-password" required maxlength="200">
+<label for="newPassword">New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="200" required><p class="profile-help muted">Use at least 8 characters. Choose a password you don’t use elsewhere.</p>
+<label for="confirmNewPassword">Confirm new password</label><input id="confirmNewPassword" type="password" autocomplete="new-password" minlength="8" maxlength="200" required>
+<button class="btn" type="submit">Update password</button><p id="changePasswordStatus" class="status" role="status" aria-live="polite"></p></form></details>
  </div>
 </section>
 </main>
 <footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=profile-password-20261113"></script>
 </body></html>

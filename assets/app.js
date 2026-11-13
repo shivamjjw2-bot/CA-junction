@@ -267,9 +267,38 @@
     const selectedLevel=$("#noteLevel").value;event.target.reset();$("#noteLevel").value=selectedLevel;fillNoteSubjects(selectedLevel);if($("#viewContributionLink"))$("#viewContributionLink").hidden=false;msg("#uploadStatus","Your PDF is live in Contributions by Students, credited to "+authorName+".");
   }
 
+  async function changeOwnPassword(auth,expectedUserId,currentPassword,newPassword,confirmation){
+    if(!currentPassword)throw new Error("Enter your current password.");
+    if(newPassword.length<8||newPassword.length>200)throw new Error("Use a new password between 8 and 200 characters.");
+    if(newPassword!==confirmation)throw new Error("The new passwords do not match.");
+    if(newPassword===currentPassword)throw new Error("Choose a different new password.");
+    const {data,error}=await auth.getUser();
+    if(error||!data?.user?.email||data.user.id!==expectedUserId)throw new Error("Your session has changed. Refresh and sign in again.");
+    const verified=await auth.signInWithPassword({email:data.user.email,password:currentPassword});
+    if(verified.error)throw new Error(verified.error.status===429?"Too many attempts. Please wait before trying again.":"Current password could not be verified. Check it and try again.");
+    if(verified.data?.user?.id!==expectedUserId)throw new Error("Account verification failed. Please sign in again.");
+    const result=await auth.updateUser({password:newPassword});
+    if(result.error)throw new Error(result.error.message||"Password could not be updated. Please retry.");
+    if(result.data?.user?.id!==expectedUserId)throw new Error("The password update could not be confirmed. Please sign in again.");
+    return true;
+  }
+  function initPasswordSettings(user){
+    const form=$("#changePasswordForm");if(!form)return;
+    form.addEventListener("submit",async event=>{
+      event.preventDefault();const button=form.querySelector('button[type="submit"]');
+      button.disabled=true;msg("#changePasswordStatus","Verifying your current password…");
+      try{
+        await changeOwnPassword(sb.auth,user.id,$("#currentPassword").value,$("#newPassword").value,$("#confirmNewPassword").value);
+        form.reset();msg("#changePasswordStatus","Password updated successfully. Use your new password next time you sign in.","success");
+      }catch(error){msg("#changePasswordStatus",error.message||"Could not update your password. Please retry.","error")}
+      finally{$("#currentPassword").value="";button.disabled=false;}
+    });
+  }
+
   async function initDashboard() {
     const {data:{user}}=await sb.auth.getUser();
     if(!user){msg("#dashboardStatus","Please sign in to view and edit your profile.","error");location.href="account.html";return}
+    initPasswordSettings(user);
     const {data:profile,error:profileError}=await sb.from("profiles").select("full_name,ca_level").eq("user_id",user.id).maybeSingle();
     if(profileError){msg("#dashboardStatus","Your profile could not be loaded. Please refresh and try again.","error");return}
     const nameInput=$("#profileName"),levelInput=$("#profileLevel"),photoInput=$("#profilePhoto");
@@ -1220,6 +1249,7 @@
     if(!user){msg("#adminStatus","Sign in with your admin account via the student login first.");$("#adminSetup").hidden=false;$("#adminSetup").textContent="No admin session. Sign in at account.html, then return here.";return}
     const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
     if(!role){msg("#adminStatus","This account does not have the admin role.","error");$("#adminSetup").hidden=false;$("#adminSetup").textContent="Only the account you manually promote in Supabase can use this panel.";return}
+    initPasswordSettings(user);$("#adminProfileIdentity").textContent=[user.user_metadata?.full_name,user.email].filter(Boolean).join(" · ");
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
     const adminViewButtons=[...document.querySelectorAll("#adminPanel [data-admin-nav]")];
     const adminViewPanels=[...document.querySelectorAll("#adminPanel [data-admin-view]")];
