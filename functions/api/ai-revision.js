@@ -78,13 +78,18 @@ if(response.status>=300&&response.status<400){const next=response.headers.get("l
   if(!links.length||links.length>12)return failed("CHAPTER_LINKS_"+links.length);
   let total=0;const docs=[];
   for(const url of links){
+   const encodedCache=typeof caches!=="undefined"?caches.default:null;
+   const encodedKey=new Request(url+"?ca-junction-encoded=v1");
+   let cachedData=null;try{cachedData=encodedCache?await encodedCache.match(encodedKey):null}catch{}
+   if(cachedData){const data=await cachedData.text();total+=Math.floor(data.length*3/4);if(total>12000000)return failed("PDF_SIZE");docs.push({inline_data:{mime_type:"application/pdf",data}});continue;}
    const response=await fetchOfficial(url,{headers:sourceHeaders,signal:sourceTimeout});
    if(!response.ok)return failed("PDF_HTTP_"+response.status);
    if(Number(response.headers.get("content-length"))>12000000)return failed("PDF_SIZE");
    const bytes=new Uint8Array(await response.arrayBuffer());total+=bytes.length;
    if(total>12000000||String.fromCharCode(...bytes.slice(0,5))!=="%PDF-")return failed("PDF_CONTENT");
-   let binary="";for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
-   docs.push({inline_data:{mime_type:"application/pdf",data:btoa(binary)}});
+   let data;if(typeof bytes.toBase64==="function")data=bytes.toBase64();else{let binary="";for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));data=btoa(binary);}
+   if(encodedCache){try{await encodedCache.put(encodedKey,new Response(data,{headers:{"Cache-Control":"public,max-age=3600","Content-Type":"text/plain"}}))}catch{}}
+   docs.push({inline_data:{mime_type:"application/pdf",data}});
   }
   return docs;
  }catch(error){console.warn("ICAI chapter source read failed",{errorName:error?.name||"Error"});return failed("SOURCE_UNAVAILABLE");}
