@@ -637,16 +637,16 @@
       if(!chapterName||!subjectName)return;
       const buttonText=generate.textContent;generate.disabled=true;generate.textContent="CA Junction is preparing your PDFs…";subject.disabled=true;chapter.disabled=true;msg("#revisionGenerateStatus","");
       const timer=$("#revisionElapsed"),started=Date.now();timer.hidden=false;
-      const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent="Preparing concise revision PDFs · elapsed "+String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");};
+      const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent="Preparing detailed revision PDFs · elapsed "+String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");};
       tick();const timerId=setInterval(tick,1000);
       const generationDeadline=Date.now()+900000,generationController=new AbortController();const deadlineTimer=setTimeout(()=>generationController.abort(),900000);
       try{
         const {data:{session}}=await sb.auth.getSession();
         if(!session?.access_token){location.href="account.html?next="+encodeURIComponent("revision.html?level="+level+"&subject="+encodeURIComponent(subjectName));return}
         const key=JSON.stringify([level,subjectName,chapterName,sourceUrl]);
-        let restored=null;try{const saved=JSON.parse(sessionStorage.getItem("caRevisionV6:"+key)||"null");if(saved&&Date.now()-saved.savedAt<21600000&&Array.isArray(saved.pack?.units)&&Array.isArray(saved.pack?.sections))restored=saved.pack;}catch{}
+        let restored=null;try{const saved=JSON.parse(sessionStorage.getItem("caRevisionV7:"+key)||"null");if(saved&&Date.now()-saved.savedAt<21600000&&Array.isArray(saved.pack?.units)&&Array.isArray(saved.pack?.sections))restored=saved.pack;}catch{}
         const pack=chapterPacks.get(key)||restored||{};chapterPacks.set(key,pack);
-        const savePack=()=>{try{sessionStorage.setItem("caRevisionV6:"+key,JSON.stringify({savedAt:Date.now(),pack}));}catch{}};
+        const savePack=()=>{try{sessionStorage.setItem("caRevisionV7:"+key,JSON.stringify({savedAt:Date.now(),pack}));}catch{}};
         const prepare=async(mode,extra={},progress="")=>{
           for(let attempt=0;attempt<3;attempt++){
             if(generationController.signal.aborted||Date.now()>=generationDeadline)throw new Error("Preparation paused after an extended wait. Your completed topics are saved; retry to continue.");
@@ -669,17 +669,25 @@
         const meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
         const base=slug(chapterName),summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
         mapLink.closest("article").hidden=true;
-        if(!pack.units){const manifest=await prepare("manifest",{},"Finding the chapter's official units");pack.units=manifest.units;pack.reference_documents=manifest.reference_documents;pack.unitCards={};pack.sections=[];savePack();}
-        if(!pack.unitCards)pack.unitCards={};
-        const missing=pack.units.filter(unit=>!pack.unitCards[unit.index]);let nextUnit=0;
-        const worker=async()=>{while(nextUnit<missing.length){
-          const unit=missing[nextUnit++],result=await prepare("quick_unit",{source_index:unit.index,unit_count:pack.units.length},"Preparing concise revision · "+Object.keys(pack.unitCards).length+" of "+pack.units.length+" units ready");
-          pack.unitCards[unit.index]=result.cards;savePack();
-          msg("#revisionGenerateStatus","Preparing concise revision · "+Object.keys(pack.unitCards).length+" of "+pack.units.length+" units ready…");
+        if(!pack.units){const manifest=await prepare("manifest",{},"Finding the chapter's official units");pack.units=manifest.units;pack.reference_documents=manifest.reference_documents;pack.unitOutlines={};pack.sections=[];savePack();}
+        if(!pack.outline){
+          const missing=pack.units.filter(unit=>!pack.unitOutlines[unit.index]);let nextUnit=0;
+          const readUnit=async()=>{while(nextUnit<missing.length){const unit=missing[nextUnit++];const result=await prepare("outline",{source_index:unit.index},"Reading chapter unit "+(unit.index+1)+" of "+pack.units.length);pack.unitOutlines[unit.index]=result.topics;savePack();}};
+          const scans=await Promise.allSettled(Array.from({length:Math.min(3,missing.length)},readUnit));const scanFailure=scans.find(item=>item.status==="rejected");if(scanFailure)throw scanFailure.reason;
+          pack.outline=pack.units.flatMap(unit=>pack.unitOutlines[unit.index].map(topic=>({...topic,source_index:unit.index}))).map((topic,id)=>({...topic,id}));savePack();
+        }
+        const batches=[];
+        for(const unit of pack.units){const topics=pack.outline.filter(topic=>topic.source_index===unit.index);
+          for(let offset=0;offset<topics.length;offset+=3){const batch=topics.slice(offset,offset+3);if(!batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))batches.push(batch);}
+        }
+        let nextBatch=0;
+        const worker=async()=>{while(nextBatch<batches.length){
+          const batch=batches[nextBatch++];const result=await prepare("sections",{topics:batch,source_index:batch[0].source_index},"Preparing chapter topics · "+pack.sections.length+" of "+pack.outline.length+" ready");
+          if(generationController.signal.aborted)throw new Error("Preparation paused. Your completed topics are saved; retry to continue.");
+          for(const section of result.sections){pack.sections=pack.sections.filter(row=>row.id!==section.id);pack.sections.push(section);}savePack();msg("#revisionGenerateStatus","Preparing chapter topics · "+pack.sections.length+" of "+pack.outline.length+" ready…");
         }};
-        const outcomes=await Promise.allSettled(Array.from({length:Math.min(3,missing.length)},worker));const failed=outcomes.find(item=>item.status==="rejected");if(failed)throw failed.reason;
-        pack.sections=pack.units.flatMap(unit=>pack.unitCards[unit.index]).map((card,id)=>({...card,id}));
-        pack.outline=pack.sections.map(card=>({id:card.id,title:card.title,parent:card.main_topic}));savePack();
+        const outcomes=await Promise.allSettled(Array.from({length:Math.min(3,batches.length)},worker));
+        const failed=outcomes.find(outcome=>outcome.status==="rejected");if(failed)throw failed.reason;
         if(pack.sections.length!==pack.outline.length)throw new Error("Some chapter topics are unfinished. Retry to continue.");
         pack.sections.sort((a,b)=>a.id-b.id);
         pack.topic_cards=pack.sections.map(section=>({title:section.title,main_topic:section.main_topic,points:section.points,takeaway:section.takeaway,memory_aid:section.mnemonic}));
@@ -693,7 +701,7 @@
         $("#generatedMindMapTitle").textContent=chapterName+" — Mind Map";
         mapLink.closest("article").hidden=false;
         $("#revisionGeneratedFiles").hidden=false;
-        msg("#revisionGenerateStatus",pack.reference_documents?"Both PDFs are ready: "+pack.outline.length+" key-topic cards prepared from "+pack.reference_documents+" official chapter/unit PDF(s). A concise revision aid—not a replacement for the full chapter.":"Both PDFs are ready. The official chapter PDFs could not be read, so coverage is syllabus-based and may be incomplete.");
+        msg("#revisionGenerateStatus",pack.reference_documents?"Both PDFs are ready: "+pack.outline.length+" topic and subtopic cards prepared from "+pack.reference_documents+" official chapter/unit PDF(s). Review coverage against your syllabus edition.":"Both PDFs are ready. The official chapter PDFs could not be read, so coverage is syllabus-based and may be incomplete.");
       }catch(error){msg("#revisionGenerateStatus",error.message||"CA Junction could not create these PDFs. Please try again.","error")}
       finally{clearTimeout(deadlineTimer);generationController.abort();clearInterval(timerId);timer.hidden=true;subject.disabled=false;chapter.disabled=false;generate.disabled=!chapter.value;generate.textContent=buttonText}
     });
