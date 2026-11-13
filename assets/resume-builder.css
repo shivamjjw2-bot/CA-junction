@@ -3,14 +3,14 @@
 @page{size:A4;margin:0}@media print{html,body{margin:0!important;padding:0!important;background:white!important}body>header,body>footer,.section-head,.career-tabs,.template-gallery,.resume-controls,.resume-form,#resume>h3,.resume-preview-column>p,.theme-toggle{display:none!important}body *{visibility:hidden!important}#resumePaper,#resumePaper *{visibility:visible!important}#resumePaper{position:absolute!important;top:0!important;left:0!important;transform:none!important;width:210mm!important;height:297mm!important;min-height:0!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.container,main,#resume,.resume-layout,.resume-preview-column,#resumePreviewViewport{display:block!important;position:static!important;width:auto!important;margin:0!important;padding:0!important;overflow:visible!important;height:auto!important;box-shadow:none!important}#resumePaper section{break-inside:avoid}#resumePaper header{display:block!important}#resumePaper h1{font-size:24pt!important}#resumePaper h2{font-size:10.5pt!important}}
 
 /* Full-page template gallery and named colour palettes. */
-.template-gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:20px}
-.template-card{min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:10px}
+.template-gallery{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}
+.template-card{min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:6px}
 .template-choice{width:100%;display:block;padding:10px;border-radius:12px;background:transparent}
-.template-choice img{display:block;width:100%;height:auto;aspect-ratio:210/297;object-fit:contain;background:white;border-radius:3px;box-shadow:0 6px 20px #0002}
-.template-choice strong{font-size:16px;margin-top:14px}.template-choice small{display:block;min-height:32px;margin-top:4px}
+.template-choice img{display:block;width:auto;max-width:100%;height:210px;margin:0 auto;aspect-ratio:210/297;object-fit:contain;background:white;border-radius:3px;box-shadow:0 6px 20px #0002}
+.template-choice strong{font-size:13px;margin-top:10px}.template-choice small{display:block;min-height:30px;margin-top:4px;font-size:11px}
 .template-choice[aria-pressed=true]{border-color:#4ade80;background:#4ade800b}
 .template-choice[aria-pressed=true] strong:after{content:' ✓';color:#4ade80}
-.template-zoom{width:100%;border:0;background:transparent;color:var(--text);padding:12px;font:inherit;font-size:13px;cursor:pointer}
+.template-zoom{width:100%;border:0;background:transparent;color:var(--text);padding:8px 4px;font:inherit;font-size:12px;cursor:pointer}
 .template-zoom:hover{text-decoration:underline}.resume-controls{display:block;padding:22px}
 .colour-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}.colour-heading h3{font-size:18px}.colour-heading>span{font-size:12px;color:var(--muted)}
 #resumeColourPalette{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0 8px}
@@ -23,6 +23,6 @@
 #closeTemplateDialog{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:18px}
 #templateDialog>p{font-size:12px;margin:8px 0 16px}#templateDialogImage{display:block;width:100%;height:auto;background:#fff}
 #usePreviewTemplate{display:block;position:sticky;bottom:0;width:100%;box-shadow:0 4px 20px #0005}
-@media(max-width:900px){.template-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:540px){.template-gallery{grid-template-columns:1fr;gap:18px}.template-card{max-width:360px;width:100%;margin:auto}.colour-heading{align-items:flex-start;flex-direction:column;gap:4px}.resume-controls{padding:16px}.colour-swatch{font-size:12px;padding:8px 10px}}
+@media(max-width:900px){.template-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}.template-choice img{height:180px}}
+@media(max-width:540px){.template-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.template-card{width:100%;margin:0}.template-choice{padding:5px}.template-choice img{height:150px}.template-choice strong{font-size:12px}.template-choice small{font-size:10px;min-height:40px}.template-zoom{font-size:11px}.colour-heading{align-items:flex-start;flex-direction:column;gap:4px}.resume-controls{padding:16px}.colour-swatch{font-size:12px;padding:8px 10px}}
 @media print{#templateDialog{display:none!important}}
