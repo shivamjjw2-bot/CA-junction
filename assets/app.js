@@ -585,7 +585,7 @@
           commands.push(".80 .85 .94 RG .6 w "+x+" "+(y-height)+" "+w+" "+height+" re S");
           rect(x+4,y-2,w-4,2,[1,1,1]);
           chunk.forEach((line,i)=>{
-            const heading=/^(MNEMONIC|PICTURE THIS|KEY POINTS|CONNECTIONS)$/.test(line);
+            const heading=/^(MNEMONIC|PICTURE THIS|KEY POINTS|CONNECTIONS|REMEMBER|MEMORY AID|FORMULA|SYMBOLS|USE WHEN|CONDITIONS|EXAMPLE)$/.test(line)||(!isMap&&(/^[A-Z][A-Z ()/&-]{2,70}$/.test(line)||line.startsWith("SUBTOPIC:")));
             if(heading)rect(x+12,y-24-i*15,w-24,16,[.91,.94,.99]);
             if(line)text(line,x+16,y-20-i*15,i===0?11:10,(i===0||heading)?accent:[.16,.20,.31],i===0||heading);
           });
@@ -597,6 +597,14 @@
       pages.forEach((stream,i)=>{objects[4+i*2]="<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream";objects[5+i*2]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> >> >> /Contents "+(4+i*2)+" 0 R >>"});
       let pdf="%PDF-1.4\n";const offsets=[0];for(let i=1;i<objects.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\n"+objects[i]+"\nendobj\n"}const xref=pdf.length;pdf+="xref\n0 "+objects.length+"\n0000000000 65535 f \n";for(let i=1;i<objects.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";pdf+="trailer\n<< /Size "+objects.length+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";return new Blob([pdf],{type:"application/pdf"});
     };
+    const summaryPointText=point=>{
+      const text=String(point).trim().replace(/^[-•]\s*/,"");
+      const labelled=text.match(/^([^:]{2,60}):\s*(.+)$/);
+      if(labelled)return "\n"+labelled[1].toUpperCase()+"\n- "+labelled[2];
+      if(text.includes("=")&&text.length<240)return "\nFORMULA\n"+text;
+      return "- "+text;
+    };
+    const summaryCardText=card=>(card.main_topic?card.main_topic.toUpperCase()+"\n\n":"")+"SUBTOPIC: "+card.title+"\n\nKEY POINTS\n"+card.points.map(summaryPointText).join("\n")+"\n\nREMEMBER\n"+card.takeaway+(card.memory_aid?"\n\nMEMORY AID\n"+card.memory_aid:"");
     const mapText=map=>["Central topic: "+map.topic,...map.branches.map((branch,index)=>"["+branch.icon+"] "+(index+1)+". "+branch.title+"\n\nMNEMONIC\n"+branch.mnemonic+"\n\nPICTURE THIS\n"+branch.visual_cue+"\n\nKEY POINTS\n"+branch.points.map(point=>"- "+point).join("\n")+(branch.connections?"\n\nCONNECTIONS\n"+branch.connections:""))];
     const loadChapters=async()=>{
       const request=++chapterRequest,name=subject.value,canonical=aliases[name]||name;
@@ -668,7 +676,7 @@
         pack.topic_cards=pack.sections.map(section=>({title:section.title,main_topic:section.main_topic,points:section.points,takeaway:section.takeaway,memory_aid:section.mnemonic}));
         pack.summary=pack.topic_cards.map(card=>card.main_topic+" / "+card.title+"\n"+card.points.join("\n")).join("\n\n");
         pack.mind_map={topic:chapterName,branches:pack.sections.map(section=>({title:section.main_topic+" / "+section.title,points:section.points,mnemonic:section.mnemonic,visual_cue:section.visual_cue,connections:section.connections,icon:section.icon}))};
-        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.topic_cards?.length?pack.topic_cards.map(card=>(card.main_topic?card.main_topic.toUpperCase()+" / ":"")+card.title+"\n"+card.points.map(point=>"- "+point).join("\n")+"\nREMEMBER: "+card.takeaway+(card.memory_aid?"\nMEMORY AID: "+card.memory_aid:"")):pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\nFORMULA: "+card.formula+"\n"+[["Symbols",card.symbols],["Use when",card.use_when],["Conditions",card.conditions],["Example",card.example]].map(([label,value])=>label+":\n"+String(value||"").split(/[;\n]+/).filter(part=>part.trim()).map(part=>"- "+part.trim()).join("\n")).join("\n")):pack.summary));generatedUrls.push(summaryUrl);
+        const summaryUrl=URL.createObjectURL(makePdf(chapterName+" — Summary",meta,pack.topic_cards?.length?pack.topic_cards.map(summaryCardText):pack.formula_cards?.length?pack.formula_cards.map(card=>card.concept+"\n\nFORMULA\n"+card.formula+"\n\n"+[["Symbols",card.symbols],["Use when",card.use_when],["Conditions",card.conditions],["Example",card.example]].map(([label,value])=>label.toUpperCase()+"\n"+String(value||"").split(/[;\n]+/).filter(part=>part.trim()).map(part=>"- "+part.trim()).join("\n")).join("\n\n")):pack.summary));generatedUrls.push(summaryUrl);
         summaryLink.href=summaryUrl;summaryLink.download=base+"-summary.pdf";
         $("#generatedSummaryTitle").textContent=chapterName+" — Summary";
         const mapUrl=URL.createObjectURL(makePdf(chapterName+" — Mind Map",meta,mapText(pack.mind_map)));generatedUrls.push(mapUrl);
