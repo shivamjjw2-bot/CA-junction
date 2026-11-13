@@ -40,3 +40,11 @@ html[data-theme="light"] :is(.panel,.card,.app,.note,.service-group,.service-til
 :is(.btn,.generate-button,.login,.tracker-steps button){backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:inset 0 1px 0 #ffffff35,0 4px 14px #00000012}
 @media(min-width:901px) and (max-width:1150px){.navlinks{gap:10px;font-size:11px}}
 @media print{header .nav{padding-right:0}}
+
+/* Keep the theme control in the header flow, before the mobile menu. */
+header .nav.theme-nav{padding-right:0;gap:12px}
+.theme-nav>.theme-toggle{position:static;order:3;flex:0 0 auto;margin-left:auto;width:112px;height:40px;min-height:40px;z-index:auto}
+.theme-nav>.menu{flex:0 0 40px;width:40px;min-height:40px;line-height:1}
+@media(max-width:900px){header .nav.theme-nav{gap:8px}.theme-nav>.brand{min-width:0}.theme-nav>.theme-toggle{order:0;font-size:11px;width:108px;padding:7px 6px}.theme-nav>.navlinks.open{z-index:30}}
+
+html[data-theme="light"] .theme-nav>.menu{color:#294e31}
