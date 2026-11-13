@@ -678,7 +678,7 @@
         }
         const batches=[];
         for(const unit of pack.units){const topics=pack.outline.filter(topic=>topic.source_index===unit.index);
-          for(let offset=0;offset<topics.length;offset+=3){const batch=topics.slice(offset,offset+3);if(!batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))batches.push(batch);}
+          for(let offset=0;offset<topics.length;offset+=6){const batch=topics.slice(offset,offset+6);if(!batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))batches.push(batch);}
         }
         let nextBatch=0;
         const worker=async()=>{while(nextBatch<batches.length){
