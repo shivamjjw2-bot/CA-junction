@@ -55,12 +55,13 @@ function chapterPdfLinks(html,chapter,pageUrl){
   const label=plainSourceText(token);
   if(/^chapter\s*\d+/i.test(label))active=key(label)===wanted;
   if(!active||!/^<a\b/i.test(token))continue;
+  if(!/^unit\s*\d+/i.test(label)&&key(label)!==wanted)continue;
   const href=token.match(/href\s*=\s*["']([^"']+)["']/i)?.[1];if(!href)continue;
   try{const url=new URL(href.replace(/&amp;/g,"&"),pageUrl);if(url.protocol==="https:"&&["resource.cdn.icai.org","www.icai.org","icai.org","boslive.icai.org"].includes(url.hostname)&&/\.pdf$/i.test(url.pathname))out.push(url.href)}catch{}
  }
  return [...new Set(out)];
 }
-async function readChapterDocuments(pageUrl,chapter){
+async function readChapterDocuments(pageUrl,chapter,sourceIndex=null,manifestOnly=false){
  const sourceTimeout=AbortSignal.timeout(45000);
  const failed=reason=>Object.assign([],{failure:reason});
  const fetchOfficial=async(input,options)=>{let url=new URL(input);for(let hop=0;hop<4;hop++){if(url.protocol!=="https:"||!["www.icai.org","icai.org","boslive.icai.org","resource.cdn.icai.org"].includes(url.hostname))throw new Error("UNAPPROVED_REDIRECT");let response;
@@ -74,8 +75,10 @@ if(response.status>=300&&response.status<400){const next=response.headers.get("l
  try{
   const page=await fetchOfficial(pageUrl,{headers:sourceHeaders,signal:sourceTimeout});
   if(!page.ok)return failed("PAGE_HTTP_"+page.status);
-  const links=chapterPdfLinks(await page.text(),chapter,pageUrl);
-  if(!links.length||links.length>12)return failed("CHAPTER_LINKS_"+links.length);
+  let links=chapterPdfLinks(await page.text(),chapter,pageUrl);
+  if(!links.length||links.length>40)return failed("CHAPTER_LINKS_"+links.length);
+  if(manifestOnly)return links.map((url,index)=>({index}));
+  if(sourceIndex!==null){if(!Number.isInteger(sourceIndex)||sourceIndex<0||sourceIndex>=links.length)return failed("SOURCE_INDEX");links=[links[sourceIndex]];}
   let total=0;
   const docs=new Array(links.length);let next=0;
   const load=async()=>{while(next<links.length){
@@ -102,35 +105,30 @@ if(response.status>=300&&response.status<400){const next=response.headers.get("l
 
 // Only validated, successful study content is reused; authentication still runs before this function.
 // Bump the version whenever prompts, schemas or rendering requirements change.
-const REVISION_CACHE_VERSION="covered-v5";
-const pendingRevisions=new Map();
+const REVISION_CACHE_VERSION="covered-v6-units";
+
 async function createCoveredRevision(args){
  const {mode,officialUrl,chapter,level,subject,body}=args;
- const signature=JSON.stringify([REVISION_CACHE_VERSION,mode,officialUrl,level,subject,chapter,mode==="sections"?body.topics:null]);
+ const signature=JSON.stringify([REVISION_CACHE_VERSION,mode,officialUrl,level,subject,chapter,body.source_index??null,mode==="sections"?body.topics:null]);
  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(signature));
  const hash=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,"0")).join("");
  const key=new Request("https://ca-junction.pages.dev/__revision-cache/"+hash);
  const cache=typeof caches!=="undefined"?caches.default:null;
  try{const hit=cache&&await cache.match(key);if(hit){const data=await hit.json();return json({...data,reused:true});}}catch{}
- // Coalesce only requests within this worker isolate. Never cache failures or authentication data.
- if(pendingRevisions.has(hash)){const result=await pendingRevisions.get(hash);return json(result.data,result.status);}
- const work=(async()=>{
-   const response=await generateCoveredRevision(args),data=await response.json();
-   if(response.ok&&cache){
-    try{await cache.put(key,new Response(JSON.stringify(data),{headers:{"content-type":"application/json","Cache-Control":"public,max-age=21600"}}));}catch{}
-   }
-   return {data,status:response.status};
- })();
- pendingRevisions.set(hash,work);
- try{const result=await work;return json(result.data,result.status);}finally{pendingRevisions.delete(hash);}
+ // Completed JSON is safe to share; in-flight work stays inside its own request.
+ const response=await generateCoveredRevision(args),data=await response.json();
+ if(response.ok&&cache){try{await cache.put(key,new Response(JSON.stringify(data),{headers:{"content-type":"application/json","Cache-Control":"public,max-age=21600"}}));}catch{}}
+ return json(data,response.status);
 }
 
 async function generateCoveredRevision({env,mode,officialUrl,chapter,level,subject,body}){
  const requestDeadline=Date.now()+Math.min(110000,Math.max(1000,Number(body.time_budget_ms)||110000));
  const topics=body.topics;
  if(mode==="sections"&&(!Array.isArray(topics)||!topics.length||topics.length>6||topics.some(t=>!Number.isInteger(t.id)||typeof t.title!=="string"||t.title.length>240||typeof t.parent!=="string"||t.parent.length>240)||new Set(topics.map(t=>t.id)).size!==topics.length))return json({error:"Choose valid chapter sections."},400);
- const docs=await readChapterDocuments(officialUrl,chapter);
+ if(body.source_index!==undefined&&(!Number.isInteger(body.source_index)||body.source_index<0))return json({error:"Choose a valid chapter unit."},400);
+ const docs=await readChapterDocuments(officialUrl,chapter,body.source_index??null,mode==="manifest");
  if(!docs.length)return json({error:"CA Junction could not read the official chapter PDFs. Detailed chapter notes cannot be prepared without the source. Please retry later or use the official material link.",code:"CHAPTER_SOURCE_UNAVAILABLE",source_status:docs.failure||"unknown"},422);
+ if(mode==="manifest")return json({units:docs,reference_documents:docs.length});
  const outlineSchema={type:"OBJECT",properties:{topics:{type:"ARRAY",items:{type:"OBJECT",properties:{title:{type:"STRING"},parent:{type:"STRING"}},required:["title","parent"]}}},required:["topics"]};
  const sectionSchema={type:"OBJECT",properties:{sections:{type:"ARRAY",items:{type:"OBJECT",properties:{id:{type:"INTEGER"},points:{type:"ARRAY",items:{type:"STRING"}},takeaway:{type:"STRING"},mnemonic:{type:"STRING"},visual_cue:{type:"STRING"},connections:{type:"STRING"},icon:{type:"STRING",enum:["book","checklist","balance","process"]}},required:["id","points","takeaway","mnemonic","visual_cue","connections","icon"]}}},required:["sections"]};
  const instructions=mode==="outline"?
@@ -149,7 +147,7 @@ async function generateCoveredRevision({env,mode,officialUrl,chapter,level,subje
    const raw=candidate?.content?.parts?.filter(p=>!p.thought).map(p=>p.text||"").join("");
    const parsed=parseOutput(raw);
    if(mode==="outline"){
-    if(!Array.isArray(parsed.topics)||!parsed.topics.length||parsed.topics.length>180||parsed.topics.some(t=>typeof t.title!=="string"||!t.title.trim()||t.title.length>240||typeof t.parent!=="string"||t.parent.length>240))continue;
+    if(!Array.isArray(parsed.topics)||!parsed.topics.length||parsed.topics.length>400||parsed.topics.some(t=>typeof t.title!=="string"||!t.title.trim()||t.title.length>240||typeof t.parent!=="string"||t.parent.length>240))continue;
     return json({topics:parsed.topics.map((t,id)=>({id,title:t.title.trim(),parent:t.parent.trim()})),reference_documents:docs.length});
    }
    const rows=parsed.sections;failure="SECTION_VALIDATION";
@@ -175,7 +173,7 @@ export async function onRequestPost({request,env}){
   let body;
   try{const raw=await request.text();if(raw.length>140000)return json({error:"That chapter request is too large."},413);body=JSON.parse(raw)}catch{return json({error:"The chapter request could not be read."},400)}
   const mode=body.mode||"combined";
-  if(!["combined","summary","mind_map","outline","sections"].includes(mode))return json({error:"Choose a valid chapter preparation step."},400);
+  if(!["combined","summary","mind_map","manifest","outline","sections"].includes(mode))return json({error:"Choose a valid chapter preparation step."},400);
   const suppliedSummary=cleanText(body.summary,80000);
   const level=cleanText(body.level,24),subject=cleanText(body.subject,120),chapter=cleanText(body.chapter,500);
   const sourceUrl=cleanText(body.source_url,500);
@@ -184,7 +182,7 @@ export async function onRequestPost({request,env}){
   if(!chapter)return json({error:"Choose an ICAI chapter."},400);
   let officialUrl=MATERIAL_URL[level];
   if(sourceUrl){try{const parsed=new URL(sourceUrl);if(parsed.protocol==="https:"&&["www.icai.org","icai.org","boslive.icai.org"].includes(parsed.hostname))officialUrl=parsed.href}catch{}}
-  if(mode==="outline"||mode==="sections")return createCoveredRevision({env,mode,officialUrl,chapter,level,subject,body});
+  if(mode==="manifest"||mode==="outline"||mode==="sections")return createCoveredRevision({env,mode,officialUrl,chapter,level,subject,body});
   const formulaFirst=(level==="Foundation"&&["Quantitative Aptitude","Accounting"].includes(subject))||
     (level==="Intermediate"&&["Financial Management","Cost and Management Accounting","Advanced Accounting"].includes(subject))||
     (level==="Final"&&["Advanced Financial Management","Financial Reporting"].includes(subject));

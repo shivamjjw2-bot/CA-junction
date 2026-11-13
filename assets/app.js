@@ -639,17 +639,17 @@
       const timer=$("#revisionElapsed"),started=Date.now();timer.hidden=false;
       const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);timer.textContent="Preparing detailed chapter PDFs · elapsed "+String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");};
       tick();const timerId=setInterval(tick,1000);
-      const generationDeadline=Date.now()+175000,generationController=new AbortController();const deadlineTimer=setTimeout(()=>generationController.abort(),175000);
+      const generationDeadline=Date.now()+900000,generationController=new AbortController();const deadlineTimer=setTimeout(()=>generationController.abort(),900000);
       try{
         const {data:{session}}=await sb.auth.getSession();
         if(!session?.access_token){location.href="account.html?next="+encodeURIComponent("revision.html?level="+level+"&subject="+encodeURIComponent(subjectName));return}
-        const key=JSON.stringify([level,subjectName,chapterName]);
-        let restored=null;try{const saved=JSON.parse(sessionStorage.getItem("caRevisionV4:"+key)||"null");if(saved&&Date.now()-saved.savedAt<21600000&&Array.isArray(saved.pack?.outline)&&Array.isArray(saved.pack?.sections))restored=saved.pack;}catch{}
+        const key=JSON.stringify([level,subjectName,chapterName,sourceUrl]);
+        let restored=null;try{const saved=JSON.parse(sessionStorage.getItem("caRevisionV5:"+key)||"null");if(saved&&Date.now()-saved.savedAt<21600000&&Array.isArray(saved.pack?.units)&&Array.isArray(saved.pack?.sections))restored=saved.pack;}catch{}
         const pack=chapterPacks.get(key)||restored||{};chapterPacks.set(key,pack);
-        const savePack=()=>{try{sessionStorage.setItem("caRevisionV4:"+key,JSON.stringify({savedAt:Date.now(),pack}));}catch{}};
+        const savePack=()=>{try{sessionStorage.setItem("caRevisionV5:"+key,JSON.stringify({savedAt:Date.now(),pack}));}catch{}};
         const prepare=async(mode,extra={},progress="")=>{
           for(let attempt=0;attempt<3;attempt++){
-            if(generationController.signal.aborted||Date.now()>=generationDeadline)throw new Error("The 3-minute preparation limit was reached. Retry to continue from completed topics.");
+            if(generationController.signal.aborted||Date.now()>=generationDeadline)throw new Error("Preparation paused after an extended wait. Your completed topics are saved; retry to continue.");
             msg("#revisionGenerateStatus",(progress||(mode==="summary"?"Preparing your detailed summary":"Preparing your memory map; both PDFs will appear together"))+(attempt?" — retrying automatically…":"…"));
             try{
               const response=await fetch("/api/ai-revision",{method:"POST",headers:{authorization:"Bearer "+session.access_token,"content-type":"application/json",accept:"application/json"},signal:generationController.signal,body:JSON.stringify({level,subject:subjectName,chapter:chapterName,source_url:sourceUrl,mode,time_budget_ms:Math.max(1000,generationDeadline-Date.now()),...extra,...(mode==="mind_map"?{summary:pack.summary}:{})})});
@@ -659,7 +659,7 @@
               error.retryable=[502,503,504].includes(response.status);
               throw error;
             }catch(error){
-              if(generationController.signal.aborted)throw new Error("The 3-minute preparation limit was reached. Retry to continue from completed topics.");
+              if(generationController.signal.aborted)throw new Error("Preparation paused after an extended wait. Your completed topics are saved; retry to continue.");
               if(attempt===2||!(error.retryable||error instanceof TypeError))throw error;
               await new Promise(resolve=>setTimeout(resolve,1500));
             }
@@ -669,12 +669,21 @@
         const meta=level+" · "+subjectName+" · "+chapterName+" · Verify with the linked ICAI material";
         const base=slug(chapterName),summaryLink=$("#generatedSummaryDownload"),mapLink=$("#generatedMindMapDownload");
         mapLink.closest("article").hidden=true;
-        if(!pack.outline){const outline=await prepare("outline",{},"Reading the ICAI chapter and listing its topics and subtopics");pack.outline=outline.topics;pack.reference_documents=outline.reference_documents;pack.sections=[];savePack();}
-        const batches=[];for(let offset=0;offset<pack.outline.length;offset+=3){const batch=pack.outline.slice(offset,offset+3);if(!batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))batches.push(batch);}
+        if(!pack.units){const manifest=await prepare("manifest",{},"Finding the chapter's official units");pack.units=manifest.units;pack.reference_documents=manifest.reference_documents;pack.unitOutlines={};pack.sections=[];savePack();}
+        if(!pack.outline){
+          const missing=pack.units.filter(unit=>!pack.unitOutlines[unit.index]);let nextUnit=0;
+          const readUnit=async()=>{while(nextUnit<missing.length){const unit=missing[nextUnit++];const result=await prepare("outline",{source_index:unit.index},"Reading chapter unit "+(unit.index+1)+" of "+pack.units.length);pack.unitOutlines[unit.index]=result.topics;savePack();}};
+          const scans=await Promise.allSettled(Array.from({length:Math.min(3,missing.length)},readUnit));const scanFailure=scans.find(item=>item.status==="rejected");if(scanFailure)throw scanFailure.reason;
+          pack.outline=pack.units.flatMap(unit=>pack.unitOutlines[unit.index].map(topic=>({...topic,source_index:unit.index}))).map((topic,id)=>({...topic,id}));savePack();
+        }
+        const batches=[];
+        for(const unit of pack.units){const topics=pack.outline.filter(topic=>topic.source_index===unit.index);
+          for(let offset=0;offset<topics.length;offset+=3){const batch=topics.slice(offset,offset+3);if(!batch.every(topic=>pack.sections.some(section=>section.id===topic.id)))batches.push(batch);}
+        }
         let nextBatch=0;
         const worker=async()=>{while(nextBatch<batches.length){
-          const batch=batches[nextBatch++];const result=await prepare("sections",{topics:batch},"Preparing chapter topics · "+pack.sections.length+" of "+pack.outline.length+" ready");
-          if(generationController.signal.aborted)throw new Error("The 3-minute preparation limit was reached. Retry to continue.");
+          const batch=batches[nextBatch++];const result=await prepare("sections",{topics:batch,source_index:batch[0].source_index},"Preparing chapter topics · "+pack.sections.length+" of "+pack.outline.length+" ready");
+          if(generationController.signal.aborted)throw new Error("Preparation paused. Your completed topics are saved; retry to continue.");
           for(const section of result.sections){pack.sections=pack.sections.filter(row=>row.id!==section.id);pack.sections.push(section);}savePack();msg("#revisionGenerateStatus","Preparing chapter topics · "+pack.sections.length+" of "+pack.outline.length+" ready…");
         }};
         const outcomes=await Promise.allSettled(Array.from({length:Math.min(3,batches.length)},worker));
