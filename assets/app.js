@@ -552,24 +552,24 @@
       const text=(value,x,y,size=11,color=[.12,.16,.28],bold=false)=>commands.push("BT /"+(bold?"F2":"F1")+" "+size+" Tf "+color.join(" ")+" rg 1 0 0 1 "+x+" "+y+" Tm ("+esc(value)+") Tj ET");
       const newPage=()=>{
         if(commands.length)pages.push(commands.join("\n"));commands=[];page++;
-        rect(0,0,612,842,[.94,.96,1]);rect(0,716,612,126,[.12,.15,.32]);
-        rect(0,716,612,5,[.43,.83,.76]);text("CA JUNCTION  /  "+(isMap?"MIND MAP":"LAST-MINUTE REVISION"),38,811,11,[.54,.91,.83]);
-        wrap(title,61).slice(0,3).forEach((line,i)=>text(line,38,786-i*19,16,[1,1,1]));
-        wrap(meta,100).slice(0,3).forEach((line,i)=>text(line,38,696-i*12,8,[.30,.36,.49]));
+        rect(0,0,612,842,[.94,.96,1]);rect(0,760,612,82,[.12,.15,.32]);
+        rect(0,760,612,4,[.43,.83,.76]);text("CA JUNCTION  /  "+(isMap?"MIND MAP":"LAST-MINUTE REVISION"),38,820,10,[.54,.91,.83]);
+        wrap(title,72).slice(0,3).forEach((line,i)=>text(line,38,800-i*16,13,[1,1,1]));
+        wrap(meta,100).slice(0,3).forEach((line,i)=>text(line,38,742-i*11,8,[.30,.36,.49]));
         text("CA Junction  |  Verify exam-specific details with official ICAI material",38,25,8);
-        text(String(page),560,25,9);y=638;
+        text(String(page),560,25,9);y=700;
       };
       newPage();
       const blocks=Array.isArray(body)?body:String(body).split(isMap?/\n\s*\n/:/\n\s*\[CARD\]\s*\n|\n\s*\n/).filter(x=>x.trim());
       blocks.forEach((block,index)=>{
         const icon=block.match(/^\[(book|checklist|balance|process)\]/)?.[1]||"book";
-        const lines=block.replace(/^\[CARD\]\s*/,"").replace(/^\[(book|checklist|balance|process)\]\s*/,"").split(/\r?\n/).flatMap(line=>line.trim()?wrap(line,isMap?68:87):[""]);
+        const lines=block.replace(/^\[CARD\]\s*/,"").replace(/^\[(book|checklist|balance|process)\]\s*/,"").split(/\r?\n/).flatMap(line=>line.trim()?wrap(line,isMap?80:87):[""]);
         let offset=0;
         while(offset<lines.length){
           if(y<120)newPage();
-          if(offset===0&&lines.length*15+26<=553&&lines.length*15+26>y-70)newPage();
-          const count=Math.min(lines.length-offset,Math.max(1,Math.floor((y-85)/15)));
-          const chunk=lines.slice(offset,offset+count),height=chunk.length*15+26;
+          if(offset===0&&lines.length*13+26<=615&&lines.length*13+26>y-70)newPage();
+          const count=Math.min(lines.length-offset,Math.max(1,Math.floor((y-85)/13)));
+          const chunk=lines.slice(offset,offset+count),height=chunk.length*13+26;
           const accent=colors[index%colors.length],x=isMap?90:38,w=isMap?484:536;
           if(isMap){commands.push(".65 .70 .82 RG 2 w 48 "+(y+12)+" m 48 "+(y-height/2)+" l "+x+" "+(y-height/2)+" l S")}
           if(isMap){
@@ -586,10 +586,10 @@
           rect(x+4,y-2,w-4,2,[1,1,1]);
           chunk.forEach((line,i)=>{
             const heading=/^(MNEMONIC|PICTURE THIS|KEY POINTS|CONNECTIONS|REMEMBER|MEMORY AID|FORMULA|SYMBOLS|USE WHEN|CONDITIONS|EXAMPLE)$/.test(line)||(!isMap&&(/^[A-Z][A-Z ()/&-]{2,70}$/.test(line)||line.startsWith("SUBTOPIC:")));
-            if(heading)rect(x+12,y-24-i*15,w-24,16,[.91,.94,.99]);
-            if(line)text(line,x+16,y-20-i*15,i===0?11:10,(i===0||heading)?accent:[.16,.20,.31],i===0||heading);
+            if(heading)rect(x+12,y-24-i*13,w-24,16,[.91,.94,.99]);
+            if(line)text(line,x+16,y-20-i*13,i===0?11:10,(i===0||heading)?accent:[.16,.20,.31],i===0||heading);
           });
-          y-=height+14;offset+=count;
+          y-=height+10;offset+=count;
         }
       });
       pages.push(commands.join("\n"));
