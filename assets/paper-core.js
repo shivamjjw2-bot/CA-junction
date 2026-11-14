@@ -1,0 +1,19 @@
+export const PREFIX='CAJ_PAPER_V1|';
+export const SUBJECTS={Foundation:['Accounting','Business Laws','Quantitative Aptitude','Business Economics'],Intermediate:['Advanced Accounting','Corporate and Other Laws','Taxation','Cost and Management Accounting','Auditing and Ethics','Financial Management and Strategic Management'],Final:['Financial Reporting','Advanced Financial Management','Advanced Auditing, Assurance and Professional Ethics','Direct Tax Laws & International Taxation','Indirect Tax Laws','Integrated Business Solutions (Multidisciplinary Case Study with Strategic Management)']};
+export const LEGACY={Foundation:['Principles and Practice of Accounting','Business Laws and Business Correspondence and Reporting','Business Mathematics, Logical Reasoning and Statistics','Business Economics and Business and Commercial Knowledge'],Intermediate:['Accounting','Corporate and Other Laws','Cost and Management Accounting','Taxation','Advanced Accounting','Auditing and Assurance','Enterprise Information Systems and Strategic Management','Financial Management and Economics for Finance'],Final:['Financial Reporting','Strategic Financial Management','Advanced Auditing and Professional Ethics','Corporate and Economic Laws','Strategic Cost Management and Performance Evaluation','Elective Paper','Direct Tax Laws and International Taxation','Indirect Tax Laws']};
+export const CHAPTERS=['mtp_question','mtp_suggested_answer','rtp_question','rtp_suggested_answer','previous_year_question','previous_year_solution','mock_test_question'];
+export function metadata(row){try{if(!row.description?.startsWith(PREFIX))return null;const m=JSON.parse(row.description.slice(PREFIX.length));return m.version===1?m:null}catch{return null}}
+export function encode(m){return PREFIX+JSON.stringify({...m,version:1})}
+export function family(chapter){return chapter.startsWith('previous_year_')?'previous_year':chapter.startsWith('mock_test_')?'mock_test':chapter.startsWith('mtp_')?'mtp':'rtp'}
+export function chapterKey(series,kind){return series==='previous_year'?'previous_year_'+(kind==='question'?'question':'solution'):series==='mock_test'?'mock_test_question':series+'_'+(kind==='question'?'question':'suggested_answer')}
+export function colour(chapter){let n=0;for(const c of chapter)n=(Math.imul(n,31)+c.charCodeAt(0))>>>0;return `hsl(${n%360} 70% 48%)`}
+export function validateAnalysis(input,chapters){
+ if(!Array.isArray(input)||!input.length||input.length>300)throw Error('Include 1–300 question entries.');
+ const seen=new Set();return input.map(q=>{const ref=String(q.ref||'').trim(),chapter=String(q.chapter||'').trim(),marks=Number(q.marks),page=Number(q.page),optionalGroup=String(q.optionalGroup||'').trim();
+ if(!ref||ref.length>80||!chapters.includes(chapter)||!Number.isFinite(marks)||marks<=0||marks>100||!Number.isInteger(page)||page<1||page>500)throw Error('Check each question reference, PDF page, chapter and positive marks.');
+ const key=ref+'|'+chapter;if(seen.has(key))throw Error('Duplicate question/chapter entry: '+ref);seen.add(key);
+ return{ref,chapter,marks,page,optionalGroup:optionalGroup.slice(0,80),uncertain:!!q.uncertain};
+ });
+}
+export function approved(row){const m=metadata(row);return row.chapter==='previous_year_question'&&m?.analysis?.reviewed===true&&m.analysis.source===(row.file_path||row.external_url)&&Array.isArray(m.analysis.questions)}
+export function aggregate(rows){const valid=rows.filter(approved), names=[...new Set(valid.flatMap(r=>metadata(r).analysis.chapters))];return names.map((chapter,index)=>{const perPaper=valid.map(r=>metadata(r).analysis.questions.filter(q=>q.chapter===chapter).reduce((n,q)=>n+q.marks,0));return{chapter,colour:`hsl(${(index*137.508+210)%360} 68% 48%)`,total:perPaper.reduce((a,b)=>a+b,0),frequency:perPaper.filter(n=>n>0).length,average:valid.length?perPaper.reduce((a,b)=>a+b,0)/valid.length:0,perPaper}}).sort((a,b)=>b.total-a.total)}

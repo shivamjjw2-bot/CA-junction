@@ -740,6 +740,7 @@
     }catch(error){if(preview)preview.close();msg(statusId,error.message||"Could not prepare this PDF. Please retry.","error");}
   }
 
+  window.caOpenBrandedPdf=openBrandedPdf;
   async function downloadMaterial(material,statusId="#materialStatus"){
     const {data:{user}}=await sb.auth.getUser();
     if(!user){location.href="account.html?next="+encodeURIComponent(location.pathname.split("/").pop()+location.search);return}
@@ -818,7 +819,7 @@
       data.forEach(row=>{
         const card=document.createElement("article");card.className="card";
         const h=document.createElement("h3");h.textContent=row.title;
-        const p=document.createElement("p");p.textContent=[row.subject,row.description].filter(Boolean).join(" · ")||row.level+" "+config.name+" resource";
+        const p=document.createElement("p");p.textContent=[row.subject,String(row.description||"").startsWith("CAJ_PAPER_V1|")?"":row.description].filter(Boolean).join(" · ")||row.level+" "+config.name+" resource";
         const button=document.createElement("button");button.type="button";button.className="btn";button.textContent="Open PDF";
         button.addEventListener("click",()=>downloadMaterial(row,"#mtpStatus"));
         card.append(h,p,button);list.append(card);
