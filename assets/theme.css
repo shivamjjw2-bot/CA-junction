@@ -55,3 +55,6 @@ html[data-theme="light"] .tile-tag{color:#365f30}
 header .theme-nav>.menu{font-size:0;position:relative;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.08)}
 header .theme-nav>.menu::before{content:"";position:absolute;left:10px;top:18px;width:18px;height:2px;border-radius:2px;background:currentColor;box-shadow:0 -6px 0 currentColor,0 6px 0 currentColor}
 html[data-theme="light"] header .theme-nav>.menu{color:#174b2b;background:rgba(232,242,223,.85);border-color:#78936c}
+
+/* Compact theme label on phone screens; retain the existing tap target. */
+@media(max-width:600px){.theme-nav>.theme-toggle{font-size:10px;letter-spacing:0;font-weight:650}}
