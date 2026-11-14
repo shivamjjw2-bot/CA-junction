@@ -708,6 +708,38 @@
     if(!ready()){msg("#revisionGenerateStatus",backendMessage,"error");generate.disabled=true}
   }
 
+
+  let watermarkLibrary;
+  async function openBrandedPdf(url,statusId="#materialStatus"){
+    const preview=window.open("about:blank","_blank");
+    if(preview){preview.opener=null;preview.document.body.textContent="Preparing your CA Junction PDF…";}
+    try{
+      msg(statusId,"Preparing PDF…");
+      if(!watermarkLibrary)watermarkLibrary=new Promise((resolve,reject)=>{
+        if(window.PDFLib)return resolve(window.PDFLib);
+        const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js";
+        script.onload=()=>resolve(window.PDFLib);script.onerror=()=>reject(new Error("PDF tools could not load. Please retry."));document.head.append(script);
+      }).catch(error=>{watermarkLibrary=null;throw error});
+      const [lib,response]=await Promise.all([watermarkLibrary,fetch(url)]);
+      if(!response.ok)throw new Error("The PDF could not be opened. Please retry.");
+      const source=await lib.PDFDocument.load(await response.arrayBuffer());
+      const output=await lib.PDFDocument.create(),font=await output.embedFont(lib.StandardFonts.Helvetica);
+      for(const original of source.getPages()){
+        const {width,height}=original.getSize();
+        const page={width,height};
+        const sheet=output.addPage([width,height+28]);
+        if(original.node.Contents()){const embedded=await output.embedPage(original);sheet.drawPage(embedded,{x:0,y:28,width,height});}
+        const label="CA Junction",size=Math.min(10,page.width/18);
+        sheet.drawText(label,{x:(page.width-font.widthOfTextAtSize(label,size))/2,y:9,size,font,color:lib.rgb(.24,.32,.28)});
+      }
+      const blobUrl=URL.createObjectURL(new Blob([await output.save()],{type:"application/pdf"}));
+      if(preview)preview.location.replace(blobUrl);
+      else{const a=document.createElement("a");a.href=blobUrl;a.download="CA-Junction-resource.pdf";a.click();}
+      setTimeout(()=>URL.revokeObjectURL(blobUrl),300000);
+      msg(statusId,"PDF prepared with CA Junction footer.");
+    }catch(error){if(preview)preview.close();msg(statusId,error.message||"Could not prepare this PDF. Please retry.","error");}
+  }
+
   async function downloadMaterial(material,statusId="#materialStatus"){
     const {data:{user}}=await sb.auth.getUser();
     if(!user){location.href="account.html?next="+encodeURIComponent(location.pathname.split("/").pop()+location.search);return}
@@ -716,8 +748,7 @@
     if(claimError){msg(statusId,material.is_premium?"This resource requires premium access. Premium checkout is not available yet.":claimError.message,"error");return}
     const {data,error}=await sb.storage.from(material.file_bucket||"ca-materials").createSignedUrl(material.file_path,90);
     if(error){msg(statusId,error.message,"error");return}
-    window.open(data.signedUrl,"_blank","noopener");
-    msg(statusId,"PDF opened.");
+    await openBrandedPdf(data.signedUrl,statusId);
   }
 
   function initMtp(){
@@ -1646,7 +1677,7 @@
         const item=document.createElement("div");item.className="data-row";const info=document.createElement("div"),h=document.createElement("strong"),p=document.createElement("p");
         h.textContent=row.title;p.textContent=[row.status,row.level,row.subject,row.chapter,row.contributor_name?"By "+row.contributor_name:"",row.instagram_handle?"Instagram "+row.instagram_handle:"",row.linkedin_url?"LinkedIn provided":"",new Date(row.created_at).toLocaleDateString()].filter(Boolean).join(" · ");info.append(h,p);
         const actions=document.createElement("div");actions.className="row-actions";
-        const view=document.createElement("button");view.className="btn";view.textContent="Open PDF";view.addEventListener("click",async()=>{const {data:link,error}=await sb.storage.from("student-notes").createSignedUrl(row.file_path,120);if(error){msg("#submissionStatus",error.message,"error");return}window.open(link.signedUrl,"_blank","noopener")});actions.append(view);
+        const view=document.createElement("button");view.className="btn";view.textContent="Open PDF";view.addEventListener("click",async()=>{const {data:link,error}=await sb.storage.from("student-notes").createSignedUrl(row.file_path,120);if(error){msg("#submissionStatus",error.message,"error");return}await openBrandedPdf(link.signedUrl,"#submissionStatus")});actions.append(view);
         if(row.status==="pending"){
           const approve=document.createElement("button");approve.className="btn";approve.textContent="Approve";approve.addEventListener("click",()=>approveNote(row));
           const reject=document.createElement("button");reject.className="btn";reject.textContent="Reject";reject.addEventListener("click",async()=>{const {error}=await sb.from("student_note_submissions").update({status:"rejected",reviewed_by:user.id,reviewed_at:new Date().toISOString()}).eq("id",row.id);msg("#submissionStatus",error?error.message:"Submission rejected.",error?"error":"success");loadNoteSubmissions()});
@@ -1809,7 +1840,7 @@
     async function loadEvaluationQueue(){
       const {data,error}=await sb.from("evaluation_submissions").select("id,user_id,test_id,file_path,status,score,feedback,created_at").in("status",["pending","in_review"]).order("created_at");
       const list=$("#evaluationQueue");list.replaceChildren();if(error||!data?.length){emptyRow(list,error?"Could not load scripts.":"No scripts waiting for evaluation.");return}
-      data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent="Submission · "+row.status;const p=document.createElement("p");p.textContent="Student "+row.user_id+" · Test "+row.test_id;info.append(h,p);const actions=document.createElement("div");actions.className="row-actions";const open=document.createElement("button");open.className="btn";open.textContent="Open PDF";open.addEventListener("click",async()=>{const {data:link,error}=await sb.storage.from("test-scripts").createSignedUrl(row.file_path,120);if(error){msg("#evaluationAdminStatus",error.message,"error");return}window.open(link.signedUrl,"_blank","noopener")});const grade=document.createElement("button");grade.className="btn";grade.textContent="Record score";grade.addEventListener("click",async()=>{const score=prompt("Enter score after completing the review.");if(score===null)return;const feedback=prompt("Enter feedback for the student.")||"";const {error}=await sb.from("evaluation_submissions").update({status:"reviewed",score:Number(score),feedback,reviewer_id:user.id,reviewed_at:new Date().toISOString()}).eq("id",row.id);msg("#evaluationAdminStatus",error?error.message:"Evaluation saved.",error?"error":"success");loadEvaluationQueue()});actions.append(open,grade);item.append(info,actions);list.append(item)});
+      data.forEach(row=>{const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent="Submission · "+row.status;const p=document.createElement("p");p.textContent="Student "+row.user_id+" · Test "+row.test_id;info.append(h,p);const actions=document.createElement("div");actions.className="row-actions";const open=document.createElement("button");open.className="btn";open.textContent="Open PDF";open.addEventListener("click",async()=>{const {data:link,error}=await sb.storage.from("test-scripts").createSignedUrl(row.file_path,120);if(error){msg("#evaluationAdminStatus",error.message,"error");return}await openBrandedPdf(link.signedUrl,"#evaluationAdminStatus")});const grade=document.createElement("button");grade.className="btn";grade.textContent="Record score";grade.addEventListener("click",async()=>{const score=prompt("Enter score after completing the review.");if(score===null)return;const feedback=prompt("Enter feedback for the student.")||"";const {error}=await sb.from("evaluation_submissions").update({status:"reviewed",score:Number(score),feedback,reviewer_id:user.id,reviewed_at:new Date().toISOString()}).eq("id",row.id);msg("#evaluationAdminStatus",error?error.message:"Evaluation saved.",error?"error":"success");loadEvaluationQueue()});actions.append(open,grade);item.append(info,actions);list.append(item)});
     }
   }
 
