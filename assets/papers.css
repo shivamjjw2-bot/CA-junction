@@ -6,3 +6,6 @@
 .paper-year-tab strong{font-size:20px}.paper-year-tab small{font-size:11px;opacity:.75}.paper-year-tab:hover{border-color:#55b586;background:rgba(66,160,105,.14)}.paper-year-tab:focus-visible{outline:2px solid #55b586;outline-offset:3px}
 .paper-year-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.paper-year-results>.paper-card{margin:0}
 @media(max-width:600px){.paper-year-grid{gap:8px}.paper-year-tab{min-height:68px;border-radius:11px;padding:10px 3px}.paper-year-tab strong{font-size:16px}.paper-year-tab small{font-size:10px}.paper-year-results{grid-template-columns:1fr}}
+
+.paper-year-tab strong{overflow-wrap:anywhere}.paper-year-tab{font:inherit;cursor:pointer}#paperLibrary>.paper-btn{margin:0 8px 12px 0}#paperManager h3{margin:14px 0 8px}
+@media(max-width:600px){.paper-year-tab strong{font-size:13px}}
