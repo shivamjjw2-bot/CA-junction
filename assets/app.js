@@ -91,7 +91,7 @@
   function initHome() {
     const accountLink=$("#accountNavLink");
     if(accountLink&&ready())sb.auth.getUser().then(({data:{user}})=>{if(user){accountLink.href="platform.html";accountLink.textContent="My Dashboard";}});
-    $("a").forEach(link => link.addEventListener("click", () => {
+    $$("a").forEach(link => link.addEventListener("click", () => {
       if (!link.hash) return;
       const target = $(link.hash);
       if (target?.tagName === "DETAILS") target.open = true;
