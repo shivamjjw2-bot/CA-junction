@@ -58,3 +58,11 @@ html[data-theme="light"] header .theme-nav>.menu{color:#174b2b;background:rgba(2
 
 /* Compact theme label on phone screens; retain the existing tap target. */
 @media(max-width:600px){.theme-nav>.theme-toggle{font-size:10px;letter-spacing:0;font-weight:650}}
+
+/* Decorative aircraft sits above the wordmark inside the existing header. */
+header .brand{position:relative}
+header .brand::after{content:"";position:absolute;pointer-events:none;right:0;top:-12px;width:54px;height:17px;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2090%2028%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22f%22%3E%3Cstop%20stop-color%3D%22%23ff7b20%22%20stop-opacity%3D%220%22%2F%3E%3Cstop%20offset%3D%22.65%22%20stop-color%3D%22%23ffb735%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff0ae%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22g%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23ffe4a0%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23ad731d%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M1%2013L37%2010V16Z%22%20fill%3D%22url(%23f)%22%2F%3E%3Cpath%20d%3D%22M20%208L39%209V11Z%20M16%2020L39%2015V17Z%22%20fill%3D%22url(%23f)%22%20opacity%3D%22.7%22%2F%3E%3Cpath%20d%3D%22M87%2012L48%201L52%209L36%207L41%2012L35%2017L51%2015L47%2026Z%22%20fill%3D%22url(%23g)%22%20stroke%3D%22%23946320%22%20stroke-width%3D%22.7%22%2F%3E%3Cpath%20d%3D%22M85%2012L48%2012M54%205L59%2011L54%2021%22%20fill%3D%22none%22%20stroke%3D%22%23fff0ba%22%20stroke-width%3D%22.8%22%2F%3E%3Cpath%20d%3D%22M75%2011L68%209L69%2012Z%22%20fill%3D%22%23263849%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;filter:drop-shadow(0 0 3px #efa93955);animation:brand-flight 4s ease-in-out infinite}
+@keyframes brand-flight{0%,100%{transform:translate(0,0)}50%{transform:translate(3px,-2px)}}
+html[data-theme="light"] header .brand,html[data-theme="light"] header .brand b{color:#966311;background:linear-gradient(115deg,#79500e 5%,#b17b20 45%,#8c5b10 75%,#b5832b);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 1px 0 #fff8}
+@media(prefers-reduced-motion:reduce){header .brand::after{animation:none}}
+@media print{header .brand::after{display:none}}
