@@ -171,7 +171,7 @@
     // Preserve existing password sign-in only for administrators during migration.
     const safeNext = () => {
       const nextPage=new URLSearchParams(location.search).get("next")||"";
-      return nextPage==="upload.html"||/^study\\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";
+      return nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";
     };
     $("#googleSignIn")?.addEventListener("click",async()=>{
       msg("#authStatus","Opening Google sign-in…");
