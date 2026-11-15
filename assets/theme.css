@@ -69,3 +69,8 @@ html[data-theme="light"] header .brand b{color:#966311;background:linear-gradien
 @media print{header .brand::after{display:none}}
 
 @media(max-width:600px){header .brand::after{width:52px;height:17px}}
+
+/* White text on filled green actions in the cream theme. */
+html[data-theme="light"] :is(.paper-btn,.paper-actions a:not(.secondary),.paper-actions button:not(.secondary):not(.danger),.trend-button){color:#fff!important;background:#146a43;border-color:#397956}
+html[data-theme="light"] :is(.paper-btn,.trend-button) :is(strong,small,span){color:#fff!important}
+html[data-theme="light"] .paper-actions .secondary{background:#e0e8d8;color:#24472e}
