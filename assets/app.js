@@ -173,6 +173,18 @@
       const nextPage=new URLSearchParams(location.search).get("next")||"";
       return nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";
     };
+    // A returning student should not be asked to authenticate again when
+    // Supabase already has a valid, persisted session in this browser.
+    // The OAuth callback is handled by the same session check.
+    sb.auth.getUser().then(({data:{user},error})=>{
+      if(user&&!error){
+        location.replace(safeNext()==="index.html"?"platform.html":safeNext());
+      }else if(new URLSearchParams(location.search).get("oauth")==="google"){
+        msg("#authStatus","Google authentication has not completed. Please try Continue with Google.");
+      }
+    }).catch(()=>{
+      // If the session cannot be confirmed, keep the login form available.
+    });
     $("#googleSignIn")?.addEventListener("click",async()=>{
       msg("#authStatus","Opening Google sign-in…");
       const destination=new URL("account.html",location.origin);
@@ -181,12 +193,6 @@
       const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:destination.toString()}});
       if(error)msg("#authStatus",error.message,"error");
     });
-    if(new URLSearchParams(location.search).get("oauth")==="google"){
-      sb.auth.getUser().then(({data:{user},error})=>{
-        if(user&&!error){location.replace(safeNext());}
-        else msg("#authStatus","Google authentication has not completed. Please try Continue with Google.");
-      });
-    }
     $("#signInForm")?.addEventListener("submit",async e=>{
       e.preventDefault();msg("#authStatus","Signing in…");
       const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
