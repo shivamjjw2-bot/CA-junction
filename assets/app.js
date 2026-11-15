@@ -164,30 +164,38 @@
       
       
       $("#signInForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
-      $("#signUpForm")?.querySelectorAll("button").forEach(b=>b.disabled=true);
+      $("#googleSignIn")?.setAttribute("disabled","disabled");
       return;
     }
-    const signInTab=$("#signInTab"), signUpTab=$("#signUpTab"), signIn=$("#signInForm"), signUp=$("#signUpForm");
-    const chooseTab = which => {
-      const signingIn=which==="signin";
-      signIn.hidden=!signingIn;signUp.hidden=signingIn;
-      signInTab?.setAttribute("aria-selected",String(signingIn));
-      signUpTab?.setAttribute("aria-selected",String(!signingIn));
+    // Google OAuth is the sole student registration mechanism.
+    // Preserve existing password sign-in only for administrators during migration.
+    const safeNext = () => {
+      const nextPage=new URLSearchParams(location.search).get("next")||"";
+      return nextPage==="upload.html"||/^study\\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";
     };
-    signInTab?.addEventListener("click",()=>chooseTab("signin"));
-    signUpTab?.addEventListener("click",()=>chooseTab("signup"));
-    signIn?.addEventListener("submit",async e=>{
+    $("#googleSignIn")?.addEventListener("click",async()=>{
+      msg("#authStatus","Opening Google sign-in…");
+      const destination=new URL("account.html",location.origin);
+      destination.searchParams.set("oauth","google");
+      destination.searchParams.set("next",safeNext());
+      const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:destination.toString()}});
+      if(error)msg("#authStatus",error.message,"error");
+    });
+    if(new URLSearchParams(location.search).get("oauth")==="google"){
+      sb.auth.getUser().then(({data:{user},error})=>{
+        if(user&&!error){location.replace(safeNext());}
+        else msg("#authStatus","Google authentication has not completed. Please try Continue with Google.");
+      });
+    }
+    $("#signInForm")?.addEventListener("submit",async e=>{
       e.preventDefault();msg("#authStatus","Signing in…");
       const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
       if(error){msg("#authStatus",error.message,"error");return}
-      const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";
-    });
-    signUp?.addEventListener("submit",async e=>{
-      e.preventDefault();msg("#authStatus","Creating your account…");
-      const {data,error}=await sb.auth.signUp({email:$("#signupEmail").value.trim(),password:$("#signupPassword").value,options:{data:{full_name:$("#signupName").value.trim(),ca_level:$("#signupLevel").value}}});
-      if(error){msg("#authStatus",error.message,"error");return}
-      msg("#authStatus",data.session ? "Account created. Opening your dashboard…" : "Account created. Check your email to confirm, then sign in.");
-      if(data.session){const nextPage=new URLSearchParams(location.search).get("next")||"";location.href=nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";}
+      const {data:{user}}=await sb.auth.getUser();
+      if(!user){msg("#authStatus","Could not verify this account.","error");return}
+      const {data:role,error:roleError}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
+      if(roleError||!role){await sb.auth.signOut();msg("#authStatus","Student password login is disabled. Please use Continue with Google.","error");return}
+      location.href="admin";
     });
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
   }
