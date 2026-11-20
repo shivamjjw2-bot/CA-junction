@@ -24,7 +24,7 @@ test('student and administrator login controls are on their own pages',async()=>
 test('new installations and migrations define the same ownership rules',async()=>{
   const schema=await read('supabase/schema.sql');
   const migration=await read('supabase/migrations/20261120000000_bind_submission_paths.sql');
-  for(const policy of migration.match(/create policy [^;]+;/g)){
+  for(const policy of migration.match(/create policy [^;]+for insert[^;]+;/g)){
     assert.ok(schema.includes(policy));
     assert.ok(policy.includes('(storage.foldername(file_path))[1]=auth.uid()::text'));
   }

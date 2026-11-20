@@ -182,7 +182,7 @@
     // A returning student should not be asked to authenticate again when
     // Supabase already has a valid, persisted session in this browser.
     // The OAuth callback is handled by the same session check.
-    sb.auth.getUser().then(({data:{user},error})=>{
+    if($("#googleSignIn")) sb.auth.getUser().then(({data:{user},error})=>{
       if(user&&!error){
         location.replace(safeNext()==="index.html"?"platform.html":safeNext());
       }else if(new URLSearchParams(location.search).get("oauth")==="google"){
@@ -306,6 +306,7 @@
   }
 
   async function initDashboard() {
+    if(!ready()){msg("#dashboardStatus",backendMessage,"error");return}
     const {data:{user}}=await sb.auth.getUser();
     if(!user){msg("#dashboardStatus","Please sign in to view and edit your profile.","error");location.href="account.html";return}
     initPasswordSettings(user);
@@ -362,7 +363,7 @@
       }catch(error){msg("#profileStatus",error?.message||"Your profile could not be saved. Please try again.","error")}
       finally{if(button)button.disabled=false}
     });
-    $("#signOutButton")?.addEventListener("click",async()=>{await sb.auth.signOut();location.href="account.html"});
+    $("#signOutButton")?.addEventListener("click",async()=>{const {error}=await sb.auth.signOut();if(error){msg("#dashboardStatus","Sign-out failed. Please retry.","error");return}location.replace("account.html")});
   }
 
   function initStudy() {
@@ -1317,6 +1318,12 @@
     function offerLogin(message) {
       msg("#adminStatus",message);
       login.hidden=false;
+      $("#adminGoogleSignIn").addEventListener("click",async()=>{
+        try {
+          const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:new URL("/admin",location.origin).href}});
+          if(error)throw error;
+        } catch { msg("#adminStatus","Google sign-in could not start. Try again.","error"); }
+      });
       $("#signInForm").addEventListener("submit",async event=>{
         event.preventDefault();
         const submit=event.currentTarget.querySelector("button");
@@ -1351,6 +1358,11 @@
         } catch { msg("#adminStatus","Verification failed. Try a fresh code.","error"); }
         finally { submit.disabled=false; }
       });
+      return;
+    }
+    const authorization=await sb.rpc("is_admin");
+    if(authorization.error || authorization.data!==true){
+      offerLogin("Administrator authorization could not be confirmed.");
       return;
     }
     $("#adminLogout").addEventListener("click",async()=>{

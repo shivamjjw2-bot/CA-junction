@@ -4,7 +4,17 @@ function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefine
 function button(text,fn,cls=''){const n=el('button',text,cls);n.type='button';n.onclick=fn;return n}
 function field(label,values,id){const l=el('label',label),s=el('select');s.setAttribute('aria-label',label);if(id)s.id=id;values.forEach(v=>s.add(new Option(typeof v==='string'?v:v[1],typeof v==='string'?v:v[0])));l.append(s);return{label:l,input:s}}
 function fail(error){return error?.message||String(error)}
-async function allPapers(){let rows=[];for(let offset=0;;offset+=500){const{data,error}=await sb.from('materials').select('*').eq('category','icai_link').in('chapter',CHAPTERS).order('id').range(offset,offset+499);if(error)throw error;rows.push(...data);if(data.length<500)return rows}}
+async function allPapers(chapters=CHAPTERS,publishedOnly=false){
+ const rows=[];
+ for(let offset=0;;offset+=500){
+   let query=sb.from('materials').select('*').eq('category','icai_link').in('chapter',chapters);
+   if(publishedOnly)query=query.eq('is_published',true).eq('is_premium',false);
+   const {data,error}=await query.order('id').range(offset,offset+499);
+   if(error)throw error;
+   rows.push(...data);
+   if(data.length<500)return rows;
+ }
+}
 async function user(){const{data,error}=await sb.auth.getUser();if(error||!data.user)throw Error('Please sign in to your account first.');return data.user}
 async function admin(){const u=await user(),{data,error}=await sb.from('user_roles').select('role').eq('user_id',u.id).eq('role','admin').maybeSingle();if(error||!data)throw Error('Admin access is required.');return u}
 async function openPaper(row){try{if(row.external_url){const u=new URL(row.external_url);if(u.protocol!=='https:')throw Error('This link is not secure.');window.open(u.href,'_blank','noopener');return}await user();const{data,error}=await sb.storage.from(row.file_bucket).createSignedUrl(row.file_path,300);if(error)throw error;window.caOpenBrandedPdf?await window.caOpenBrandedPdf(data.signedUrl,'#paperDownloadStatus'):window.open(data.signedUrl,'_blank','noopener')}catch(e){alert(fail(e))}}
@@ -17,7 +27,7 @@ async function initBulk(){const host=$('#bulkUpload');if(!host)return;host.repla
  const rows=el('div'),status=el('p',undefined,'paper-status');status.setAttribute('role','status');const actions=el('div',undefined,'paper-actions'),save=button('Save all selected PDFs',saveAll);actions.append(save);host.append(rows,actions,status,el('p','Upload PDFs or secure links here. Published papers appear under the selected year and exam month. Google Drive links must allow students to view the file.','paper-muted'));let entries=[],busy=false;
  function render(){if(busy)return;rows.replaceChildren();entries=[];for(const subject of(scheme.input.value==='Old'?LEGACY:SUBJECTS)[level.input.value]){const card=el('article',undefined,'paper-card'),pair=el('div',undefined,'paper-pair');card.append(el('h3',subject),pair);for(const kind of['question','solution']){const cell=el('div',undefined,'paper-cell'),lab=el('label',kind==='question'?'Question PDF':'Solution PDF'),file=el('input');file.type='file';file.accept='.pdf,application/pdf';lab.append(file);const urlLabel=el('label','Or a PDF / Google Drive link'),url=el('input');url.type='url';url.placeholder='https://…';urlLabel.append(url);const state=el('p','Not selected');cell.append(lab,urlLabel,state);pair.append(cell);const entry={subject,kind,file,url,state,done:false};for(const input of[file,url])input.oninput=()=>{entry.done=false;state.textContent='Ready to save';state.className=''};entries.push(entry)}rows.append(card)}}
  for(const f of[series.input,level.input,scheme.input,year,attempt.input])f.addEventListener('change',()=>{if(entries.some(e=>e.file.files.length||e.url.value)){if(!confirm('Changing the attempt clears your selected files. Continue?')){f.value=f.dataset.previous;return}}render();f.dataset.previous=f.value});for(const f of[series.input,level.input,scheme.input,year,attempt.input])f.dataset.previous=f.value;render();
- async function saveAll(){if(busy)return;busy=true;host.querySelectorAll('input,select,button').forEach(n=>n.disabled=true);try{const u=await admin();if(!year.checkValidity())throw Error('Choose a valid examination year.');const selected=entries.filter(e=>!e.done&&(e.file.files.length||e.url.value.trim()));if(!selected.length)throw Error('Choose at least one PDF or link.');const existing=await allPapers();const meta={version:1,year:Number(year.value),attempt:attempt.input.value,scheme:scheme.input.value};for(const e of selected){e.fileValue=e.file.files[0];e.link=safeURL(e.url.value.trim());if(e.fileValue&&e.link)throw Error('Choose a file OR a link for '+e.subject+'.');if(e.fileValue){if(!/\.pdf$/i.test(e.fileValue.name)||e.fileValue.size>50*1024*1024)throw Error('Choose a PDF no larger than 50 MB for '+e.subject);const sig=new TextDecoder().decode(await e.fileValue.slice(0,1024).arrayBuffer());if(!sig.includes('%PDF-'))throw Error('The selected file is not a PDF: '+e.fileValue.name)}e.chapter=chapterKey(series.input.value,e.kind);e.id=await stableID([level.input.value,e.subject,e.chapter,meta.scheme,meta.year,meta.attempt].join('|'));e.old=existing.find(r=>{const m=metadata(r);return r.id===e.id||(r.level===level.input.value&&r.subject===e.subject&&r.chapter===e.chapter&&m?.year===meta.year&&m?.attempt===meta.attempt&&m?.scheme===meta.scheme)});if(e.old)e.id=e.old.id}
+ async function saveAll(){if(busy)return;busy=true;host.querySelectorAll('input,select,button').forEach(n=>n.disabled=true);try{const u=await admin();if(!Number.isInteger(Number(year.value)) || Number(year.value)<Number(year.min) || Number(year.value)>Number(year.max))throw Error('Choose a valid examination year.');const selected=entries.filter(e=>!e.done&&(e.file.files.length||e.url.value.trim()));if(!selected.length)throw Error('Choose at least one PDF or link.');const existing=await allPapers();const meta={version:1,year:Number(year.value),attempt:attempt.input.value,scheme:scheme.input.value};for(const e of selected){e.fileValue=e.file.files[0];e.link=safeURL(e.url.value.trim());if(e.fileValue&&e.link)throw Error('Choose a file OR a link for '+e.subject+'.');if(e.fileValue){if(!/\.pdf$/i.test(e.fileValue.name)||e.fileValue.size>50*1024*1024)throw Error('Choose a PDF no larger than 50 MB for '+e.subject);const sig=new TextDecoder().decode(await e.fileValue.slice(0,1024).arrayBuffer());if(!sig.includes('%PDF-'))throw Error('The selected file is not a PDF: '+e.fileValue.name)}e.chapter=chapterKey(series.input.value,e.kind);e.id=await stableID([level.input.value,e.subject,e.chapter,meta.scheme,meta.year,meta.attempt].join('|'));e.old=existing.find(r=>{const m=metadata(r);return r.id===e.id||(r.level===level.input.value&&r.subject===e.subject&&r.chapter===e.chapter&&m?.year===meta.year&&m?.attempt===meta.attempt&&m?.scheme===meta.scheme)});if(e.old)e.id=e.old.id}
  if(selected.some(e=>e.old)&&!confirm('Replace '+selected.filter(e=>e.old).length+' existing paper(s)? Their old trend analysis will be cleared.'))return;
  let successes=0;
  for(const e of selected){let path=null;try{e.state.textContent='Uploading…';if(e.fileValue){path='admin/exam-papers/'+e.chapter+'/'+crypto.randomUUID()+'.pdf';const{error}=await sb.storage.from('ca-materials').upload(path,e.fileValue,{contentType:'application/pdf'});if(error)throw error}const record={id:e.id,title:`${level.input.value} · ${e.subject} · ${meta.attempt} ${meta.year} · ${e.kind==='question'?'Question paper':'Solutions'}`,description:encode(meta),level:level.input.value,subject:e.subject,chapter:e.chapter,category:'icai_link',file_bucket:path?'ca-materials':null,file_path:path,external_url:e.link,is_premium:false,is_published:true,created_by:u.id};
@@ -51,7 +61,7 @@ async function initYearLibrary(host){
  const series=['mtp','rtp','mock_test'].includes(document.body.dataset.paperSeries)?document.body.dataset.paperSeries:'previous_year';
  host.append(el('p','Loading papers…'));
  try{
- const collection=(await allPapers()).filter(r=>r.is_published&&!r.is_premium&&[chapterKey(series,'question'),chapterKey(series,'solution')].includes(r.chapter));
+ const collection=(await allPapers([chapterKey(series,'question'),chapterKey(series,'solution')],true)).filter(r=>r.is_published&&!r.is_premium&&[chapterKey(series,'question'),chapterKey(series,'solution')].includes(r.chapter));
  host.replaceChildren();
  const params=new URLSearchParams(location.search);
  const level=params.get('level');
@@ -77,7 +87,27 @@ async function initYearLibrary(host){
  const monthBack=el('a','← '+tabLabel(selected)+' months','paper-btn');monthBack.href=location.pathname+'?'+new URLSearchParams({level,year:selected});host.append(monthBack);
  const title=tabLabel(month)+' '+tabLabel(selected)+' papers & solutions';host.append(el('h2',title));const filtered=yearRows.filter(r=>paperMonth(r)===month);host.append(el('p',filtered.length+' PDFs available','paper-counter'));const status=el('p');status.id='paperDownloadStatus';status.setAttribute('role','status');host.append(status);if(!filtered.length){host.append(el('p','No papers for this attempt yet. Keep practising—your preparation counts.','paper-card'));return}
  const groups=new Map();for(const row of filtered){const m=metadata(row);const key=m?[row.level,row.subject,m.scheme,m.attempt].join('|'):row.id;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row)}
- const cards=el('div',undefined,'paper-year-results');for(const group of [...groups.values()].sort((a,b)=>Object.keys(SUBJECTS).indexOf(a[0].level)-Object.keys(SUBJECTS).indexOf(b[0].level)||a[0].subject.localeCompare(b[0].subject))){const row=group[0],m=metadata(row),card=el('article',undefined,'paper-card');card.append(el('h3',row.subject||row.title),el('p',[row.level,m?.attempt,m?.scheme?m.scheme+' syllabus':null].filter(Boolean).join(' · '),'paper-muted'));const pair=el('div',undefined,'paper-pair');for(const kind of ['question','solution']){const cell=el('div',undefined,'paper-cell');cell.append(el('strong',kind==='question'?'Question paper':'Solutions'));const matches=group.filter(r=>r.chapter===chapterKey(series,kind));if(!matches.length)cell.append(el('span','Not available','paper-muted'));for(const r of matches){const actions=el('div',undefined,'paper-actions');actions.append(button('Open PDF',()=>openPaper(r)));cell.append(actions)}pair.append(cell)}card.append(pair);cards.append(card)}host.append(cards);
+ const wrapper=el('div',undefined,'paper-table-wrap'),table=el('table');
+ table.className='paper-table';
+ const heading=table.createTHead().insertRow();
+ for(const label of ['Subject','Question paper','Solution']){
+   const th=el('th',label);th.scope='col';heading.append(th);
+ }
+ const body=table.createTBody();
+ for(const group of [...groups.values()].sort((a,b)=>(a[0].subject||'').localeCompare(b[0].subject||''))){
+   const row=group[0],tr=body.insertRow(),subject=el('th',row.subject||row.title);
+   subject.scope='row';
+   const scheme=metadata(row)?.scheme;
+   if(scheme)subject.append(el('small',scheme+' syllabus','paper-muted'));
+   tr.append(subject);
+   for(const kind of ['question','solution']){
+     const cell=tr.insertCell();
+     const matches=group.filter(r=>r.chapter===chapterKey(series,kind));
+     if(!matches.length)cell.textContent='Not available';
+     for(const record of matches)cell.append(button('Open PDF',()=>openPaper(record)));
+   }
+ }
+ wrapper.append(table);host.append(wrapper);
  }catch(e){host.replaceChildren(el('p','Could not load papers: '+fail(e),'paper-notice'))}
 }
 

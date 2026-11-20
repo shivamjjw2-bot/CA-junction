@@ -464,7 +464,7 @@ create policy "admin manages materials" on public.materials for all to authentic
 drop policy if exists "student reads own submissions" on public.student_note_submissions;
 create policy "student reads own submissions" on public.student_note_submissions for select to authenticated using (user_id=auth.uid() or public.is_admin());
 drop policy if exists "student submits own notes" on public.student_note_submissions;
-create policy "student submits own notes" on public.student_note_submissions for insert to authenticated with check (user_id=auth.uid() and status='pending' and (storage.foldername(file_path))[1]=auth.uid()::text);
+create policy "student submits own notes" on public.student_note_submissions for insert to authenticated with check (user_id=auth.uid() and status='pending' and reviewed_by is null and reviewed_at is null and admin_note='' and (storage.foldername(file_path))[1]=auth.uid()::text);
 drop policy if exists "admin reviews note submissions" on public.student_note_submissions;
 create policy "admin reviews note submissions" on public.student_note_submissions for update to authenticated using (public.is_admin()) with check (public.is_admin());
 
@@ -499,7 +499,23 @@ create policy "admin manages jobs" on public.jobs for all to authenticated using
 drop policy if exists "own service requests" on public.service_requests;
 create policy "own service requests" on public.service_requests for select to authenticated using (user_id=auth.uid() or public.is_admin());
 drop policy if exists "create service requests" on public.service_requests;
-create policy "create service requests" on public.service_requests for insert to authenticated with check (user_id=auth.uid());
+create policy "create service requests" on public.service_requests for insert to authenticated with check (user_id=auth.uid() and status='new' and admin_note='' and length(trim(message)) between 1 and 2000);
+create index if not exists service_requests_owner_time on public.service_requests(user_id,created_at desc);
+create or replace function public.validate_enquiry_interval()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  new.created_at := statement_timestamp();
+  perform pg_advisory_xact_lock(hashtextextended(new.user_id::text, 0));
+  if exists (select 1 from public.service_requests where user_id=new.user_id
+    and created_at > new.created_at - interval '15 seconds') then
+    raise exception 'Please wait 15 seconds before sending another enquiry.';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists check_enquiry_interval on public.service_requests;
+create trigger check_enquiry_interval before insert on public.service_requests
+for each row execute function public.validate_enquiry_interval();
 drop policy if exists "admin manages requests" on public.service_requests;
 create policy "admin manages requests" on public.service_requests for update to authenticated using (public.is_admin()) with check (public.is_admin());
 
@@ -573,7 +589,7 @@ create policy "student or admin reads note uploads" on storage.objects for selec
     or public.is_admin()
     or exists(
       select 1 from public.materials m
-      where m.file_bucket='student-notes' and m.file_path=name
+      where m.file_bucket='student-notes' and m.file_path=name and m.submitted_by::text=(storage.foldername(name))[1]
         and m.category='student_note' and m.is_published
     )
   )
