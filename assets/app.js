@@ -176,8 +176,14 @@
     // Google OAuth is the sole student registration mechanism.
     // Preserve existing password sign-in only for administrators during migration.
     const safeNext = () => {
-      const nextPage=new URLSearchParams(location.search).get("next")||"";
-      return nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";
+      const raw=new URLSearchParams(location.search).get("next");
+      if(!raw)return "index.html";
+      try {
+        const target=new URL(raw,location.origin);
+        const allowed=/^\/(?:upload|study|student-contributions|previous-papers|mtp|rtp|test-series-papers)(?:\.html)?$/;
+        if(target.origin===location.origin && allowed.test(target.pathname))return target.pathname+target.search+target.hash;
+      } catch {}
+      return "index.html";
     };
     // A returning student should not be asked to authenticate again when
     // Supabase already has a valid, persisted session in this browser.
@@ -381,7 +387,7 @@
     const studentGrid=$("#studentNotesGrid");
     const adminGrid=$("#adminResourcesGrid");
     const revisionLevelApps=$("#revisionLevelApps"),revisionResources=$("#revisionResources");
-    const revisionLevelFilter=$("#revisionLevelFilter"),revisionSubjectFilter=$("#revisionSubjectFilter"),revisionChapterFilter=$("#revisionChapterFilter"),revisionCount=$("#revisionResourceCount"),revisionIcaiLink=$("#revisionIcaiLink"),revisionLevelTabs=$("[data-revision-level]");
+    const revisionLevelFilter=$("#revisionLevelFilter"),revisionSubjectFilter=$("#revisionSubjectFilter"),revisionChapterFilter=$("#revisionChapterFilter"),revisionCount=$("#revisionResourceCount"),revisionIcaiLink=$("#revisionIcaiLink"),revisionLevelTabs=$$("[data-revision-level]");
     const requestedLevel=new URLSearchParams(location.search).get("level")||"";
     const savedLevel=revisionLevelApps?requestedLevel:(requestedLevel||localStorage.getItem("caJunctionLevel")||"");
     if(levelFilter&&["Foundation","Intermediate","Final"].includes(savedLevel))levelFilter.value=savedLevel;
@@ -1016,7 +1022,7 @@
     initAiMcqPractice();
   }
 
-  function initPlanner(){
+  async function initPlanner(){
     const date=$("#examDate"),daysDisplay=$("#countdownDays"),countdownPanel=$("#countdownPanel"),countdownMinimize=$("#countdownMinimize");
     if(date){if(!date.value)date.value=localStorage.getItem("caJunctionExamDate")||"";date.addEventListener("change",()=>{localStorage.setItem("caJunctionExamDate",date.value);renderCountdown();window.dispatchEvent(new Event("ca:timer-update"))})}
     const renderCountdown=()=>{
@@ -1070,7 +1076,12 @@
       if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
       let availableSubjects=[],loadingSubjects=false,subjectsMessage="";
       let savedPlan=null;
-      try{savedPlan=JSON.parse(localStorage.getItem("caJunctionCustomPlan")||"null")}catch{}
+      if(ready()){
+        try {
+          const {data:{session}}=await sb.auth.getSession();
+          if(session?.user?.id)savedPlan=JSON.parse(localStorage.getItem("caJunctionCustomPlan:"+session.user.id)||"null");
+        } catch {}
+      }
       const selectedSubjects=()=>[...choices.querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value);
       const updateSelection=()=>{
         const selected=selectedSubjects(),target=Number(countInput.value)||0;
@@ -1155,7 +1166,7 @@
           const result=await response.json().catch(()=>({}));
           if(!response.ok)throw new Error(result.error||"Could not create your plan. Please try again.");
           const plan={level:level.value,subjects,subject_count:subjectCount,days,daily_hours:Number($("#plannerDailyHours").value),study_stage:$("#plannerStudyStage").value,schedule:result.schedule,workload:result.workload};
-          localStorage.setItem("caJunctionCustomPlan",JSON.stringify(plan));renderSchedule(plan.schedule,plan.workload);
+          localStorage.setItem("caJunctionCustomPlan:"+session.user.id,JSON.stringify(plan));renderSchedule(plan.schedule,plan.workload);
           msg("#plannerBuilderStatus","Your "+days+"-day AI plan for "+subjectCount+" subjects is ready and saved in this browser.");results.scrollIntoView({behavior:"smooth",block:"nearest"});
         }catch(error){msg("#plannerBuilderStatus",error?.message||"Could not create your plan. Please try again.","error")}
         finally{createButton.textContent="Create my AI plan";updateSelection()}
@@ -1911,6 +1922,14 @@
   function run() {
     initCommon();
     const page=document.body.dataset.page;
+    if(ready() && ["admin","dashboard","planner","account"].includes(page)){
+      let previous;
+      sb.auth.onAuthStateChange((_event,session)=>{
+        const current=session?.user?.id || null;
+        if(previous!==undefined && previous!==current)location.reload();
+        previous=current;
+      });
+    }
     if(page==="home")initHome();
     if(page==="icai-material")initIcaiMaterial();
     if(page==="account")initAccount();

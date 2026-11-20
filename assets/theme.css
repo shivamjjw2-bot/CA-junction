@@ -80,3 +80,5 @@ button,.btn,.paper-btn{font-weight:650}
 html[data-theme="light"] :is(.btn,.generate-button,.login,.level-tab.active,.admin-nav-button.active){background:#365e38;color:#fff}
 html[data-theme="light"] .btn.secondary{background:#e0e8d8;color:#29462d}
 select option{background:var(--bg,#101423);color:var(--text,#f4f4fb)}
+
+header .site-back-link{display:inline-flex;align-items:center;min-height:44px;margin-inline-start:8px;font-weight:650}

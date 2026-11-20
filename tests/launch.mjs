@@ -31,3 +31,16 @@ test('new installations and migrations define the same ownership rules',async()=
   const assurance=(await read('supabase/migrations/20261120000100_role_assurance.sql')).trim();
   assert.ok(schema.includes(assurance));
 });
+
+test('private entry points exclude indexing and share no sitemap entries',async()=>{
+  const sitemap=await read('sitemap.xml');
+  for(const page of ['admin','account','platform','tracker','upload']){
+    assert.match(await read(page+'.html'),/name="robots" content="noindex,nofollow"/);
+    assert.ok(!sitemap.includes('https://cajunction.in/'+page+'<'));
+  }
+});
+test('the browser upload limit matches the private materials bucket',async()=>{
+  const schema=await read('supabase/schema.sql'), uploader=await read('assets/papers.js');
+  assert.match(schema,/[(]'ca-materials','ca-materials',false,52428800/);
+  assert.ok(uploader.includes('fileValue.size>50*1024*1024'));
+});
