@@ -202,7 +202,7 @@
       const destination=new URL("account.html",location.origin);
       destination.searchParams.set("oauth","google");
       destination.searchParams.set("next",safeNext());
-      const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:destination.toString()}});
+      const {error}=await window.caStartGoogleLogin(destination);
       if(error)msg("#authStatus",error.message,"error");
     });
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
@@ -1331,7 +1331,7 @@
       login.hidden=false;
       $("#adminGoogleSignIn").addEventListener("click",async()=>{
         try {
-          const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:new URL("/admin",location.origin).href}});
+          const {error}=await window.caStartGoogleLogin(new URL("/admin",location.origin));
           if(error)throw error;
         } catch { msg("#adminStatus","Google sign-in could not start. Try again.","error"); }
       });
@@ -1375,6 +1375,41 @@
     if(authorization.error || authorization.data!==true){
       offerLogin("Administrator authorization could not be confirmed.");
       return;
+    }
+    const enrollment=$("#adminEnrollment");
+    if(assurance.data.nextLevel==="aal1"){
+      enrollment.hidden=false;
+      const start=$("#startEnrollment"),form=$("#enrollmentForm"),qr=$("#enrollmentQr"),code=$("#enrollmentCode");
+      let factorId=null;
+      start.onclick=async()=>{
+        start.disabled=true;
+        try{
+          const {data,error}=await sb.auth.mfa.enroll({factorType:"totp",issuer:"CA Junction"});
+          if(error)throw error;
+          factorId=data.id;
+          qr.src=data.totp.qr_code;
+          form.hidden=false;start.hidden=true;code.focus();
+        }catch{msg("#enrollmentStatus","Could not start setup. Try again.","error")}
+        finally{start.disabled=false}
+      };
+      form.onsubmit=async event=>{
+        event.preventDefault();if(!factorId)return;
+        const submit=form.querySelector('[type="submit"]'),cancel=$("#cancelEnrollment");
+        submit.disabled=cancel.disabled=true;
+        try{
+          const {error}=await sb.auth.mfa.challengeAndVerify({factorId,code:code.value});
+          if(error)throw error;
+          qr.removeAttribute("src");code.value="";location.reload();
+        }catch{msg("#enrollmentStatus","Verification failed. Enter a fresh code.","error")}
+        finally{submit.disabled=cancel.disabled=false}
+      };
+      $("#cancelEnrollment").onclick=async()=>{
+        if(!factorId)return;
+        const {error}=await sb.auth.mfa.unenroll({factorId});
+        if(error){msg("#enrollmentStatus","Could not cancel setup. Retry.","error");return}
+        factorId=null;qr.removeAttribute("src");code.value="";form.hidden=true;start.hidden=false;
+        msg("#enrollmentStatus","Setup cancelled.");
+      };
     }
     $("#adminLogout").addEventListener("click",async()=>{
       const {error}=await sb.auth.signOut();
