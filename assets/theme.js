@@ -15,7 +15,7 @@
    link.textContent="Skip to main content";
    document.body.prepend(link);
  }
- function mount(){addSkipLink();const button=document.createElement("button");button.id="themeToggle";button.className="theme-toggle";button.type="button";button.addEventListener("click",()=>{const next=document.documentElement.dataset.theme==="light"?"dark":"light";try{localStorage.setItem(key,next)}catch{}apply(next)});const nav=document.querySelector("header .nav");if(nav){nav.classList.add("theme-nav");const menu=nav.querySelector(".menu");nav.insertBefore(button,menu||null);}else{document.body.append(button);}apply(saved());}
+ function mount(){addSkipLink();const button=document.createElement("button");button.id="themeToggle";button.className="theme-toggle";button.type="button";button.addEventListener("click",()=>{const next=document.documentElement.dataset.theme==="light"?"dark":"light";try{localStorage.setItem(key,next)}catch{}apply(next)});const nav=document.querySelector("header .nav");if(nav){nav.classList.add("theme-nav");const menu=nav.querySelector(".menu");nav.insertBefore(button,menu||null);}else{(document.querySelector('footer') || document.body).append(button);}apply(saved());}
 
  function bindBackLinks(){
    for(const link of document.querySelectorAll('header a[href]')){

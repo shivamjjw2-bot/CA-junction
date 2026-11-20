@@ -85,3 +85,5 @@ header .site-back-link{display:inline-flex;align-items:center;min-height:44px;ma
 
 .skip-to-content{position:fixed;top:8px;left:8px;z-index:9999;padding:12px 18px;background:#111827;color:#fff;border:2px solid #fff;border-radius:8px;transform:translateY(-160%)}
 .skip-to-content:focus{transform:none;outline:3px solid #7c3aed}
+
+.inner-navigation{display:flex;align-items:center;padding-block:.4rem}.inner-navigation .site-back-link{display:inline-flex;gap:.45rem;align-items:center;min-height:44px;padding-inline:.75rem;font-weight:700}.inner-navigation .site-back-link:focus-visible{outline:2px solid currentColor;outline-offset:2px}footer .theme-toggle{position:static;vertical-align:middle}
