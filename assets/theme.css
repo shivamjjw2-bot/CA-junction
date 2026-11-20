@@ -87,3 +87,7 @@ header .site-back-link{display:inline-flex;align-items:center;min-height:44px;ma
 .skip-to-content:focus{transform:none;outline:3px solid #7c3aed}
 
 .inner-navigation{display:flex;align-items:center;padding-block:.4rem}.inner-navigation .site-back-link{display:inline-flex;gap:.45rem;align-items:center;min-height:44px;padding-inline:.75rem;font-weight:700}.inner-navigation .site-back-link:focus-visible{outline:2px solid currentColor;outline-offset:2px}footer .theme-toggle{position:static;vertical-align:middle}
+
+html[data-theme="dark"] #themeToggle {background:#24344b;color:#fff;border-color:#8298b5}
+html[data-theme="light"] #themeToggle {background:#edf4ea;color:#203c2b;border-color:#627966}
+#themeToggle {font-weight:750;text-shadow:none;-webkit-text-fill-color:currentColor;opacity:1}

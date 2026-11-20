@@ -1,0 +1,15 @@
+
+html[data-theme="dark"] {color-scheme:dark;--bg:#101824;--panel:#192636;--ink:#f0f4fb;--text:#f0f4fb;--muted:#bac8d9;--green:#84e8b9;--green-soft:#1c4237;--red:#ffb0aa;--line:#44556b}
+html[data-theme="dark"] body {background:var(--bg);color:var(--ink)}
+html[data-theme="dark"] :is(header,.admin-overview,.metric-card,.job-glass,.data-row,.view-level-tab) {background:var(--panel);color:var(--ink)}
+html[data-theme="dark"] :is(label,.metric-label,.metric-foot,.muted,.paper-muted,footer) {color:var(--muted);opacity:1}
+html[data-theme="dark"] a {color:#a3e9d0}
+html[data-theme="dark"] :is(input,textarea,select,option) {background:#101c2c;color:#f0f4fb;border-color:#667b93}
+html[data-theme="dark"] ::placeholder {color:#b5c3d4;opacity:1}
+html[data-theme="dark"] :is(.btn,.paper-btn,.paper-actions button,.view-level-tab.active,.admin-nav-button.active) {background:#17533e;color:#fff;border-color:#649f89}
+html[data-theme="dark"] :is(.btn.danger,.paper-actions .danger) {background:#712f37;color:#fff}
+html[data-theme="dark"] :is(.paper-cell .ok,.status[data-state="success"]) {color:#8feaba}
+html[data-theme="dark"] :is(.paper-cell .error,.status[data-state="error"]) {color:#ffb0aa}
+html[data-theme="light"] :is(.metric-label,.metric-foot,.muted,.paper-muted,footer) {color:#495848;opacity:1}
+html[data-theme="light"] :is(.paper-cell .ok,.status[data-state="success"]) {color:#185c3c}
+html[data-theme="light"] :is(.paper-cell .error,.status[data-state="error"]) {color:#942e31}
