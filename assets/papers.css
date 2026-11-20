@@ -9,3 +9,10 @@
 
 .paper-year-tab strong{overflow-wrap:anywhere}.paper-year-tab{font:inherit;cursor:pointer}#paperLibrary>.paper-btn{margin:0 8px 12px 0}#paperManager h3{margin:14px 0 8px}
 @media(max-width:600px){.paper-year-tab strong{font-size:13px}}
+
+.paper-table-wrap{max-width:100%;overflow-x:auto}
+.paper-table{width:100%;border-collapse:collapse;text-align:left}
+.paper-table th,.paper-table td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.paper-table small{display:block;font-weight:400}
+.paper-table button{min-height:44px;padding:6px 12px;cursor:pointer;color:#fff;background:#365e38;border:1px solid #829b86;border-radius:8px}
+@media(max-width:600px){.paper-table th,.paper-table td{padding:8px 4px;overflow-wrap:anywhere}}

@@ -9,6 +9,12 @@
     return false;
   };
   const backendMessage = "Backend setup is not connected yet. Supabase project settings are required before accounts and saved content can work.";
+  function safeResourceUrl(value) {
+    try {
+      const url=new URL(value);
+      return url.protocol==="https:" && !url.username && !url.password ? url.href : "";
+    } catch { return ""; }
+  }
   const safeText = value => String(value || "");
   const addRow = (list, title, detail = "") => {
     if (!list) return;
@@ -170,13 +176,19 @@
     // Google OAuth is the sole student registration mechanism.
     // Preserve existing password sign-in only for administrators during migration.
     const safeNext = () => {
-      const nextPage=new URLSearchParams(location.search).get("next")||"";
-      return nextPage==="upload.html"||/^study\.html(?:[?#]|$)/.test(nextPage)?nextPage:"index.html";
+      const raw=new URLSearchParams(location.search).get("next");
+      if(!raw)return "index.html";
+      try {
+        const target=new URL(raw,location.origin);
+        const allowed=/^\/(?:upload|study|student-contributions|previous-papers|mtp|rtp|test-series-papers)(?:\.html)?$/;
+        if(target.origin===location.origin && allowed.test(target.pathname))return target.pathname+target.search+target.hash;
+      } catch {}
+      return "index.html";
     };
     // A returning student should not be asked to authenticate again when
     // Supabase already has a valid, persisted session in this browser.
     // The OAuth callback is handled by the same session check.
-    sb.auth.getUser().then(({data:{user},error})=>{
+    if($("#googleSignIn")) sb.auth.getUser().then(({data:{user},error})=>{
       if(user&&!error){
         location.replace(safeNext()==="index.html"?"platform.html":safeNext());
       }else if(new URLSearchParams(location.search).get("oauth")==="google"){
@@ -190,18 +202,8 @@
       const destination=new URL("account.html",location.origin);
       destination.searchParams.set("oauth","google");
       destination.searchParams.set("next",safeNext());
-      const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:destination.toString()}});
+      const {error}=await window.caStartGoogleLogin(destination);
       if(error)msg("#authStatus",error.message,"error");
-    });
-    $("#signInForm")?.addEventListener("submit",async e=>{
-      e.preventDefault();msg("#authStatus","Signing in…");
-      const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
-      if(error){msg("#authStatus",error.message,"error");return}
-      const {data:{user}}=await sb.auth.getUser();
-      if(!user){msg("#authStatus","Could not verify this account.","error");return}
-      const {data:role,error:roleError}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
-      if(roleError||!role){await sb.auth.signOut();msg("#authStatus","Student password login is disabled. Please use Continue with Google.","error");return}
-      location.href="admin";
     });
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
   }
@@ -310,6 +312,7 @@
   }
 
   async function initDashboard() {
+    if(!ready()){msg("#dashboardStatus",backendMessage,"error");return}
     const {data:{user}}=await sb.auth.getUser();
     if(!user){msg("#dashboardStatus","Please sign in to view and edit your profile.","error");location.href="account.html";return}
     initPasswordSettings(user);
@@ -366,7 +369,7 @@
       }catch(error){msg("#profileStatus",error?.message||"Your profile could not be saved. Please try again.","error")}
       finally{if(button)button.disabled=false}
     });
-    $("#signOutButton")?.addEventListener("click",async()=>{await sb.auth.signOut();location.href="account.html"});
+    $("#signOutButton")?.addEventListener("click",async()=>{const {error}=await sb.auth.signOut();if(error){msg("#dashboardStatus","Sign-out failed. Please retry.","error");return}location.replace("account.html")});
   }
 
   function initStudy() {
@@ -384,7 +387,7 @@
     const studentGrid=$("#studentNotesGrid");
     const adminGrid=$("#adminResourcesGrid");
     const revisionLevelApps=$("#revisionLevelApps"),revisionResources=$("#revisionResources");
-    const revisionLevelFilter=$("#revisionLevelFilter"),revisionSubjectFilter=$("#revisionSubjectFilter"),revisionChapterFilter=$("#revisionChapterFilter"),revisionCount=$("#revisionResourceCount"),revisionIcaiLink=$("#revisionIcaiLink"),revisionLevelTabs=$("[data-revision-level]");
+    const revisionLevelFilter=$("#revisionLevelFilter"),revisionSubjectFilter=$("#revisionSubjectFilter"),revisionChapterFilter=$("#revisionChapterFilter"),revisionCount=$("#revisionResourceCount"),revisionIcaiLink=$("#revisionIcaiLink"),revisionLevelTabs=$$("[data-revision-level]");
     const requestedLevel=new URLSearchParams(location.search).get("level")||"";
     const savedLevel=revisionLevelApps?requestedLevel:(requestedLevel||localStorage.getItem("caJunctionLevel")||"");
     if(levelFilter&&["Foundation","Intermediate","Final"].includes(savedLevel))levelFilter.value=savedLevel;
@@ -426,7 +429,7 @@
         const meta=document.createElement("small");meta.textContent=row.category==="student_note"?[row.level,row.subject&&("Subject: "+row.subject),row.chapter&&("Chapter: "+row.chapter)].filter(Boolean).join(" · "):((revisionLevelApps||revisionLevelFilter)&&grid===adminGrid?[row.level,row.subject,row.chapter].filter(Boolean):[row.level,row.subject].filter(Boolean)).join(" · ");if(meta.textContent)card.append(meta);
         const action=document.createElement("button");action.className="link";action.type="button";
         if(row.file_bucket&&row.file_path){action.textContent="Open PDF ↗";action.addEventListener("click",()=>downloadMaterial(row,statusId))}
-        else if(row.external_url){action.textContent="Open resource ↗";action.addEventListener("click",()=>window.open(row.external_url,"_blank","noopener"))}
+        else if(safeResourceUrl(row.external_url)){action.textContent="Open resource ↗";action.addEventListener("click",()=>window.open(row.external_url,"_blank","noopener"))}
         card.append(action);
         if(row.category==="student_note"&&currentUserId&&row.submitted_by===currentUserId&&row.student_submission_id){
           const remove=document.createElement("button");remove.type="button";remove.className="link remove-note";remove.textContent="Remove my PDF";
@@ -1019,7 +1022,7 @@
     initAiMcqPractice();
   }
 
-  function initPlanner(){
+  async function initPlanner(){
     const date=$("#examDate"),daysDisplay=$("#countdownDays"),countdownPanel=$("#countdownPanel"),countdownMinimize=$("#countdownMinimize");
     if(date){if(!date.value)date.value=localStorage.getItem("caJunctionExamDate")||"";date.addEventListener("change",()=>{localStorage.setItem("caJunctionExamDate",date.value);renderCountdown();window.dispatchEvent(new Event("ca:timer-update"))})}
     const renderCountdown=()=>{
@@ -1073,7 +1076,12 @@
       if(["Foundation","Intermediate","Final"].includes(preferred))level.value=preferred;
       let availableSubjects=[],loadingSubjects=false,subjectsMessage="";
       let savedPlan=null;
-      try{savedPlan=JSON.parse(localStorage.getItem("caJunctionCustomPlan")||"null")}catch{}
+      if(ready()){
+        try {
+          const {data:{session}}=await sb.auth.getSession();
+          if(session?.user?.id)savedPlan=JSON.parse(localStorage.getItem("caJunctionCustomPlan:"+session.user.id)||"null");
+        } catch {}
+      }
       const selectedSubjects=()=>[...choices.querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value);
       const updateSelection=()=>{
         const selected=selectedSubjects(),target=Number(countInput.value)||0;
@@ -1158,7 +1166,7 @@
           const result=await response.json().catch(()=>({}));
           if(!response.ok)throw new Error(result.error||"Could not create your plan. Please try again.");
           const plan={level:level.value,subjects,subject_count:subjectCount,days,daily_hours:Number($("#plannerDailyHours").value),study_stage:$("#plannerStudyStage").value,schedule:result.schedule,workload:result.workload};
-          localStorage.setItem("caJunctionCustomPlan",JSON.stringify(plan));renderSchedule(plan.schedule,plan.workload);
+          localStorage.setItem("caJunctionCustomPlan:"+session.user.id,JSON.stringify(plan));renderSchedule(plan.schedule,plan.workload);
           msg("#plannerBuilderStatus","Your "+days+"-day AI plan for "+subjectCount+" subjects is ready and saved in this browser.");results.scrollIntoView({behavior:"smooth",block:"nearest"});
         }catch(error){msg("#plannerBuilderStatus",error?.message||"Could not create your plan. Please try again.","error")}
         finally{createButton.textContent="Create my AI plan";updateSelection()}
@@ -1317,9 +1325,96 @@
   async function initAdmin(){
     if(!ready()){msg("#adminStatus",backendMessage,"error");$("#adminSetup").hidden=false;$("#adminSetup").textContent="To activate this panel: connect Supabase, run supabase/schema.sql, create your account, then add your own account as admin in Supabase SQL Editor. Never use a shared/default password.";return}
     const {data:{user}}=await sb.auth.getUser();
-    if(!user){msg("#adminStatus","Sign in with your admin account via the student login first.");$("#adminSetup").hidden=false;$("#adminSetup").textContent="No admin session. Sign in at account.html, then return here.";return}
-    const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
-    if(!role){msg("#adminStatus","This account does not have the admin role.","error");$("#adminSetup").hidden=false;$("#adminSetup").textContent="Only the account you manually promote in Supabase can use this panel.";return}
+    const login = $("#adminLogin");
+    function offerLogin(message) {
+      msg("#adminStatus",message);
+      login.hidden=false;
+      $("#adminGoogleSignIn").addEventListener("click",async()=>{
+        try {
+          const {error}=await window.caStartGoogleLogin(new URL("/admin",location.origin));
+          if(error)throw error;
+        } catch { msg("#adminStatus","Google sign-in could not start. Try again.","error"); }
+      });
+      $("#signInForm").addEventListener("submit",async event=>{
+        event.preventDefault();
+        const submit=event.currentTarget.querySelector("button");
+        submit.disabled=true;
+        try {
+          const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
+          $("#loginPassword").value="";
+          if(error) throw error;
+          location.reload();
+        } catch { msg("#adminStatus","Sign-in failed. Check your credentials and try again.","error"); }
+        finally { submit.disabled=false; }
+      });
+    }
+    if(!user){offerLogin("Sign in with your administrator account.");return}
+    const {data:role,error:roleError}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
+    if(roleError||!role){offerLogin("Admin access could not be verified. Sign in with an authorized account.");return}
+    const assurance=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(assurance.error){msg("#adminStatus","Could not verify your session. Reload to retry.","error");return}
+    if(assurance.data.nextLevel==="aal2" && assurance.data.currentLevel!=="aal2"){
+      const factors=await sb.auth.mfa.listFactors();
+      const factor=factors.data?.totp?.[0];
+      if(!factor){msg("#adminStatus","Authenticator unavailable. Contact the site owner for account recovery.","error");return}
+      msg("#adminStatus","Enter the code from your authenticator.");
+      const form=$("#adminMfa");form.hidden=false;
+      form.addEventListener("submit",async event=>{
+        event.preventDefault();
+        const submit=form.querySelector("button");submit.disabled=true;
+        try {
+          const {error}=await sb.auth.mfa.challengeAndVerify({factorId:factor.id,code:$("#adminCode").value});
+          if(error) throw error;
+          location.reload();
+        } catch { msg("#adminStatus","Verification failed. Try a fresh code.","error"); }
+        finally { submit.disabled=false; }
+      });
+      return;
+    }
+    const authorization=await sb.rpc("is_admin");
+    if(authorization.error || authorization.data!==true){
+      offerLogin("Administrator authorization could not be confirmed.");
+      return;
+    }
+    const enrollment=$("#adminEnrollment");
+    if(assurance.data.nextLevel==="aal1"){
+      enrollment.hidden=false;
+      const start=$("#startEnrollment"),form=$("#enrollmentForm"),qr=$("#enrollmentQr"),code=$("#enrollmentCode");
+      let factorId=null;
+      start.onclick=async()=>{
+        start.disabled=true;
+        try{
+          const {data,error}=await sb.auth.mfa.enroll({factorType:"totp",issuer:"CA Junction"});
+          if(error)throw error;
+          factorId=data.id;
+          qr.src=data.totp.qr_code;
+          form.hidden=false;start.hidden=true;code.focus();
+        }catch{msg("#enrollmentStatus","Could not start setup. Try again.","error")}
+        finally{start.disabled=false}
+      };
+      form.onsubmit=async event=>{
+        event.preventDefault();if(!factorId)return;
+        const submit=form.querySelector('[type="submit"]'),cancel=$("#cancelEnrollment");
+        submit.disabled=cancel.disabled=true;
+        try{
+          const {error}=await sb.auth.mfa.challengeAndVerify({factorId,code:code.value});
+          if(error)throw error;
+          qr.removeAttribute("src");code.value="";location.reload();
+        }catch{msg("#enrollmentStatus","Verification failed. Enter a fresh code.","error")}
+        finally{submit.disabled=cancel.disabled=false}
+      };
+      $("#cancelEnrollment").onclick=async()=>{
+        if(!factorId)return;
+        const {error}=await sb.auth.mfa.unenroll({factorId});
+        if(error){msg("#enrollmentStatus","Could not cancel setup. Retry.","error");return}
+        factorId=null;qr.removeAttribute("src");code.value="";form.hidden=true;start.hidden=false;
+        msg("#enrollmentStatus","Setup cancelled.");
+      };
+    }
+    $("#adminLogout").addEventListener("click",async()=>{
+      const {error}=await sb.auth.signOut();
+      if(error)msg("#adminStatus","Could not sign out. Retry.","error");else location.reload();
+    });
     initPasswordSettings(user);$("#adminProfileIdentity").textContent=[user.user_metadata?.full_name,user.email].filter(Boolean).join(" · ");
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
     const adminViewButtons=[...document.querySelectorAll("#adminPanel [data-admin-nav]")];
@@ -1650,7 +1745,7 @@
       if(!rows.length){emptyRow(list,"No mind maps match these filters.");return}
       rows.forEach(row=>{
         const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+(row.subject||"No subject")+" · "+(row.is_premium?"Premium":"Free")+" · "+(row.is_published?"Published":"Draft");info.append(h,p);
-        if(row.external_url){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
+        if(safeResourceUrl(row.external_url)){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
         const actions=document.createElement("div");actions.className="row-actions";
         const access=document.createElement("button");access.className="btn";access.type="button";access.textContent=row.is_premium?"Set Free":"Set Premium";access.addEventListener("click",async()=>{access.disabled=true;const {error}=await sb.from("materials").update({is_premium:!row.is_premium}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:(row.is_premium?"Mind map is now free.":"Mind map is now premium and access-restricted."),error?"error":"success");loadAdminMindMaps()});
         const visibility=document.createElement("button");visibility.className="btn";visibility.type="button";visibility.textContent=row.is_published?"Unpublish":"Publish";visibility.addEventListener("click",async()=>{visibility.disabled=true;const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:"Mind map visibility updated.",error?"error":"success");loadAdminMindMaps()});
@@ -1666,7 +1761,7 @@
       if(!rows.length){emptyRow(list,"No resources match these filters.");return}
       rows.forEach(row=>{
         const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=[row.level,row.subject,row.chapter,row.category,row.contributor_name?"By "+row.contributor_name:"",row.is_premium?"Premium":"Free",row.is_published?"Published":"Draft"].filter(Boolean).join(" · ");info.append(h,p);
-        if(row.external_url){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
+        if(safeResourceUrl(row.external_url)){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
         const actions=document.createElement("div");actions.className="row-actions";const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#resourceStatus",error?error.message:"Resource status updated.",error?"error":"success");loadAdminResources()});
         const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{remove.disabled=true;await deleteManagedMaterial(row,"#resourceStatus","Resource");loadAdminResources()});
         if((row.category==="revision"||row.category==="mind_map")&&String(row.description||"").startsWith("CAJ_AI_REVISION_V1|")){
@@ -1862,6 +1957,14 @@
   function run() {
     initCommon();
     const page=document.body.dataset.page;
+    if(ready() && ["admin","dashboard","planner","account"].includes(page)){
+      let previous;
+      sb.auth.onAuthStateChange((_event,session)=>{
+        const current=session?.user?.id || null;
+        if(previous!==undefined && previous!==current)location.reload();
+        previous=current;
+      });
+    }
     if(page==="home")initHome();
     if(page==="icai-material")initIcaiMaterial();
     if(page==="account")initAccount();

@@ -74,3 +74,14 @@ html[data-theme="light"] header .brand b{color:#966311;background:linear-gradien
 html[data-theme="light"] :is(.paper-btn,.paper-actions a:not(.secondary),.paper-actions button:not(.secondary):not(.danger),.trend-button){color:#fff!important;background:#146a43;border-color:#397956}
 html[data-theme="light"] :is(.paper-btn,.trend-button) :is(strong,small,span){color:#fff!important}
 html[data-theme="light"] .paper-actions .secondary{background:#e0e8d8;color:#24472e}
+
+button,.btn,.paper-btn{font-weight:650}
+:where(a,button,input,select,textarea):focus-visible{outline:3px solid #8964e3;outline-offset:3px}
+html[data-theme="light"] :is(.btn,.generate-button,.login,.level-tab.active,.admin-nav-button.active){background:#365e38;color:#fff}
+html[data-theme="light"] .btn.secondary{background:#e0e8d8;color:#29462d}
+select option{background:var(--bg,#101423);color:var(--text,#f4f4fb)}
+
+header .site-back-link{display:inline-flex;align-items:center;min-height:44px;margin-inline-start:8px;font-weight:650}
+
+.skip-to-content{position:fixed;top:8px;left:8px;z-index:9999;padding:12px 18px;background:#111827;color:#fff;border:2px solid #fff;border-radius:8px;transform:translateY(-160%)}
+.skip-to-content:focus{transform:none;outline:3px solid #7c3aed}
