@@ -16,6 +16,10 @@ await page.addInitScript(rows=>{
 await page.route('**/*',async r=>{const u=new URL(r.request().url());if(u.hostname!=='fixture.test')return r.fulfill({body:''});let file=path.join(__dirname,'..',u.pathname);if(!path.extname(file))file+='.html';return fs.existsSync(file)?r.fulfill({path:file,contentType:file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html'}):r.fulfill({status:404,body:''})});
 const go=p=>page.goto('https://fixture.test/'+p,{waitUntil:'domcontentloaded'});
 for(const width of [320,390,768,1280]){await page.setViewportSize({width,height:844});await go('account.html');assert(await page.locator('#googleSignIn').isVisible());assert.equal(await page.locator('input[type=password]').count(),0);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
+await page.keyboard.press('Tab');
+assert.equal(await page.locator(':focus').innerText(),'Skip to main content');
+await page.keyboard.press('Enter');
+assert.equal(await page.locator(':focus').evaluate(node=>node.tagName),'MAIN');
 await go('admin.html');await page.locator('#loginEmail').waitFor();await page.fill('#loginEmail','admin@example.test');await page.fill('#loginPassword','dummy');await page.locator('#signInForm button').click();await page.getByText(/Sign-in failed/).waitFor();
 await page.evaluate(()=>sessionStorage.setItem('mode','student'));await page.reload();await page.getByText(/Admin access could not be verified/).waitFor();assert(await page.locator('#adminPanel').isHidden());
 await page.evaluate(()=>sessionStorage.setItem('mode','admin'));await page.reload();await page.locator('#adminCode').waitFor();assert(await page.locator('#adminPanel').isHidden());
