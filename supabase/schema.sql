@@ -13,8 +13,17 @@ create table if not exists public.user_roles (
 );
 
 create or replace function public.has_role(required_role text, target_user uuid default auth.uid())
-returns boolean language sql stable security definer set search_path = public
-as $$ select exists(select 1 from public.user_roles r where r.user_id = target_user and r.role = required_role) $$;
+returns boolean language sql stable security definer set search_path = ''
+as $$
+  select target_user = auth.uid()
+    and exists (select 1 from public.user_roles r where r.user_id = target_user and r.role = required_role)
+    and (
+      auth.jwt()->>'aal' = 'aal2'
+      or not exists (
+        select 1 from auth.mfa_factors f where f.user_id = target_user and f.status = 'verified'
+      )
+    )
+$$;
 
 create or replace function public.is_admin(target_user uuid default auth.uid())
 returns boolean language sql stable security definer set search_path = public
@@ -455,7 +464,7 @@ create policy "admin manages materials" on public.materials for all to authentic
 drop policy if exists "student reads own submissions" on public.student_note_submissions;
 create policy "student reads own submissions" on public.student_note_submissions for select to authenticated using (user_id=auth.uid() or public.is_admin());
 drop policy if exists "student submits own notes" on public.student_note_submissions;
-create policy "student submits own notes" on public.student_note_submissions for insert to authenticated with check (user_id=auth.uid() and status='pending');
+create policy "student submits own notes" on public.student_note_submissions for insert to authenticated with check (user_id=auth.uid() and status='pending' and (storage.foldername(file_path))[1]=auth.uid()::text);
 drop policy if exists "admin reviews note submissions" on public.student_note_submissions;
 create policy "admin reviews note submissions" on public.student_note_submissions for update to authenticated using (public.is_admin()) with check (public.is_admin());
 
@@ -478,7 +487,7 @@ create policy "attempt owner or reviewer read" on public.test_attempts for selec
 drop policy if exists "script owner or reviewer read" on public.evaluation_submissions;
 create policy "script owner or reviewer read" on public.evaluation_submissions for select to authenticated using (user_id=auth.uid() or public.is_reviewer());
 drop policy if exists "script owner insert" on public.evaluation_submissions;
-create policy "script owner insert" on public.evaluation_submissions for insert to authenticated with check (user_id=auth.uid() and status='pending');
+create policy "script owner insert" on public.evaluation_submissions for insert to authenticated with check (user_id=auth.uid() and status='pending' and (storage.foldername(file_path))[1]=auth.uid()::text and reviewer_id is null and reviewed_at is null and score is null and feedback='');
 drop policy if exists "reviewer grades scripts" on public.evaluation_submissions;
 create policy "reviewer grades scripts" on public.evaluation_submissions for update to authenticated using (public.is_reviewer()) with check (public.is_reviewer());
 
