@@ -13,24 +13,15 @@ label{display:block;font-size:13px;color:#cbd0df;margin:10px 0 5px}input,select{
 footer{border-top:1px solid var(--line);padding:22px 0;margin-top:30px;color:var(--muted);font-size:13px}
 :focus-visible{outline:2px solid #c4b5fd;outline-offset:3px}[hidden]{display:none!important}
 @media(max-width:700px){.grid,.products{grid-template-columns:1fr}}
-</style><link rel="stylesheet" href="assets/theme.css?v=mobile-header-2"><script src="assets/theme.js?v=mobile-header-2"></script></head>
+</style><link rel="stylesheet" href="assets/theme.css?v=mobile-header-2"><script src="assets/theme.js?v=mobile-header-2"></script><style>.sign-in-card{max-width:26rem;margin:8vh auto;text-align:center}.google-sign-in#googleSignIn{display:inline-flex;align-items:center;justify-content:center;gap:12px;background:white;color:#202124;border:1px solid #747775;min-height:46px;width:100%;font-weight:650;margin-top:20px}.google-sign-in img{filter:none;opacity:1}</style><meta name="robots" content="noindex,nofollow"><meta name="description" content="Student Account for CA students on CA Junction."></head>
 <body data-page="account">
 <header><div class="container nav"><a class="brand" href="index.html">CA <b>Junction</b></a><div><a href="platform.html">Dashboard</a>　<a href="index.html">Home</a></div></div></header>
 <main class="container">
-<div class="hero"><div class="eyebrow">Your CA Junction account</div><h1>Welcome to your <span class="gradient">student space.</span></h1><p>Sign in to save materials, track tests and use the free student services.</p></div>
-<section class="grid" id="authArea">
- <div class="panel">
-  <button class="btn" id="googleSignIn" type="button" style="display:flex;align-items:center;gap:12px;width:100%;background:#fff;color:#202124;border-color:#dadce0;margin:8px 0 18px"><span aria-hidden="true" style="font-weight:900;font-size:22px;color:#4285f4">G</span> Continue with Google</button>
-  <p style="font-size:13px;margin-bottom:12px">Students: sign up or sign in using your Google account. No email/password registration.</p>
-  <details id="existingAdminLogin"><summary style="cursor:pointer;font-weight:650;color:#c4b5fd">Existing administrator sign-in</summary><form id="signInForm"><label for="loginEmail">Admin email</label><input id="loginEmail" type="email" autocomplete="email" required><label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required><button class="btn" type="submit">Sign in</button></form></details>
-  <p id="authStatus" class="status" role="status" aria-live="polite"></p>
- </div>
- <div class="notice"><strong>A little reminder</strong><br>Big goals are reached through small, steady steps. Keep showing up for yourself.</div>
-</section>
-<section id="membership"><div class="section-head"><div class="eyebrow">Free launch</div><h2>Every service is free right now.</h2><p>CA Junction is new, so notes, practice, planning and career resources are available without payment. No checkout or paid membership is enabled.</p></div><div class="notice">Sign in with Google to upload notes, save progress and use your student dashboard. We will share any future changes clearly before they take effect.</div><div class="grid" style="margin-top:16px"><a class="panel" href="study.html">Open study materials →</a><a class="panel" href="tests.html">Open test series →</a><a class="panel" href="planner.html">Open study planner →</a><a class="panel" href="career.html">Open Career Hub →</a></div><div class="notice" id="study-group" style="margin-top:14px">The student WhatsApp group invite will be available to signed-in students when the admin adds it. <a href="platform.html#my-group">Open dashboard</a>.</div></section>
-<section><div class="notice">Want to contribute a note? <a href="upload.html">Open the simple PDF contribution form →</a></div></section>
-
-</main>
+<section id="authArea" class="panel sign-in-card">
+<h1>Student sign-in</h1>
+<button class="btn google-sign-in" id="googleSignIn" type="button"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="">Continue with Google</button>
+<p id="authStatus" class="status" role="status" aria-live="polite"></p>
+</section></main>
 <footer><div class="container">© 2026 CA Junction · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js"></script>
 </body></html>

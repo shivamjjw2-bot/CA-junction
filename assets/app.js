@@ -9,6 +9,12 @@
     return false;
   };
   const backendMessage = "Backend setup is not connected yet. Supabase project settings are required before accounts and saved content can work.";
+  function safeResourceUrl(value) {
+    try {
+      const url=new URL(value);
+      return url.protocol==="https:" && !url.username && !url.password ? url.href : "";
+    } catch { return ""; }
+  }
   const safeText = value => String(value || "");
   const addRow = (list, title, detail = "") => {
     if (!list) return;
@@ -192,16 +198,6 @@
       destination.searchParams.set("next",safeNext());
       const {error}=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:destination.toString()}});
       if(error)msg("#authStatus",error.message,"error");
-    });
-    $("#signInForm")?.addEventListener("submit",async e=>{
-      e.preventDefault();msg("#authStatus","Signing in…");
-      const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
-      if(error){msg("#authStatus",error.message,"error");return}
-      const {data:{user}}=await sb.auth.getUser();
-      if(!user){msg("#authStatus","Could not verify this account.","error");return}
-      const {data:role,error:roleError}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
-      if(roleError||!role){await sb.auth.signOut();msg("#authStatus","Student password login is disabled. Please use Continue with Google.","error");return}
-      location.href="admin";
     });
     $("#noteUploadForm")?.addEventListener("submit",submitStudentNote);
   }
@@ -426,7 +422,7 @@
         const meta=document.createElement("small");meta.textContent=row.category==="student_note"?[row.level,row.subject&&("Subject: "+row.subject),row.chapter&&("Chapter: "+row.chapter)].filter(Boolean).join(" · "):((revisionLevelApps||revisionLevelFilter)&&grid===adminGrid?[row.level,row.subject,row.chapter].filter(Boolean):[row.level,row.subject].filter(Boolean)).join(" · ");if(meta.textContent)card.append(meta);
         const action=document.createElement("button");action.className="link";action.type="button";
         if(row.file_bucket&&row.file_path){action.textContent="Open PDF ↗";action.addEventListener("click",()=>downloadMaterial(row,statusId))}
-        else if(row.external_url){action.textContent="Open resource ↗";action.addEventListener("click",()=>window.open(row.external_url,"_blank","noopener"))}
+        else if(safeResourceUrl(row.external_url)){action.textContent="Open resource ↗";action.addEventListener("click",()=>window.open(row.external_url,"_blank","noopener"))}
         card.append(action);
         if(row.category==="student_note"&&currentUserId&&row.submitted_by===currentUserId&&row.student_submission_id){
           const remove=document.createElement("button");remove.type="button";remove.className="link remove-note";remove.textContent="Remove my PDF";
@@ -1317,9 +1313,50 @@
   async function initAdmin(){
     if(!ready()){msg("#adminStatus",backendMessage,"error");$("#adminSetup").hidden=false;$("#adminSetup").textContent="To activate this panel: connect Supabase, run supabase/schema.sql, create your account, then add your own account as admin in Supabase SQL Editor. Never use a shared/default password.";return}
     const {data:{user}}=await sb.auth.getUser();
-    if(!user){msg("#adminStatus","Sign in with your admin account via the student login first.");$("#adminSetup").hidden=false;$("#adminSetup").textContent="No admin session. Sign in at account.html, then return here.";return}
-    const {data:role}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
-    if(!role){msg("#adminStatus","This account does not have the admin role.","error");$("#adminSetup").hidden=false;$("#adminSetup").textContent="Only the account you manually promote in Supabase can use this panel.";return}
+    const login = $("#adminLogin");
+    function offerLogin(message) {
+      msg("#adminStatus",message);
+      login.hidden=false;
+      $("#signInForm").addEventListener("submit",async event=>{
+        event.preventDefault();
+        const submit=event.currentTarget.querySelector("button");
+        submit.disabled=true;
+        try {
+          const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
+          $("#loginPassword").value="";
+          if(error) throw error;
+          location.reload();
+        } catch { msg("#adminStatus","Sign-in failed. Check your credentials and try again.","error"); }
+        finally { submit.disabled=false; }
+      });
+    }
+    if(!user){offerLogin("Sign in with your administrator account.");return}
+    const {data:role,error:roleError}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
+    if(roleError||!role){offerLogin("Admin access could not be verified. Sign in with an authorized account.");return}
+    const assurance=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(assurance.error){msg("#adminStatus","Could not verify your session. Reload to retry.","error");return}
+    if(assurance.data.nextLevel==="aal2" && assurance.data.currentLevel!=="aal2"){
+      const factors=await sb.auth.mfa.listFactors();
+      const factor=factors.data?.totp?.[0];
+      if(!factor){msg("#adminStatus","Authenticator unavailable. Contact the site owner for account recovery.","error");return}
+      msg("#adminStatus","Enter the code from your authenticator.");
+      const form=$("#adminMfa");form.hidden=false;
+      form.addEventListener("submit",async event=>{
+        event.preventDefault();
+        const submit=form.querySelector("button");submit.disabled=true;
+        try {
+          const {error}=await sb.auth.mfa.challengeAndVerify({factorId:factor.id,code:$("#adminCode").value});
+          if(error) throw error;
+          location.reload();
+        } catch { msg("#adminStatus","Verification failed. Try a fresh code.","error"); }
+        finally { submit.disabled=false; }
+      });
+      return;
+    }
+    $("#adminLogout").addEventListener("click",async()=>{
+      const {error}=await sb.auth.signOut();
+      if(error)msg("#adminStatus","Could not sign out. Retry.","error");else location.reload();
+    });
     initPasswordSettings(user);$("#adminProfileIdentity").textContent=[user.user_metadata?.full_name,user.email].filter(Boolean).join(" · ");
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
     const adminViewButtons=[...document.querySelectorAll("#adminPanel [data-admin-nav]")];
@@ -1650,7 +1687,7 @@
       if(!rows.length){emptyRow(list,"No mind maps match these filters.");return}
       rows.forEach(row=>{
         const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=row.level+" · "+(row.subject||"No subject")+" · "+(row.is_premium?"Premium":"Free")+" · "+(row.is_published?"Published":"Draft");info.append(h,p);
-        if(row.external_url){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
+        if(safeResourceUrl(row.external_url)){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
         const actions=document.createElement("div");actions.className="row-actions";
         const access=document.createElement("button");access.className="btn";access.type="button";access.textContent=row.is_premium?"Set Free":"Set Premium";access.addEventListener("click",async()=>{access.disabled=true;const {error}=await sb.from("materials").update({is_premium:!row.is_premium}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:(row.is_premium?"Mind map is now free.":"Mind map is now premium and access-restricted."),error?"error":"success");loadAdminMindMaps()});
         const visibility=document.createElement("button");visibility.className="btn";visibility.type="button";visibility.textContent=row.is_published?"Unpublish":"Publish";visibility.addEventListener("click",async()=>{visibility.disabled=true;const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#mindMapAdminStatus",error?error.message:"Mind map visibility updated.",error?"error":"success");loadAdminMindMaps()});
@@ -1666,7 +1703,7 @@
       if(!rows.length){emptyRow(list,"No resources match these filters.");return}
       rows.forEach(row=>{
         const item=document.createElement("div");item.className="data-row";const info=document.createElement("div");const h=document.createElement("strong");h.textContent=row.title;const p=document.createElement("p");p.textContent=[row.level,row.subject,row.chapter,row.category,row.contributor_name?"By "+row.contributor_name:"",row.is_premium?"Premium":"Free",row.is_published?"Published":"Draft"].filter(Boolean).join(" · ");info.append(h,p);
-        if(row.external_url){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
+        if(safeResourceUrl(row.external_url)){const a=document.createElement("a");a.href=row.external_url;a.target="_blank";a.rel="noopener";a.textContent="Open source link";info.append(a)}
         const actions=document.createElement("div");actions.className="row-actions";const button=document.createElement("button");button.className="btn";button.textContent=row.is_published?"Unpublish":"Publish";button.addEventListener("click",async()=>{const {error}=await sb.from("materials").update({is_published:!row.is_published}).eq("id",row.id);msg("#resourceStatus",error?error.message:"Resource status updated.",error?"error":"success");loadAdminResources()});
         const remove=document.createElement("button");remove.className="btn danger";remove.textContent="Delete";remove.addEventListener("click",async()=>{remove.disabled=true;await deleteManagedMaterial(row,"#resourceStatus","Resource");loadAdminResources()});
         if((row.category==="revision"||row.category==="mind_map")&&String(row.description||"").startsWith("CAJ_AI_REVISION_V1|")){
