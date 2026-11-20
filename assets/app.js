@@ -175,12 +175,13 @@
     }
     // Google OAuth is the sole student registration mechanism.
     // Preserve existing password sign-in only for administrators during migration.
+    const requestedDestination = new URLSearchParams(location.search).get("next");
     const safeNext = () => {
-      const raw=new URLSearchParams(location.search).get("next");
+      const raw=requestedDestination;
       if(!raw)return "index.html";
       try {
         const target=new URL(raw,location.origin);
-        const allowed=/^\/(?:upload|study|student-contributions|previous-papers|mtp|rtp|test-series-papers)(?:\.html)?$/;
+        const allowed=/^\/(?:upload|study|revision|student-contributions|previous-papers|mtp|rtp|test-series-papers)(?:\.html)?$/;
         if(target.origin===location.origin && allowed.test(target.pathname))return target.pathname+target.search+target.hash;
       } catch {}
       return "index.html";
@@ -199,7 +200,7 @@
     });
     $("#googleSignIn")?.addEventListener("click",async()=>{
       msg("#authStatus","Opening Google sign-in…");
-      const destination=new URL("account.html",location.origin);
+      const destination=new URL("/account",location.origin);
       destination.searchParams.set("oauth","google");
       destination.searchParams.set("next",safeNext());
       const {error}=await window.caStartGoogleLogin(destination);
