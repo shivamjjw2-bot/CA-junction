@@ -234,7 +234,7 @@
   function initTimerDock(){
     if(!document.getElementById("caTimerDockStyle")){const style=document.createElement("style");style.id="caTimerDockStyle";style.textContent=".ca-timer-dock{position:fixed;z-index:9999;right:16px;bottom:16px;display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid #d8b443;border-radius:13px;background:#111526;box-shadow:0 12px 36px #0009;color:#fff;font:600 13px/1.3 system-ui}.ca-timer-dock[hidden]{display:none}.ca-timer-dock strong{color:#f5c84c;font-variant-numeric:tabular-nums}.ca-timer-dock button,.ca-timer-dock a{border:0;border-radius:8px;padding:7px 9px;background:#282d42;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.ca-timer-dock a{background:#4f46e5}@media(max-width:600px){.ca-timer-dock{left:10px;right:10px;bottom:10px;justify-content:space-between}}";document.head.append(style)}
     let dock=$("#caTimerDock");if(!dock){dock=document.createElement("aside");dock.id="caTimerDock";dock.className="ca-timer-dock";dock.setAttribute("aria-label","Minimized study timer");dock.innerHTML='<span id="caDockCountdown" style="color:#f5c84c;font-weight:800"></span><strong id="caTimerDockTime">00:00:00</strong><button id="caTimerDockToggle" type="button">Start</button><a href="tracker.html?timer=restore">Show tracker</a>';document.body.append(dock)}
-    const update=()=>{studyTimer=readTimerState();dock.hidden=!(studyTimer.minimized||studyTimer.countdownMinimized);const savedDate=localStorage.getItem("caJunctionExamDate")||"";const daysLabel=$("#caDockCountdown");if(savedDate){const [y,m,d]=savedDate.split("-").map(Number),target=new Date(y,m-1,d),today=new Date();target.setHours(0,0,0,0);today.setHours(0,0,0,0);const days=Math.round((target-today)/86400000);daysLabel.textContent=days>0?(days+" days left · "):(days===0?"Exam day · ":"")}else daysLabel.textContent="";$("#caTimerDockTime").textContent=timerClock(currentTimerSeconds());$("#caTimerDockToggle").textContent=studyTimer.runningSince?"Pause":(currentTimerSeconds()?"Resume":"Start");$("#caTimerDockToggle").onclick=()=>{if(studyTimer.runningSince)pauseStudyTimer();else startStudyTimer();update()}};
+    const update=()=>{studyTimer=readTimerState();dock.hidden=!(studyTimer.minimized||studyTimer.countdownMinimized);const savedDate=localStorage.getItem("caJunctionExamDate")||"";const daysLabel=$("#caDockCountdown");if(savedDate){const [y,m,d]=savedDate.split("-").map(Number),target=new Date(y,m-1,d),today=new Date();target.setHours(0,0,0,0);today.setHours(0,0,0,0);const days=Math.round((target-today)/86400000);daysLabel.textContent=days>0?(days+" days left · "):(days===0?"Exam day · ":"")}else daysLabel.textContent="";$("#caTimerDockTime").toggleAttribute("data-clock-paused",!studyTimer.runningSince);$("#caTimerDockTime").textContent=timerClock(currentTimerSeconds());$("#caTimerDockToggle").textContent=studyTimer.runningSince?"Pause":(currentTimerSeconds()?"Resume":"Start");$("#caTimerDockToggle").onclick=()=>{if(studyTimer.runningSince)pauseStudyTimer();else startStudyTimer();update()}};
     window.addEventListener("ca:timer-update",update);setInterval(update,1000);update();
   }
 
@@ -1215,7 +1215,7 @@
     window.addEventListener("ca:timer-update",()=>{studyTimer=readTimerState();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized)});
     $("#countdownButton")?.addEventListener("click",renderCountdown);renderCountdown();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized);
     const display=$("#focusTimer"),startButton=$("#timerStart"),pauseButton=$("#timerPause"),resetButton=$("#timerReset"),minimizeButton=$("#timerMinimize"),focusButton=$("#timerFocus"),panel=$("#timerPanel");
-    const renderTimer=()=>{studyTimer=readTimerState();renderStudyPeriod();if(display)display.textContent=timerClock(currentTimerSeconds());if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":(currentTimerSeconds()?"Resume session":"Start session");startButton.disabled=!identityReady||Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(minimizeButton)minimizeButton.disabled=studyTimer.focusMode;if(focusButton)focusButton.disabled=!identityReady;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Pause & exit focus":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
+    const renderTimer=()=>{studyTimer=readTimerState();renderStudyPeriod();if(display){display.toggleAttribute("data-clock-paused",!studyTimer.runningSince);display.textContent=timerClock(currentTimerSeconds());}if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":(currentTimerSeconds()?"Resume session":"Start session");startButton.disabled=!identityReady||Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(minimizeButton)minimizeButton.disabled=studyTimer.focusMode;if(focusButton)focusButton.disabled=!identityReady;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Pause & exit focus":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
     startButton?.addEventListener("click",()=>{startStudyTimer();renderTimer();msg("#timerStatus","Session running. Your elapsed time is saved on this device.")});
     pauseButton?.addEventListener("click",()=>{pauseStudyTimer();renderTimer();msg("#timerStatus","Paused and saved. Resume to continue from this time.")});
     resetButton?.addEventListener("click",()=>{if(studyTimer.runningSince)pauseStudyTimer();studyTimer=readTimerState();studyTimer.elapsed=0;studyTimer.runningSince=null;studyTimer.focusMode=false;saveTimerState();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});msg("#timerStatus","Session finished. All paused time remains in your study-hours total.")});
@@ -1468,11 +1468,17 @@
       }catch(error){msg("#resumeStatus",error?.message||"Could not draft your resume. Please try again.","error")}
       finally{button.disabled=false;button.textContent="✨ Draft my complete resume with AI"}
     });
-    if(!ready()){msg("#jobsStatus",backendMessage);msg("#careerStatus",backendMessage);return}
+    if(!ready()){const grid=$("#jobsGrid");if(grid)grid.replaceChildren();msg("#jobsStatus",backendMessage);msg("#careerStatus",backendMessage);return}
     const loadJobs=async()=>{
       const {data,error}=await sb.from("jobs").select("id,title,organization,location,job_type,description,application_url,contact_email,closes_at").eq("is_published",true).order("created_at",{ascending:false});
       const grid=$("#jobsGrid");if(!grid)return;grid.replaceChildren();
-      if(error||!data?.length){const empty=document.createElement("div");empty.className="listing";empty.textContent=error?"Job listings could not be loaded. Please refresh and try again.":"No opportunities are published yet. Check back soon.";grid.append(empty);return}
+      const comingSoon=()=>{const badge=document.createElement("span");badge.className="coming-soon";badge.textContent="Coming Soon";return badge};
+      if(error||!data?.length){
+        const empty=document.createElement("div");empty.className="listing";
+        if(error)empty.textContent="Job listings could not be loaded. Please refresh and try again.";
+        else empty.append(comingSoon(),document.createTextNode("Jobs and internships will appear here when published."));
+        grid.append(empty);return;
+      }
       data.forEach(job=>{
         const card=document.createElement("article");card.className="job-card";
         const company=document.createElement("div");company.className="job-company";company.textContent=job.organization||"Company details coming soon";
@@ -1485,7 +1491,7 @@
         if(job.application_url){try{const parsed=new URL(job.application_url);if(parsed.protocol==="https:"||parsed.protocol==="http:")applyUrl=parsed.href}catch{}}
         if(applyUrl){const apply=document.createElement("a");apply.className="btn";apply.href=applyUrl;apply.target="_blank";apply.rel="noopener noreferrer";apply.textContent="Apply now ↗";actions.append(apply)}
         else if(job.contact_email){const email=document.createElement("a");email.className="btn";email.href="mailto:"+job.contact_email;email.textContent="Email to apply";actions.append(email)}
-        else{const unavailable=document.createElement("span");unavailable.className="apply-unavailable";unavailable.textContent="Application link coming soon";actions.append(unavailable)}
+        else{actions.append(comingSoon())}
         if(job.contact_email&&applyUrl){const contact=document.createElement("a");contact.className="contact-link";contact.href="mailto:"+job.contact_email;contact.textContent="Contact by email";actions.append(contact)}
         card.append(company,title,meta,description,actions);grid.append(card);
       });

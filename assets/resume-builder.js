@@ -49,11 +49,32 @@
  $('resumeForm').addEventListener('input',render);document.querySelectorAll('.resume-controls input,.resume-controls select').forEach(x=>x.addEventListener('input',render));new ResizeObserver(checkFit).observe($('resumePreviewViewport'));
  $('resumeForm').addEventListener('reset',()=>setTimeout(()=>{render();status('Details cleared. No resume is saved on this site.')},0));
  $('downloadMaster').addEventListener('click',()=>{const text=[value('Master'),...sections.map(([id,label])=>value(id)?label+'\n'+value(id):'')].filter(Boolean).join('\n\n');if(!text){$('masterDownloadStatus').textContent='Add your notes or fill in your career details first.';$('resumeMaster').focus();return}const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'})),a=node('a');a.href=url;a.download='my-resume-details.txt';a.click();$('masterDownloadStatus').textContent='Your resume details download has started.';setTimeout(()=>URL.revokeObjectURL(url),1000)});
- $('printResume').addEventListener('click',()=>{checkFit();if(!value('Name')||!sections.some(([id])=>value(id))){status('Add your name and resume content before exporting.',true);return}if(!fitOkay){status('Please resolve the page or bullet-length warning above the preview before exporting.',true);$('resumeFit').scrollIntoView({behavior:'smooth',block:'center'});return}window.print()});
+ function startClock(clock){
+  const start=performance.now();
+  function tick(){const seconds=Math.floor((performance.now()-start)/1000);clock.textContent=[Math.floor(seconds/60),seconds%60].map(n=>String(n).padStart(2,'0')).join(':')}
+  tick();clock.hidden=false;
+  const interval=setInterval(tick,1000);
+  return ()=>{clearInterval(interval);clock.hidden=true};
+ }
+ $('printResume').addEventListener('click',async()=>{
+  const button=$('printResume'),clock=$('resumePdfClock');
+  if(button.disabled)return;
+  checkFit();if(!value('Name')||!sections.some(([id])=>value(id))){status('Add your name and resume content before exporting.',true);return}if(!fitOkay){status('Please resolve the page or bullet-length warning above the preview before exporting.',true);$('resumeFit').scrollIntoView({behavior:'smooth',block:'center'});return}
+  const stopClock=startClock(clock);button.disabled=true;
+  try{
+   if(document.fonts)await document.fonts.ready;
+   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+   checkFit();
+   if(!fitOkay){status('Please resolve the page or bullet-length warning before exporting.',true);return}
+   clock.hidden=true;
+   window.print();
+  }catch{status('Could not open the PDF print dialog. Please try again.',true)}
+  finally{stopClock();button.disabled=false}
+ });
  const draftStatus=text=>{$('masterDownloadStatus').textContent=text};
  $('generateResumeDraft').addEventListener('click',async()=>{
   if(busy)return;if(!value('Master')&&!sections.some(([id])=>id!=='Objective'&&value(id))){draftStatus('Add your notes or career details before drafting.');return}
-  busy=true;const button=$('generateResumeDraft');button.disabled=true;button.textContent='Drafting your resume…';draftStatus('Selecting relevant facts and refining your one-page draft…');const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),105000);
+  busy=true;const stopClock=startClock($('resumeDraftClock'));const button=$('generateResumeDraft');button.disabled=true;button.textContent='Drafting your resume…';draftStatus('Selecting relevant facts and refining your one-page draft…');const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),105000);
   const form=$('resumeForm'),inputs=Array.from(form.elements);inputs.forEach(x=>x.disabled=true);
   try{const sb=window.CA_APP?.supabase;if(!sb)throw Error('Please sign in to draft your resume.');const {data:{session}}=await sb.auth.getSession();if(!session?.access_token)throw Error('Please sign in to draft your resume. You can still build and edit it manually.');
    const payload={master:value('Master'),institute:value('Institute'),bullet_order:$('resumeBulletOrder').value,template:selected,education:value('Education'),qualification:value('Professional'),experience:value('Experience'),projects:value('Projects'),skills:value('Skills'),achievements:value('Achievements'),languages:value('Languages'),interests:value('Hobbies'),objective:value('Objective')};
@@ -61,7 +82,7 @@
    const mapping={Objective:'objective',Education:'education',Professional:'qualifications',Experience:'experience',Projects:'projects',Skills:'skills',Achievements:'achievements',Languages:'languages',Hobbies:'interests'};if(Object.values(mapping).some(key=>typeof result[key]!=='string'))throw Error('The draft was incomplete. Your original details have been kept. Please retry.');
    if(!value('Master'))$('resumeMaster').value=sections.map(([id,label])=>value(id)?label+'\n'+value(id):'').filter(Boolean).join('\n\n');
    Object.entries(mapping).forEach(([id,key])=>$('resume'+id).value=result[key]);render();draftStatus('Draft ready. Your original notes are preserved. Check every fact, edit the wording, and resolve any length warnings before exporting.');
-  }catch(e){draftStatus(e.name==='AbortError'?'Drafting took too long. Your details are safe on this page; please retry.':e.message)}finally{clearTimeout(timer);busy=false;inputs.forEach(x=>x.disabled=false);button.textContent='Generate My Resume'}
+  }catch(e){draftStatus(e.name==='AbortError'?'Drafting took too long. Your details are safe on this page; please retry.':e.message)}finally{stopClock();clearTimeout(timer);busy=false;inputs.forEach(x=>x.disabled=false);button.textContent='Generate My Resume'}
  });
  render();
 })();

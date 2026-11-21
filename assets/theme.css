@@ -102,3 +102,25 @@ header .theme-nav > #themeToggle{position:static;margin-inline-start:auto;width:
   html[data-theme="light"] header .navlinks.open{background:rgba(250,249,239,.9)}
   header .navlinks.open{-webkit-backdrop-filter:blur(20px) saturate(135%);backdrop-filter:blur(20px) saturate(135%);box-shadow:0 12px 30px #14213b26}
 }
+
+/* Shared clock face for time values. The hands are decorative and independent of the timer. */
+@property --cj-minute {syntax:"<angle>";inherits:false;initial-value:0deg}
+@property --cj-hour {syntax:"<angle>";inherits:false;initial-value:65deg}
+@keyframes cj-clock-hands{to{--cj-minute:4320deg;--cj-hour:425deg}}
+html[data-theme] :is(#focusTimer,#caTimerDockTime,#caDockCountdown,#countdownDays,#compactCountdownText,#revisionElapsed,#aiPracticeTimer,.processing-clock,.timed-progress){font-weight:750;font-variant-numeric:tabular-nums}
+html[data-theme] :is(#focusTimer,#caTimerDockTime,#caDockCountdown,#countdownDays,#compactCountdownText,#revisionElapsed,#aiPracticeTimer,.processing-clock,.timed-progress):not(:empty):not([hidden])::before{
+  content:"";display:inline-block;box-sizing:border-box;width:1.12rem;height:1.12rem;margin-inline-end:.38rem;
+  vertical-align:-.13rem;border:1.6px solid currentColor;border-radius:50%;color:var(--cj-face-ink,#bff5df);background-color:var(--cj-face-bg,#19372c);
+  background-image:radial-gradient(circle,currentColor 0 1px,transparent 1.4px),conic-gradient(from var(--cj-hour),currentColor 0deg 16deg,transparent 18deg),conic-gradient(from var(--cj-minute),currentColor 0deg 12deg,transparent 14deg);
+  background-size:100% 100%,60% 60%,84% 84%;background-repeat:no-repeat;background-position:center;
+  box-shadow:0 0 5px #61c8a24a;animation:cj-clock-hands 36s linear infinite;
+}
+html[data-theme="light"] :is(#focusTimer,#caTimerDockTime,#caDockCountdown,#countdownDays,#compactCountdownText,#revisionElapsed,#aiPracticeTimer,.processing-clock,.timed-progress){--cj-face-ink:#184d35;--cj-face-bg:#edf8f1}
+html[data-theme] :is(#revisionElapsed,#aiPracticeTimer,.processing-clock,.timed-progress){color:#edfff4;background-color:#19372c;font-size:1.08rem;line-height:1.5;border-radius:.55rem;padding:.3rem .6rem}
+html[data-theme="light"] :is(#revisionElapsed,#aiPracticeTimer,.processing-clock,.timed-progress){color:#163b28;background-color:#e6f5ea}
+html[data-theme] :is(#focusTimer,#caTimerDockTime,#countdownDays,#compactCountdownText,#caDockCountdown){color:#f6e3a6}
+html[data-theme="light"] :is(#focusTimer,#countdownDays,#compactCountdownText){color:#513b09}
+html[data-theme] :is(#focusTimer,#caTimerDockTime,#caDockCountdown,#countdownDays,#compactCountdownText,#revisionElapsed,#aiPracticeTimer,.processing-clock,.timed-progress)[data-clock-paused]:not(:empty):not([hidden])::before{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){html[data-theme] :is(#focusTimer,#caTimerDockTime,#caDockCountdown,#countdownDays,#compactCountdownText,#revisionElapsed,#aiPracticeTimer,.processing-clock,.timed-progress):not(:empty):not([hidden])::before{animation:none}}
+.processing-clock[hidden]{display:none!important}
+@media print{.processing-clock{display:none!important}}
