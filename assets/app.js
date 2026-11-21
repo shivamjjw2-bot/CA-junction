@@ -43,19 +43,109 @@
   const escapeAttr = value => safeText(value).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
   const timerStateKey="caJunctionStudyTimer";
-  function readTimerState(){try{const saved=JSON.parse(localStorage.getItem(timerStateKey)||"{}");return{elapsed:Number(saved.elapsed)||0,runningSince:Number(saved.runningSince)||null,minimized:Boolean(saved.minimized),countdownMinimized:Boolean(saved.countdownMinimized),focusMode:Boolean(saved.focusMode)}}catch{return{elapsed:0,runningSince:null,minimized:false,focusMode:false}}}
+  function readTimerState(){try{const saved=JSON.parse(localStorage.getItem(timerStateKey)||"{}");return{owner:saved.owner,elapsed:Number(saved.elapsed)||0,runningSince:Number(saved.runningSince)||null,minimized:Boolean(saved.minimized),countdownMinimized:Boolean(saved.countdownMinimized),focusMode:Boolean(saved.focusMode)}}catch{return{elapsed:0,runningSince:null,minimized:false,focusMode:false}}}
   let studyTimer=readTimerState();
   function saveTimerState(){localStorage.setItem(timerStateKey,JSON.stringify(studyTimer));window.dispatchEvent(new Event("ca:timer-update"))}
   function currentTimerSeconds(){return studyTimer.elapsed+(studyTimer.runningSince?Math.max(0,Math.floor((Date.now()-studyTimer.runningSince)/1000)):0)}
   function timerClock(seconds){const h=String(Math.floor(seconds/3600)).padStart(2,"0"),m=String(Math.floor(seconds%3600/60)).padStart(2,"0"),s=String(seconds%60).padStart(2,"0");return h+":"+m+":"+s}
-  async function saveTimerChunk(seconds){
-    if(seconds<=0)return;let saved=false;
-    if(ready()){try{const {data:{user}}=await sb.auth.getUser();if(user){const {error}=await sb.from("study_sessions").insert({user_id:user.id,duration_seconds:seconds});if(!error)saved=true}}catch{}}
-    if(!saved){const key="caJunctionLocalStudySeconds";localStorage.setItem(key,String(Number(localStorage.getItem(key)||0)+seconds))}
-    document.querySelectorAll("#todayHours").forEach(async label=>{if(ready()){try{const {data:{user}}=await sb.auth.getUser();if(user){const start=new Date();start.setHours(0,0,0,0);const {data}=await sb.from("study_sessions").select("duration_seconds").eq("user_id",user.id).gte("started_at",start.toISOString());label.textContent=Math.round((data||[]).reduce((sum,row)=>sum+Number(row.duration_seconds||0),0)/60)+" minutes";return}}catch{}}label.textContent=Math.round(Number(localStorage.getItem("caJunctionLocalStudySeconds")||0)/60)+" minutes"});
+  const dayFormatter = new Intl.DateTimeFormat(undefined, {weekday:"long", day:"numeric", month:"long", year:"numeric"});
+  function midnight(time) {
+    const date = new Date(time);
+    return date.setHours(0, 0, 0, 0);
   }
-  function pauseStudyTimer(){if(!studyTimer.runningSince)return;const segment=Math.max(0,Math.floor((Date.now()-studyTimer.runningSince)/1000));studyTimer.elapsed+=segment;studyTimer.runningSince=null;studyTimer.focusMode=false;saveTimerState();if(segment)saveTimerChunk(segment)}
-  function startStudyTimer(){if(!studyTimer.runningSince){studyTimer.runningSince=Date.now();saveTimerState()}}
+  function nextMidnight(time) {
+    const date = new Date(midnight(time));
+    return date.setDate(date.getDate() + 1);
+  }
+  function studyDayKey(owner, time) {
+    return "caJunctionStudyDay:" + (owner || "guest") + ":" + midnight(time);
+  }
+  function readDay(key) {
+    try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; }
+  }
+  let timerOwner = null;
+  let loadedDay = "";
+  let cloudRows = {};
+  let lastRead = 0;
+  let requestVersion = 0;
+  if (ready()) sb.auth.onAuthStateChange((_event, session) => {
+    const owner = session?.user?.id || null;
+    if (timerOwner !== owner) {
+      timerOwner = owner;
+      loadedDay = "";
+      cloudRows = {};
+      requestVersion++;
+    }
+  });
+  async function refreshStudyDay(owner, start, key, version) {
+    const rows = {};
+    for (let offset = 0;; offset += 500) {
+      const {data,error} = await sb.from("study_sessions").select("id,duration_seconds")
+        .eq("user_id",owner).gte("started_at",new Date(start).toISOString())
+        .lt("started_at",new Date(nextMidnight(start)).toISOString())
+        .order("id").range(offset,offset+499);
+      if (error || version !== requestVersion || loadedDay !== key) return;
+      for (const row of data) rows[row.id] = row.duration_seconds;
+      if (data.length < 500) break;
+    }
+    cloudRows = rows;
+  }
+  function renderStudyDay(now = Date.now()) {
+    const total = $("#todayHours");
+    if (!total) return;
+    const start = midnight(now);
+    const key = studyDayKey(timerOwner, now);
+    if (loadedDay !== key) { loadedDay = key; cloudRows = {}; lastRead = 0; }
+    if (timerOwner && ready() && now - lastRead >= 60000) {
+      lastRead = now;
+      refreshStudyDay(timerOwner,start,key,++requestVersion).catch(()=>{});
+    }
+    const records = {...cloudRows,...readDay(key)};
+    const saved = Object.values(records).reduce((sum,seconds)=>sum+Number(seconds),0);
+    const since = studyTimer.runningSince;
+    const active = since && (studyTimer.owner === undefined || studyTimer.owner === timerOwner)
+      ? Math.max(0,Math.floor((now-Math.max(start,since))/1000)) : 0;
+    total.textContent = timerClock(saved + active);
+    const date = $("#studyDayDate");
+    if (date) date.textContent = dayFormatter.format(now);
+  }
+  function saveStudyInterval(from, until, owner) {
+    const rows = [];
+    while (from < until) {
+      const end = Math.min(until,nextMidnight(from),from+86400000);
+      const seconds = Math.floor((end-from)/1000);
+      if (seconds) {
+        const key = studyDayKey(owner,from);
+        const id = crypto.randomUUID();
+        const records = readDay(key);
+        records[id] = seconds;
+        localStorage.setItem(key,JSON.stringify(records));
+        rows.push({id,user_id:owner,started_at:new Date(from).toISOString(),duration_seconds:seconds});
+      }
+      from = end;
+    }
+    if (owner && ready() && rows.length) {
+      Promise.resolve(sb.from("study_sessions").insert(rows)).catch(()=>{});
+    }
+  }
+  function pauseStudyTimer() {
+    studyTimer=readTimerState();
+    if (!studyTimer.runningSince) return;
+    const now=Date.now();
+    saveStudyInterval(studyTimer.runningSince,now,studyTimer.owner === undefined ? timerOwner : studyTimer.owner);
+    studyTimer.elapsed+=Math.max(0,Math.floor((now-studyTimer.runningSince)/1000));
+    studyTimer.runningSince=null;
+    studyTimer.focusMode=false;
+    saveTimerState();
+  }
+  function startStudyTimer() {
+    studyTimer=readTimerState();
+    if (!studyTimer.runningSince) {
+      studyTimer.runningSince=Date.now();
+      studyTimer.owner=timerOwner;
+      saveTimerState();
+    }
+  }
   function initTimerDock(){
     if(!document.getElementById("caTimerDockStyle")){const style=document.createElement("style");style.id="caTimerDockStyle";style.textContent=".ca-timer-dock{position:fixed;z-index:9999;right:16px;bottom:16px;display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid #d8b443;border-radius:13px;background:#111526;box-shadow:0 12px 36px #0009;color:#fff;font:600 13px/1.3 system-ui}.ca-timer-dock[hidden]{display:none}.ca-timer-dock strong{color:#f5c84c;font-variant-numeric:tabular-nums}.ca-timer-dock button,.ca-timer-dock a{border:0;border-radius:8px;padding:7px 9px;background:#282d42;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.ca-timer-dock a{background:#4f46e5}@media(max-width:600px){.ca-timer-dock{left:10px;right:10px;bottom:10px;justify-content:space-between}}";document.head.append(style)}
     let dock=$("#caTimerDock");if(!dock){dock=document.createElement("aside");dock.id="caTimerDock";dock.className="ca-timer-dock";dock.setAttribute("aria-label","Minimized study timer");dock.innerHTML='<span id="caDockCountdown" style="color:#f5c84c;font-weight:800"></span><strong id="caTimerDockTime">00:00:00</strong><button id="caTimerDockToggle" type="button">Start</button><a href="tracker.html?timer=restore">Show tracker</a>';document.body.append(dock)}
@@ -1040,12 +1130,12 @@
     window.addEventListener("ca:timer-update",()=>{studyTimer=readTimerState();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized)});
     $("#countdownButton")?.addEventListener("click",renderCountdown);renderCountdown();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized);
     const display=$("#focusTimer"),startButton=$("#timerStart"),pauseButton=$("#timerPause"),resetButton=$("#timerReset"),minimizeButton=$("#timerMinimize"),focusButton=$("#timerFocus"),panel=$("#timerPanel");
-    const renderTimer=()=>{studyTimer=readTimerState();if(display)display.textContent=timerClock(currentTimerSeconds());if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":(currentTimerSeconds()?"Resume session":"Start session");startButton.disabled=Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(minimizeButton)minimizeButton.disabled=studyTimer.focusMode;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Pause & exit focus":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
+    const renderTimer=()=>{studyTimer=readTimerState();renderStudyDay();if(display)display.textContent=timerClock(currentTimerSeconds());if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":(currentTimerSeconds()?"Resume session":"Start session");startButton.disabled=Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(minimizeButton)minimizeButton.disabled=studyTimer.focusMode;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Pause & exit focus":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
     startButton?.addEventListener("click",()=>{startStudyTimer();renderTimer();msg("#timerStatus","Session running. Your elapsed time is saved on this device.")});
     pauseButton?.addEventListener("click",()=>{pauseStudyTimer();renderTimer();msg("#timerStatus","Paused and saved. Resume to continue from this time.")});
     resetButton?.addEventListener("click",()=>{if(studyTimer.runningSince)pauseStudyTimer();studyTimer=readTimerState();studyTimer.elapsed=0;studyTimer.runningSince=null;studyTimer.focusMode=false;saveTimerState();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});msg("#timerStatus","Session finished. All paused time remains in your study-hours total.")});
     minimizeButton?.addEventListener("click",()=>{studyTimer=readTimerState();studyTimer.minimized=true;saveTimerState();renderTimer()});
-    focusButton?.addEventListener("click",async()=>{studyTimer=readTimerState();if(studyTimer.focusMode){pauseStudyTimer();if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});renderTimer();msg("#timerStatus","Focus mode ended. Your study time is saved; you can use other resources now.");return}try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen()}catch{}}studyTimer.focusMode=true;if(!studyTimer.runningSince)studyTimer.runningSince=Date.now();saveTimerState();msg("#timerStatus","Focus mode is on. Leaving this page will pause and save your session.")}catch{studyTimer.focusMode=false;saveTimerState();msg("#timerStatus","Fullscreen is unavailable in this browser. You can still use the timer normally.","error")}renderTimer()});
+    focusButton?.addEventListener("click",async()=>{studyTimer=readTimerState();if(studyTimer.focusMode){pauseStudyTimer();if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});renderTimer();msg("#timerStatus","Focus mode ended. Your study time is saved; you can use other resources now.");return}try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen()}catch{}}studyTimer.focusMode=true;if(!studyTimer.runningSince){studyTimer.runningSince=Date.now();studyTimer.owner=timerOwner;}saveTimerState();msg("#timerStatus","Focus mode is on. Leaving this page will pause and save your session.")}catch{studyTimer.focusMode=false;saveTimerState();msg("#timerStatus","Fullscreen is unavailable in this browser. You can still use the timer normally.","error")}renderTimer()});
     const leaveFocusPage=()=>{studyTimer=readTimerState();if(studyTimer.focusMode)pauseStudyTimer()};
     document.addEventListener("visibilitychange",()=>{studyTimer=readTimerState();if(document.visibilityState==="hidden"&&studyTimer.focusMode){pauseStudyTimer();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}});
     window.addEventListener("pagehide",leaveFocusPage);
@@ -1069,7 +1159,6 @@
       document.addEventListener("click",event=>{if(readTimerState().focusMode&&event.target.closest("a")){event.preventDefault();event.stopImmediatePropagation();msg("#timerStatus","Pause focus mode before opening another page.");}},true);
       showView(Boolean(date.value));updateCompact();
     }
-    const loadHours=async()=>{const label=$("#todayHours");if(!label)return;if(ready()){try{const {data:{user}}=await sb.auth.getUser();if(user){const start=new Date();start.setHours(0,0,0,0);const {data}=await sb.from("study_sessions").select("duration_seconds").eq("user_id",user.id).gte("started_at",start.toISOString());label.textContent=Math.round((data||[]).reduce((sum,row)=>sum+Number(row.duration_seconds||0),0)/60)+" minutes";return}}catch{}}label.textContent=Math.round(Number(localStorage.getItem("caJunctionLocalStudySeconds")||0)/60)+" minutes"};
     const builder=$("#plannerBuilderForm");
     if(builder){
       const level=$("#plannerLevel"),countInput=$("#plannerSubjectCount"),choices=$("#plannerSubjectOptions"),subjectsStatus=$("#plannerSubjectsStatus"),daysInput=$("#plannerDays"),results=$("#plannerBuilderResults"),createButton=$("#plannerCreateButton");
@@ -1249,7 +1338,7 @@
       careerLinks.forEach(link=>{if(link.dataset.careerTabLink===active)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});
     };
     window.addEventListener("hashchange",activateCareerTab);activateCareerTab();
-    const fields=["resumeName","resumeEmail","resumePhone","resumeLocation","resumeLinkedIn","resumePortfolio","resumeRole","resumeIndustry","resumeCareerStage","resumeObjective","resumeEducation","resumeProfessional","resumeExperience","resumeProjects","resumeSkills","resumeAchievements","resumeLanguages","resumeHobbies"];
+    const fields=["resumeName","resumeEmail","resumePhone","resumeLocation","resumeLinkedIn","resumePortfolio","resumeCareerStage","resumeObjective","resumeEducation","resumeProfessional","resumeExperience","resumeProjects","resumeSkills","resumeAchievements","resumeLanguages","resumeHobbies"];
     const fieldValue=id=>$("#"+id)?.value.trim()||"";
     const previewText=(targetId,sourceId,placeholder)=>{const target=$("#"+targetId);if(target)target.textContent=fieldValue(sourceId)||placeholder};
     function refreshResume(){
@@ -1257,7 +1346,6 @@
       $("#previewContact").textContent=[fieldValue("resumeEmail"),fieldValue("resumePhone"),fieldValue("resumeLocation")].filter(Boolean).join(" · ")||"Email · Phone · Location";
       const links=$("#previewLinks");
       if(links){links.replaceChildren();[["LinkedIn profile","resumeLinkedIn"],["Portfolio","resumePortfolio"]].forEach(([label,id])=>{const value=fieldValue(id);if(!value)return;try{const url=new URL(value);if(url.protocol==="https:"){const anchor=document.createElement("a");anchor.href=url.href;anchor.target="_blank";anchor.rel="noopener";anchor.textContent=label;links.append(anchor);links.append(document.createTextNode(" · "))}}catch{}});if(links.lastChild?.textContent===" · ")links.lastChild.remove()}
-      const headline=$("#previewHeadline");if(headline)headline.textContent=[fieldValue("resumeRole"),fieldValue("resumeIndustry")].filter(Boolean).join(" · ");
       previewText("previewObjective","resumeObjective","Your AI-drafted objective will appear here.");
       previewText("previewEducation","resumeEducation","Your education details will appear here.");
       previewText("previewProfessional","resumeProfessional","Your professional qualifications will appear here.");
@@ -1276,15 +1364,13 @@
     theme?.addEventListener("change",()=>{if(preview)preview.dataset.theme=theme.value==="auto"?recommendedTheme:theme.value});
     layout?.addEventListener("change",()=>{if(preview)preview.dataset.layout=layout.value});
     $("#generateResumeDraft")?.addEventListener("click",async()=>{
-      const role=fieldValue("resumeRole");
-      if(!role){msg("#resumeStatus","Tell us the role you want so AI can tailor your resume.","error");$("#resumeRole")?.focus();return}
       if(!fieldValue("resumeEducation")&&!fieldValue("resumeProfessional")&&!fieldValue("resumeExperience")&&!fieldValue("resumeSkills")){msg("#resumeStatus","Add at least one education, qualification, experience or skills detail first.","error");return}
       if(!ready()){msg("#resumeStatus","Please sign in to use the free AI resume builder.","error");return}
       const button=$("#generateResumeDraft");button.disabled=true;button.textContent="Drafting your resume…";msg("#resumeStatus","AI is preparing your resume sections and recommending a design…");
       try{
         const {data:{session},error:authError}=await sb.auth.getSession();
         if(authError||!session?.access_token)throw new Error("Please sign in again to use the AI resume builder.");
-        const payload={role,industry:fieldValue("resumeIndustry"),career_stage:fieldValue("resumeCareerStage"),education:fieldValue("resumeEducation"),qualification:fieldValue("resumeProfessional"),experience:fieldValue("resumeExperience"),projects:fieldValue("resumeProjects"),skills:fieldValue("resumeSkills"),achievements:fieldValue("resumeAchievements"),languages:fieldValue("resumeLanguages"),interests:fieldValue("resumeHobbies"),theme_preference:theme?.value||"auto"};
+        const payload={career_stage:fieldValue("resumeCareerStage"),education:fieldValue("resumeEducation"),qualification:fieldValue("resumeProfessional"),experience:fieldValue("resumeExperience"),projects:fieldValue("resumeProjects"),skills:fieldValue("resumeSkills"),achievements:fieldValue("resumeAchievements"),languages:fieldValue("resumeLanguages"),interests:fieldValue("resumeHobbies"),theme_preference:theme?.value||"auto"};
         const response=await fetch("/api/ai-resume-draft",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+session.access_token},body:JSON.stringify(payload)});
         const result=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(result.error||"Could not draft your resume. Please try again.");
