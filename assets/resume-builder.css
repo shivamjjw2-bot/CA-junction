@@ -26,3 +26,17 @@
 @media(max-width:900px){.template-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}.template-choice img{height:180px}}
 @media(max-width:540px){.template-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.template-card{width:100%;margin:0}.template-choice{padding:5px}.template-choice img{height:150px}.template-choice strong{font-size:12px}.template-choice small{font-size:10px;min-height:40px}.template-zoom{font-size:11px}.colour-heading{align-items:flex-start;flex-direction:column;gap:4px}.resume-controls{padding:16px}.colour-swatch{font-size:12px;padding:8px 10px}}
 @media print{#templateDialog{display:none!important}}
+
+.master-workspace{margin:0 0 1.5rem;padding:clamp(1rem,3vw,1.65rem);border:1px solid var(--line);border-radius:18px;background:var(--panel);backdrop-filter:blur(14px)}
+.master-heading,.master-actions{display:flex;align-items:center;gap:.75rem}
+.master-heading h3{margin:0;font-size:1.5rem;color:var(--text)}
+.master-workspace p{color:var(--text);margin:.45rem 0 .85rem}
+.master-workspace label{display:block;font-weight:700;color:var(--text)}
+.master-workspace textarea{display:block;width:100%;min-height:8rem;resize:vertical;font:inherit;line-height:1.5}
+.master-actions{flex-wrap:wrap;margin-top:.7rem}
+.master-actions .btn{margin:0}
+.master-actions a{display:inline-flex;align-items:center;min-height:44px;color:var(--text);text-decoration:underline;text-underline-offset:.2em}
+.master-workspace #masterSaveHint,.master-workspace #masterDownloadStatus{font-size:.875rem;margin:.5rem 0 0}
+.master-workspace #masterDownloadStatus:empty{margin:0}
+#resumePaper{scroll-margin-top:6rem}
+@media print{.master-workspace{display:none!important}}
