@@ -13,3 +13,10 @@ html[data-theme="dark"] :is(.paper-cell .error,.status[data-state="error"]) {col
 html[data-theme="light"] :is(.metric-label,.metric-foot,.muted,.paper-muted,footer) {color:#495848;opacity:1}
 html[data-theme="light"] :is(.paper-cell .ok,.status[data-state="success"]) {color:#185c3c}
 html[data-theme="light"] :is(.paper-cell .error,.status[data-state="error"]) {color:#942e31}
+
+html[data-theme="light"] body[data-page="admin"] .btn {background:#245339;color:#fff;border-color:#365e38}
+html[data-theme="light"] body[data-page="admin"] .btn:hover {background:#173e29;color:#fff}
+html[data-theme="light"] body[data-page="admin"] .btn.danger {background:#872c32;color:#fff;border-color:#70262b}
+html[data-theme="light"] body[data-page="admin"] .sidebar-links a {color:#dcf9e6}
+html[data-theme="light"] body[data-page="admin"] .view-level-tab.active {background:#dcebdd;color:#214732}
+html[data-theme="light"] body[data-page="admin"] .skip-to-content {background:#152236;color:#fff}
