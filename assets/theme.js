@@ -2,7 +2,7 @@
 (function(){
  const key="caJunctionTheme";
  function saved(){try{return localStorage.getItem(key)==="light"?"light":"dark"}catch{return "dark"}}
- function apply(theme){document.documentElement.dataset.theme=theme;const button=document.getElementById("themeToggle");if(button){button.textContent=theme==="dark"?"☀ Switch to light":"☾ Switch to dark";button.setAttribute("aria-label",theme==="dark"?"Switch to light mode":"Switch to dark mode");button.setAttribute("aria-pressed",String(theme==="light"));button.title=button.getAttribute("aria-label");}}
+ function apply(theme){document.documentElement.dataset.theme=theme;}
  apply(saved());
  function addSkipLink(){
    const main=document.querySelector("main");
@@ -15,7 +15,10 @@
    link.textContent="Skip to main content";
    document.body.prepend(link);
  }
- function mount(){addSkipLink();const button=document.createElement("button");button.id="themeToggle";button.className="theme-toggle";button.type="button";button.addEventListener("click",()=>{const next=document.documentElement.dataset.theme==="light"?"dark":"light";try{localStorage.setItem(key,next)}catch{}apply(next)});const nav=document.querySelector("header .nav");if(nav){nav.classList.add("theme-nav");const menu=nav.querySelector(".menu");nav.insertBefore(button,menu||null);}else{(document.querySelector('footer') || document.body).append(button);}apply(saved());}
+ function mount(){
+   addSkipLink();
+   document.querySelector("header .nav")?.classList.add("theme-nav");
+ }
 
  function bindBackLinks(){
    for(const link of document.querySelectorAll('header a[href]')){
