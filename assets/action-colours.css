@@ -1,5 +1,5 @@
 /* A narrow edge highlight gives the matte colour surface a satin finish. */
-html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a) {
+html[data-theme] :is(button:not(.menu,.admin-nav-button,.template-choice,[data-admin-nav]), input[type="button"], input[type="submit"], input[type="reset"], .btn, .paper-btn):not(.service-tile,.card,.service-group,.action-app,.level-app,.app,.tracker-steps button,.view-level-tab,.level-tab,[role="tab"]) {
   background-color: var(--action-fill, #244bb8) !important;
   background-image: linear-gradient(160deg, var(--action-light, #365ecb) 0%, var(--action-fill, #244bb8) 54%, var(--action-shade, #263f94) 100%) !important;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 40%), inset 0 -1px 0 rgb(0 0 0 / 20%), 0 2px 5px rgb(15 23 42 / 20%);
@@ -33,7 +33,7 @@ html[data-theme] .google-sign-in {
   --action-ink: #202124;
   --action-edge: #747775;
 }
-html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a) :is(strong, small, h2, h3, .major-copy span, .name) {
+html[data-theme] :is(button:not(.menu,.admin-nav-button,.template-choice,[data-admin-nav]), input[type="button"], input[type="submit"], input[type="reset"], .btn, .paper-btn):not(.service-tile,.card,.service-group,.action-app,.level-app,.app,.tracker-steps button,.view-level-tab,.level-tab,[role="tab"]) :is(strong, small, h2, h3, .major-copy span, .name) {
   color: var(--action-ink, #fff) !important;
 }
 html[data-theme] .resume-form summary,
@@ -43,11 +43,11 @@ html[data-theme] .design-options > summary {
   cursor: pointer;
 }
 html[data-theme] .site-back-link {border-radius:.55rem}
-html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a):focus-visible {
+html[data-theme] :is(button:not(.menu,.admin-nav-button,.template-choice,[data-admin-nav]), input[type="button"], input[type="submit"], input[type="reset"], .btn, .paper-btn):not(.service-tile,.card,.service-group,.action-app,.level-app,.app,.tracker-steps button,.view-level-tab,.level-tab,[role="tab"]):focus-visible {
   outline: 3px solid currentColor;
   outline-offset: -5px;
 }
-html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a):disabled {
+html[data-theme] :is(button:not(.menu,.admin-nav-button,.template-choice,[data-admin-nav]), input[type="button"], input[type="submit"], input[type="reset"], .btn, .paper-btn):not(.service-tile,.card,.service-group,.action-app,.level-app,.app,.tracker-steps button,.view-level-tab,.level-tab,[role="tab"]):disabled {
   --action-light: #495769;
   --action-fill: #404b59;
   --action-shade: #384252;
@@ -57,14 +57,14 @@ html[data-theme] :is(button, input[type="button"], input[type="submit"], input[t
 }
 
 @media (hover: hover) {
-  html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a):not(:disabled):hover {
+  html[data-theme] :is(button:not(.menu,.admin-nav-button,.template-choice,[data-admin-nav]), input[type="button"], input[type="submit"], input[type="reset"], .btn, .paper-btn):not(.service-tile,.card,.service-group,.action-app,.level-app,.app,.tracker-steps button,.view-level-tab,.level-tab,[role="tab"]):not(:disabled):hover {
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 62%), inset 0 0 0 1px rgb(255 255 255 / 20%), 0 3px 8px rgb(15 23 42 / 24%);
   }
 }
-html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a):not(:disabled):active {box-shadow: inset 0 2px 4px rgb(0 0 0 / 24%)}
+html[data-theme] :is(button:not(.menu,.admin-nav-button,.template-choice,[data-admin-nav]), input[type="button"], input[type="submit"], input[type="reset"], .btn, .paper-btn):not(.service-tile,.card,.service-group,.action-app,.level-app,.app,.tracker-steps button,.view-level-tab,.level-tab,[role="tab"]):not(:disabled):active {box-shadow: inset 0 2px 4px rgb(0 0 0 / 24%)}
 @media (prefers-reduced-motion: reduce) {
-  html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a) {transition: none}
+  html[data-theme] :is(button:not(.menu,.admin-nav-button,.template-choice,[data-admin-nav]), input[type="button"], input[type="submit"], input[type="reset"], .btn, .paper-btn):not(.service-tile,.card,.service-group,.action-app,.level-app,.app,.tracker-steps button,.view-level-tab,.level-tab,[role="tab"]) {transition: none}
 }
 @media (forced-colors: active) {
-  html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a) {background-image: none !important;box-shadow: none}
+  html[data-theme] :is(button:not(.menu,.admin-nav-button,.template-choice,[data-admin-nav]), input[type="button"], input[type="submit"], input[type="reset"], .btn, .paper-btn):not(.service-tile,.card,.service-group,.action-app,.level-app,.app,.tracker-steps button,.view-level-tab,.level-tab,[role="tab"]) {background-image: none !important;box-shadow: none}
 }

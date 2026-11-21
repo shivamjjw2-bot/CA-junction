@@ -2,7 +2,9 @@
 (function(){
  const key="caJunctionTheme";
  function saved(){try{return localStorage.getItem(key)==="light"?"light":"dark"}catch{return "dark"}}
- function apply(theme){document.documentElement.dataset.theme=theme;}
+ function apply(theme){document.documentElement.dataset.theme=theme;
+   const toggle=document.getElementById("themeToggle");
+   if(toggle)toggle.textContent=theme==="light"?"Switch to Dark Mode":"Switch to Light Mode";}
  apply(saved());
  function addSkipLink(){
    const main=document.querySelector("main");
@@ -17,7 +19,18 @@
  }
  function mount(){
    addSkipLink();
-   document.querySelector("header .nav")?.classList.add("theme-nav");
+   const nav=document.querySelector("header .nav,header .inner-navigation") || document.querySelector("header");
+   if(!nav || document.getElementById("themeToggle"))return;
+   nav.classList.add("theme-nav");
+   const button=document.createElement("button");
+   button.type="button"; button.id="themeToggle"; button.className="theme-toggle";
+   button.addEventListener("click",()=>{
+     const next=document.documentElement.dataset.theme==="light"?"dark":"light";
+     try{localStorage.setItem(key,next)}catch{}
+     apply(next);
+   });
+   nav.insertBefore(button,nav.querySelector(":scope > .menu"));
+   apply(saved());
  }
 
  function bindBackLinks(){

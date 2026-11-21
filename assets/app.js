@@ -42,157 +42,193 @@
   const setHtml = (element, html) => { if (element) element.innerHTML = html; };
   const escapeAttr = value => safeText(value).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
-  const timerStateKey="caJunctionStudyTimer";
-  function readTimerState(){try{const saved=JSON.parse(localStorage.getItem(timerStateKey)||"{}");return{owner:saved.owner,elapsed:Number(saved.elapsed)||0,runningSince:Number(saved.runningSince)||null,minimized:Boolean(saved.minimized),countdownMinimized:Boolean(saved.countdownMinimized),focusMode:Boolean(saved.focusMode)}}catch{return{elapsed:0,runningSince:null,minimized:false,focusMode:false}}}
-  let studyTimer=readTimerState();
-  function saveTimerState(){localStorage.setItem(timerStateKey,JSON.stringify(studyTimer));window.dispatchEvent(new Event("ca:timer-update"))}
-  function currentTimerSeconds(){return studyTimer.elapsed+(studyTimer.runningSince?Math.max(0,Math.floor((Date.now()-studyTimer.runningSince)/1000)):0)}
-  function timerClock(seconds){const h=String(Math.floor(seconds/3600)).padStart(2,"0"),m=String(Math.floor(seconds%3600/60)).padStart(2,"0"),s=String(seconds%60).padStart(2,"0");return h+":"+m+":"+s}
-  const dayFormatter = new Intl.DateTimeFormat(undefined, {weekday:"long", day:"numeric", month:"long", year:"numeric"});
-  function midnight(time) {
-    const date = new Date(time);
-    return date.setHours(0, 0, 0, 0);
-  }
-  function nextMidnight(time) {
-    const date = new Date(midnight(time));
-    return date.setDate(date.getDate() + 1);
-  }
+  const timerStateKey = "caJunctionStudyTimer";
   const dayMs = 86400000;
-  const periodMs = 30 * dayMs;
   let timerOwner = null;
-  let localStudy = null;
-  let cloudRows = {};
-  let fetchedAt = 0;
-  let readVersion = 0;
-
-  function keysFor(owner) {
-    const suffix = (owner || "guest") + ":";
-    return {anchor:"caJunctionStudyStart:" + suffix, rows:"caJunctionStudyLog:" + suffix, legacy:"caJunctionStudyDay:" + suffix};
+  let identityReady = !ready();
+  let localRows = null, remoteRows = {}, fetchedAt = 0, version = 0, lastCutoff = 0;
+  let lastTable = null;
+  const syncInFlight = new Set();
+  function ownerKey(){return timerStateKey+":"+(timerOwner || "guest")}
+  function readTimerState(){
+    try {
+      const legacy = JSON.parse(localStorage.getItem(timerStateKey)||"null");
+      if(identityReady && legacy && (legacy.owner || null)===timerOwner){
+        if(!localStorage.getItem(ownerKey()))localStorage.setItem(ownerKey(),JSON.stringify(legacy));
+        localStorage.removeItem(timerStateKey);
+      }
+      const state = identityReady ? JSON.parse(localStorage.getItem(ownerKey())||"{}") : {};
+      return {...state, elapsed:Number(state.elapsed)||0, runningSince:Number(state.runningSince)||null};
+    }catch{return {elapsed:0,runningSince:null}}
   }
-  function rememberStart(owner, time) {
-    const key = keysFor(owner).anchor;
-    const old = Number(localStorage.getItem(key));
-    if (time > 0 && (!old || time < old)) localStorage.setItem(key,String(time));
+  let studyTimer = readTimerState();
+  function saveTimerState(){
+    if(identityReady)localStorage.setItem(ownerKey(),JSON.stringify(studyTimer));
+    window.dispatchEvent(new Event("ca:timer-update"));
   }
-  function periodStart(anchor, now) {
-    return anchor + Math.max(0,Math.floor((now - anchor) / periodMs)) * periodMs;
+  function currentTimerSeconds(){return studyTimer.elapsed+(studyTimer.runningSince?Math.max(0,Math.floor((Date.now()-studyTimer.runningSince)/1000)):0)}
+  function timerClock(seconds){return [Math.floor(seconds/3600),Math.floor(seconds%3600/60),seconds%60].map(n=>String(n).padStart(2,"0")).join(":")}
+  function midnight(time){const d=new Date(time);return d.setHours(0,0,0,0)}
+  function shiftDay(time,days){const d=new Date(midnight(time));return d.setDate(d.getDate()+days)}
+  function keysFor(owner){
+    const suffix=(owner||"guest")+":";
+    return {rows:"caJunctionStudyLog:"+suffix,legacy:"caJunctionStudyDay:"+suffix};
   }
-  function readLocalStudy(owner, now) {
-    const keys = keysFor(owner);
-    const rows = {};
-    const expired = [];
-    for (const key of Object.keys(localStorage)) {
-      const legacy = key.startsWith(keys.legacy);
-      if (!legacy && !key.startsWith(keys.rows)) continue;
-      const prefix = legacy ? keys.legacy : keys.rows;
-      const start = Number(key.slice(prefix.length));
-      if (!Number.isFinite(start) || start <= 0) continue;
-      rememberStart(owner,start);
-      if ((legacy ? nextMidnight(start) : start+dayMs) <= now-periodMs) { expired.push(key); continue; }
-      try {
-        const record = JSON.parse(localStorage.getItem(key));
-        if (legacy) {
-          for (const [id,seconds] of Object.entries(record)) rows[id] = {start,seconds};
-        } else rows[record.id] = {start,seconds:record.duration_seconds};
-      } catch { /* Skip unreadable records. */ }
+  function readLocalStudy(owner,cutoff){
+    const keys=keysFor(owner), rows={};
+    for(const key of Object.keys(localStorage)){
+      const legacy=key.startsWith(keys.legacy);
+      if(!legacy&&!key.startsWith(keys.rows))continue;
+      const start=Number(key.slice((legacy?keys.legacy:keys.rows).length));
+      try{
+        const value=JSON.parse(localStorage.getItem(key));
+        const end=legacy?shiftDay(start,1):start+value.duration_seconds*1000;
+        if(end<=cutoff){localStorage.removeItem(key);continue}
+        if(legacy){for(const [id,seconds] of Object.entries(value))rows[id]={start,seconds};}
+        else if(value.user_id===owner)rows[value.id]={start,seconds:value.duration_seconds,pending:value.pending?value:null};
+      }catch{}
     }
-    for (const key of expired) localStorage.removeItem(key);
     return rows;
   }
-  if (ready()) sb.auth.onAuthStateChange((_event, session) => {
-    const owner = session?.user?.id || null;
-    if (timerOwner !== owner) {
-      timerOwner = owner;
-      localStudy = null;
-      cloudRows = {};
-      fetchedAt = 0;
-      readVersion++;
-    }
-  });
-  window.addEventListener("storage", event => {
-    if (!event.key || event.key.startsWith("caJunctionStudy")) localStudy = null;
-  });
-
-  async function refreshStudyHistory(owner, now, version) {
-    const first = await sb.from("study_sessions").select("started_at").eq("user_id",owner)
-      .order("started_at").limit(1);
-    if (first.error || version !== readVersion) return;
-    if (first.data.length) rememberStart(owner,Date.parse(first.data[0].started_at));
-    const rows = {};
-    for (let offset = 0;; offset += 500) {
-      const {data,error} = await sb.from("study_sessions").select("id,started_at,duration_seconds")
-        .eq("user_id",owner).gte("started_at",new Date(now-periodMs-dayMs).toISOString())
-        .order("id").range(offset,offset+499);
-      if (error || version !== readVersion) return;
-      for (const row of data) rows[row.id] = {start:Date.parse(row.started_at),seconds:row.duration_seconds};
-      if (data.length < 500) break;
-    }
-    cloudRows = rows;
-  }
-
-  function renderStudyPeriod(now = Date.now()) {
-    const total = $("#todayHours");
-    if (!total) return;
-    if (!localStudy || now - fetchedAt >= 60000) localStudy = readLocalStudy(timerOwner,now);
-    if (now - fetchedAt >= 60000) {
-      fetchedAt = now;
-      if (timerOwner && ready()) refreshStudyHistory(timerOwner,now,++readVersion).catch(()=>{});
-    }
-    const since = studyTimer.runningSince;
-    const active = since && (studyTimer.owner === undefined || studyTimer.owner === timerOwner);
-    if (active) rememberStart(timerOwner,since);
-    const anchor = Number(localStorage.getItem(keysFor(timerOwner).anchor));
-    const range = $("#studyDayDate");
-    if (!anchor) {
-      total.textContent = timerClock(0);
-      range.textContent = "Starts with your first session";
-      return;
-    }
-    const start = periodStart(anchor,now);
-    let ms = active ? Math.max(0,now-Math.max(start,since)) : 0;
-    for (const row of Object.values({...localStudy,...cloudRows})) {
-      const end = Math.min(now,row.start + Number(row.seconds)*1000);
-      ms += Math.max(0,end-Math.max(row.start,start));
-    }
-    total.textContent = timerClock(Math.floor(ms/1000));
-    const reset = new Date(start+periodMs);
-    const label = "Resets " + dayFormatter.format(reset) + " at " + reset.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
-    if (range.textContent !== label) range.textContent = label;
-  }
-
-  function saveStudyInterval(from, until, owner) {
-    rememberStart(owner,from);
-    const rows = [];
-    while (from < until) {
-      const end = Math.min(until,from+dayMs);
-      const seconds = Math.floor((end-from)/1000);
-      if (seconds) {
-        const row = {id:crypto.randomUUID(),user_id:owner,started_at:new Date(from).toISOString(),duration_seconds:seconds};
-        localStorage.setItem(keysFor(owner).rows+from,JSON.stringify(row));
-        rows.push(row);
+  async function syncRows(owner,records){
+    if(!owner||!ready()||syncInFlight.has(owner))return;
+    const pending=Object.values(records).map(r=>r.pending).filter(Boolean);
+    if(!pending.length)return;
+    syncInFlight.add(owner);
+    try{
+      for(let i=0;i<pending.length;i+=100){
+        const batch=pending.slice(i,i+100);
+        const {error}=await sb.from("study_sessions").upsert(batch.map(({pending,...row})=>row),{onConflict:"id",ignoreDuplicates:false});
+        if(error)return;
+        for(const row of batch){
+          const key=keysFor(owner).rows+Date.parse(row.started_at);
+          if(JSON.parse(localStorage.getItem(key)||"null")?.duration_seconds===row.duration_seconds)localStorage.setItem(key,JSON.stringify({...row,pending:false}));
+        }
       }
-      from = end;
-    }
-    localStudy = null;
-    if (owner && ready() && rows.length) Promise.resolve(sb.from("study_sessions").insert(rows)).catch(()=>{});
+      localRows=null;
+    }finally{syncInFlight.delete(owner)}
   }
-  function pauseStudyTimer() {
+  if(ready())sb.auth.onAuthStateChange((_event,session)=>{
+    const owner=session?.user?.id||null;
+    if(!identityReady || owner!==timerOwner){
+      identityReady=true;timerOwner=owner;localRows=null;remoteRows={};fetchedAt=0;version++;
+      studyTimer=readTimerState();
+      window.dispatchEvent(new Event("ca:timer-update"));
+    }
+  });
+  window.addEventListener("storage",event=>{if(!event.key||event.key.startsWith("caJunctionStudy"))localRows=null});
+  let cleanedHistory = "";
+  async function removeExpiredSessions(owner, cutoff, request) {
+    const marker = owner + ":" + cutoff;
+    if (cleanedHistory === marker) return;
+    let cursor = null;
+    for (;;) {
+      let query = sb.from("study_sessions").select("id,started_at,duration_seconds")
+        .eq("user_id",owner).lt("started_at",new Date(cutoff).toISOString()).order("id").limit(200);
+      if (cursor) query=query.gt("id",cursor);
+      const {data,error}=await query;
+      if (error || request!==version) return;
+      const expired=data.filter(row=>Date.parse(row.started_at)+row.duration_seconds*1000<=cutoff);
+      if (expired.length) {
+        const removal=await sb.from("study_sessions").delete().eq("user_id",owner).in("id",expired.map(row=>row.id));
+        if(removal.error || request!==version)return;
+      }
+      if(data.length<200)break;
+      cursor=data[data.length-1].id;
+    }
+    cleanedHistory=marker;
+  }
+  async function refreshStudyHistory(owner,cutoff,request){
+    const rows={};
+    for(let offset=0;;offset+=500){
+      const {data,error}=await sb.from("study_sessions").select("id,started_at,duration_seconds")
+        .eq("user_id",owner).gte("started_at",new Date(cutoff-dayMs).toISOString()).order("id").range(offset,offset+499);
+      if(error||request!==version)return;
+      for(const row of data)rows[row.id]={start:Date.parse(row.started_at),seconds:row.duration_seconds};
+      if(data.length<500)break;
+    }
+    remoteRows=rows;
+    await removeExpiredSessions(owner,cutoff,request);
+  }
+  function saveStudyInterval(from,until,owner){
+    const keys=keysFor(owner);
+    from=Math.max(from,shiftDay(until,-29));
+    while(from<until){
+      const hour = Math.floor(from / 3600000) * 3600000;
+      const start = Math.max(studyTimer.runningSince, midnight(from), hour);
+      const end = Math.min(until, shiftDay(from,1), hour+3600000);
+      const seconds = Math.floor((end-start)/1000);
+      const key = keys.rows+start;
+      const previous = JSON.parse(localStorage.getItem(key)||"null");
+      if(seconds > (previous?.duration_seconds || 0)){
+        const row={id:previous?.id || crypto.randomUUID(),user_id:owner,started_at:new Date(start).toISOString(),duration_seconds:seconds,pending:!!owner};
+        localStorage.setItem(key,JSON.stringify(row));
+      }
+      from=end;
+    }
+    localRows=null;
+    if(owner)syncRows(owner,readLocalStudy(owner,shiftDay(until,-29))).catch(()=>{});
+  }
+  function checkpoint(now,force=false){
     studyTimer=readTimerState();
-    if (!studyTimer.runningSince) return;
-    const now=Date.now();
-    saveStudyInterval(studyTimer.runningSince,now,studyTimer.owner === undefined ? timerOwner : studyTimer.owner);
-    studyTimer.elapsed+=Math.max(0,Math.floor((now-studyTimer.runningSince)/1000));
-    studyTimer.runningSince=null;
-    studyTimer.focusMode=false;
+    if(!studyTimer.runningSince)return;
+    const from=studyTimer.savedThrough||studyTimer.runningSince;
+    const seconds=Math.floor((now-from)/1000);
+    if(seconds<(force?1:60))return;
+    const end=from+seconds*1000;
+    saveStudyInterval(from,end,timerOwner);
+    studyTimer.savedThrough=end;
+    localStorage.setItem(ownerKey(),JSON.stringify(studyTimer));
+  }
+  window.addEventListener("pagehide",()=>checkpoint(Date.now(),true));
+  const dateFormat=new Intl.DateTimeFormat("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+  const weekdayFormat=new Intl.DateTimeFormat("en-GB",{weekday:"long"});
+  function renderStudyPeriod(now=Date.now()){
+    const body=$("#studyHistoryRows");
+    if(!body||!identityReady)return;
+    checkpoint(now);
+    const cutoff=shiftDay(now,-29);
+    if(!localRows||cutoff!==lastCutoff||now-fetchedAt>=60000)localRows=readLocalStudy(timerOwner,cutoff);
+    if(cutoff!==lastCutoff||now-fetchedAt>=60000){
+      fetchedAt=now;lastCutoff=cutoff;
+      if(timerOwner){
+        syncRows(timerOwner,localRows).catch(()=>{});
+        refreshStudyHistory(timerOwner,cutoff,++version).catch(()=>{});
+      }
+    }
+    const days=new Map();
+    function add(from,to){
+      for(let t=Math.max(cutoff,from);t<Math.min(now,to);){
+        const day=midnight(t),end=Math.min(to,now,shiftDay(day,1));
+        days.set(day,(days.get(day)||0)+end-t);t=end;
+      }
+    }
+    for(const row of Object.values({...remoteRows,...localRows}))add(row.start,row.start+row.seconds*1000);
+    if(studyTimer.runningSince)add(studyTimer.savedThrough||studyTimer.runningSince,now);
+    const entries=[...days].sort((a,b)=>b[0]-a[0]).map(([day,ms])=>[day,Math.floor(ms/60000)]);
+    const signature=JSON.stringify(entries);
+    if(lastTable===signature)return;
+    lastTable=signature;body.replaceChildren();
+    for(const [day,minutes] of entries){
+      const tr=document.createElement("tr");
+      const hours=String(Math.floor(minutes/60)).padStart(2,"0")+"h "+String(minutes%60).padStart(2,"0")+"m";
+      for(const label of [dateFormat.format(day),weekdayFormat.format(day),hours]){
+        const td=document.createElement("td");td.textContent=label;tr.append(td);
+      }
+      body.append(tr);
+    }
+    $("#studyHistoryEmpty").hidden=entries.length>0;
+  }
+  function pauseStudyTimer(){
+    checkpoint(Date.now(),true);
+    if(!studyTimer.runningSince)return;
+    studyTimer.elapsed=currentTimerSeconds();studyTimer.runningSince=null;studyTimer.savedThrough=null;studyTimer.focusMode=false;
     saveTimerState();
   }
-  function startStudyTimer() {
+  function startStudyTimer(){
     studyTimer=readTimerState();
-    if (!studyTimer.runningSince) {
-      studyTimer.runningSince=Date.now();
-      studyTimer.owner=timerOwner;
-      rememberStart(timerOwner,studyTimer.runningSince);
-      saveTimerState();
+    if(identityReady&&!studyTimer.runningSince){
+      studyTimer.runningSince=Date.now();studyTimer.savedThrough=null;studyTimer.owner=timerOwner;saveTimerState();
     }
   }
   function initTimerDock(){
@@ -1179,12 +1215,12 @@
     window.addEventListener("ca:timer-update",()=>{studyTimer=readTimerState();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized)});
     $("#countdownButton")?.addEventListener("click",renderCountdown);renderCountdown();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized);
     const display=$("#focusTimer"),startButton=$("#timerStart"),pauseButton=$("#timerPause"),resetButton=$("#timerReset"),minimizeButton=$("#timerMinimize"),focusButton=$("#timerFocus"),panel=$("#timerPanel");
-    const renderTimer=()=>{studyTimer=readTimerState();renderStudyPeriod();if(display)display.textContent=timerClock(currentTimerSeconds());if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":(currentTimerSeconds()?"Resume session":"Start session");startButton.disabled=Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(minimizeButton)minimizeButton.disabled=studyTimer.focusMode;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Pause & exit focus":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
+    const renderTimer=()=>{studyTimer=readTimerState();renderStudyPeriod();if(display)display.textContent=timerClock(currentTimerSeconds());if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":(currentTimerSeconds()?"Resume session":"Start session");startButton.disabled=!identityReady||Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(minimizeButton)minimizeButton.disabled=studyTimer.focusMode;if(focusButton)focusButton.disabled=!identityReady;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Pause & exit focus":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
     startButton?.addEventListener("click",()=>{startStudyTimer();renderTimer();msg("#timerStatus","Session running. Your elapsed time is saved on this device.")});
     pauseButton?.addEventListener("click",()=>{pauseStudyTimer();renderTimer();msg("#timerStatus","Paused and saved. Resume to continue from this time.")});
     resetButton?.addEventListener("click",()=>{if(studyTimer.runningSince)pauseStudyTimer();studyTimer=readTimerState();studyTimer.elapsed=0;studyTimer.runningSince=null;studyTimer.focusMode=false;saveTimerState();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});msg("#timerStatus","Session finished. All paused time remains in your study-hours total.")});
     minimizeButton?.addEventListener("click",()=>{studyTimer=readTimerState();studyTimer.minimized=true;saveTimerState();renderTimer()});
-    focusButton?.addEventListener("click",async()=>{studyTimer=readTimerState();if(studyTimer.focusMode){pauseStudyTimer();if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});renderTimer();msg("#timerStatus","Focus mode ended. Your study time is saved; you can use other resources now.");return}try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen()}catch{}}studyTimer.focusMode=true;if(!studyTimer.runningSince){studyTimer.runningSince=Date.now();studyTimer.owner=timerOwner;rememberStart(timerOwner,studyTimer.runningSince);}saveTimerState();msg("#timerStatus","Focus mode is on. Leaving this page will pause and save your session.")}catch{studyTimer.focusMode=false;saveTimerState();msg("#timerStatus","Fullscreen is unavailable in this browser. You can still use the timer normally.","error")}renderTimer()});
+    focusButton?.addEventListener("click",async()=>{studyTimer=readTimerState();if(studyTimer.focusMode){pauseStudyTimer();if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});renderTimer();msg("#timerStatus","Focus mode ended. Your study time is saved; you can use other resources now.");return}try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen()}catch{}}studyTimer.focusMode=true;if(!studyTimer.runningSince){studyTimer.runningSince=Date.now();studyTimer.owner=timerOwner;studyTimer.savedThrough=null;}saveTimerState();msg("#timerStatus","Focus mode is on. Leaving this page will pause and save your session.")}catch{studyTimer.focusMode=false;saveTimerState();msg("#timerStatus","Fullscreen is unavailable in this browser. You can still use the timer normally.","error")}renderTimer()});
     const leaveFocusPage=()=>{studyTimer=readTimerState();if(studyTimer.focusMode)pauseStudyTimer()};
     document.addEventListener("visibilitychange",()=>{studyTimer=readTimerState();if(document.visibilityState==="hidden"&&studyTimer.focusMode){pauseStudyTimer();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}});
     window.addEventListener("pagehide",leaveFocusPage);

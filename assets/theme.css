@@ -91,3 +91,14 @@ header .site-back-link{display:inline-flex;align-items:center;min-height:44px;ma
 html[data-theme="dark"] #themeToggle {background:#24344b;color:#fff;border-color:#8298b5}
 html[data-theme="light"] #themeToggle {background:#edf4ea;color:#203c2b;border-color:#627966}
 #themeToggle {font-weight:750;text-shadow:none;-webkit-text-fill-color:currentColor;opacity:1}
+
+.service-group :is(.major-icon,.app-icon) svg{display:block;width:1.35rem;height:1.35rem;flex:none}
+.service-group .major-icon svg{width:1.6rem;height:1.6rem}
+header .theme-nav > #themeToggle{position:static;margin-inline-start:auto;width:auto;min-width:0;padding-inline:.65rem;font-size:.78rem;white-space:nowrap}
+@media(max-width:420px){header .theme-nav > #themeToggle{font-size:.72rem;padding-inline:.4rem}}
+
+@media(max-width:900px){
+  html[data-theme="dark"] header .navlinks.open{background:rgba(16,22,39,.89)}
+  html[data-theme="light"] header .navlinks.open{background:rgba(250,249,239,.9)}
+  header .navlinks.open{-webkit-backdrop-filter:blur(20px) saturate(135%);backdrop-filter:blur(20px) saturate(135%);box-shadow:0 12px 30px #14213b26}
+}
