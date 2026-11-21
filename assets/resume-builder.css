@@ -31,7 +31,7 @@
 .master-heading,.master-actions{display:flex;align-items:center;gap:.75rem}
 .master-heading svg{width:28px;height:28px;flex:none}
 .master-heading h3{margin:0;font-size:clamp(1.1rem,2vw,1.3rem);color:var(--text)}
-.master-workspace textarea{display:block;box-sizing:border-box;width:100%;margin:.5rem 0 0;min-height:48px;max-height:18rem;padding:.55rem .75rem;field-sizing:content;resize:vertical;overflow:auto;font:inherit;line-height:1.45}
+.master-workspace textarea{display:block;box-sizing:border-box;width:100%;margin:.5rem 0 0;min-height:4.5rem;max-height:18rem;padding:.75rem 1rem;field-sizing:content;resize:vertical;overflow:auto;font:inherit;line-height:1.45}
 .master-workspace textarea::placeholder{color:var(--muted);opacity:1}
 .master-actions{flex-wrap:wrap;gap:.35rem .7rem;margin-top:.45rem}
 .master-actions .btn{margin:0}
