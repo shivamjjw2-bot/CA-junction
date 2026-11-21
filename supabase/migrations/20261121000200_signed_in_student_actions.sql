@@ -1,0 +1,2 @@
+revoke execute on function public.create_mcq_attempt(uuid,jsonb), public.register_material_download(uuid), public.remove_own_student_note(uuid), public.create_payment_order(uuid), public.submit_upi_reference(uuid,text) from public, anon;
+grant execute on function public.create_mcq_attempt(uuid,jsonb), public.register_material_download(uuid), public.remove_own_student_note(uuid), public.create_payment_order(uuid), public.submit_upi_reference(uuid,text) to authenticated;
