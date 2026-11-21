@@ -57,76 +57,124 @@
     const date = new Date(midnight(time));
     return date.setDate(date.getDate() + 1);
   }
-  function studyDayKey(owner, time) {
-    return "caJunctionStudyDay:" + (owner || "guest") + ":" + midnight(time);
-  }
-  function readDay(key) {
-    try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; }
-  }
+  const dayMs = 86400000;
+  const periodMs = 30 * dayMs;
   let timerOwner = null;
-  let loadedDay = "";
+  let localStudy = null;
   let cloudRows = {};
-  let lastRead = 0;
-  let requestVersion = 0;
+  let fetchedAt = 0;
+  let readVersion = 0;
+
+  function keysFor(owner) {
+    const suffix = (owner || "guest") + ":";
+    return {anchor:"caJunctionStudyStart:" + suffix, rows:"caJunctionStudyLog:" + suffix, legacy:"caJunctionStudyDay:" + suffix};
+  }
+  function rememberStart(owner, time) {
+    const key = keysFor(owner).anchor;
+    const old = Number(localStorage.getItem(key));
+    if (time > 0 && (!old || time < old)) localStorage.setItem(key,String(time));
+  }
+  function periodStart(anchor, now) {
+    return anchor + Math.max(0,Math.floor((now - anchor) / periodMs)) * periodMs;
+  }
+  function readLocalStudy(owner, now) {
+    const keys = keysFor(owner);
+    const rows = {};
+    const expired = [];
+    for (const key of Object.keys(localStorage)) {
+      const legacy = key.startsWith(keys.legacy);
+      if (!legacy && !key.startsWith(keys.rows)) continue;
+      const prefix = legacy ? keys.legacy : keys.rows;
+      const start = Number(key.slice(prefix.length));
+      if (!Number.isFinite(start) || start <= 0) continue;
+      rememberStart(owner,start);
+      if ((legacy ? nextMidnight(start) : start+dayMs) <= now-periodMs) { expired.push(key); continue; }
+      try {
+        const record = JSON.parse(localStorage.getItem(key));
+        if (legacy) {
+          for (const [id,seconds] of Object.entries(record)) rows[id] = {start,seconds};
+        } else rows[record.id] = {start,seconds:record.duration_seconds};
+      } catch { /* Skip unreadable records. */ }
+    }
+    for (const key of expired) localStorage.removeItem(key);
+    return rows;
+  }
   if (ready()) sb.auth.onAuthStateChange((_event, session) => {
     const owner = session?.user?.id || null;
     if (timerOwner !== owner) {
       timerOwner = owner;
-      loadedDay = "";
+      localStudy = null;
       cloudRows = {};
-      requestVersion++;
+      fetchedAt = 0;
+      readVersion++;
     }
   });
-  async function refreshStudyDay(owner, start, key, version) {
+  window.addEventListener("storage", event => {
+    if (!event.key || event.key.startsWith("caJunctionStudy")) localStudy = null;
+  });
+
+  async function refreshStudyHistory(owner, now, version) {
+    const first = await sb.from("study_sessions").select("started_at").eq("user_id",owner)
+      .order("started_at").limit(1);
+    if (first.error || version !== readVersion) return;
+    if (first.data.length) rememberStart(owner,Date.parse(first.data[0].started_at));
     const rows = {};
     for (let offset = 0;; offset += 500) {
-      const {data,error} = await sb.from("study_sessions").select("id,duration_seconds")
-        .eq("user_id",owner).gte("started_at",new Date(start).toISOString())
-        .lt("started_at",new Date(nextMidnight(start)).toISOString())
+      const {data,error} = await sb.from("study_sessions").select("id,started_at,duration_seconds")
+        .eq("user_id",owner).gte("started_at",new Date(now-periodMs-dayMs).toISOString())
         .order("id").range(offset,offset+499);
-      if (error || version !== requestVersion || loadedDay !== key) return;
-      for (const row of data) rows[row.id] = row.duration_seconds;
+      if (error || version !== readVersion) return;
+      for (const row of data) rows[row.id] = {start:Date.parse(row.started_at),seconds:row.duration_seconds};
       if (data.length < 500) break;
     }
     cloudRows = rows;
   }
-  function renderStudyDay(now = Date.now()) {
+
+  function renderStudyPeriod(now = Date.now()) {
     const total = $("#todayHours");
     if (!total) return;
-    const start = midnight(now);
-    const key = studyDayKey(timerOwner, now);
-    if (loadedDay !== key) { loadedDay = key; cloudRows = {}; lastRead = 0; }
-    if (timerOwner && ready() && now - lastRead >= 60000) {
-      lastRead = now;
-      refreshStudyDay(timerOwner,start,key,++requestVersion).catch(()=>{});
+    if (!localStudy || now - fetchedAt >= 60000) localStudy = readLocalStudy(timerOwner,now);
+    if (now - fetchedAt >= 60000) {
+      fetchedAt = now;
+      if (timerOwner && ready()) refreshStudyHistory(timerOwner,now,++readVersion).catch(()=>{});
     }
-    const records = {...cloudRows,...readDay(key)};
-    const saved = Object.values(records).reduce((sum,seconds)=>sum+Number(seconds),0);
     const since = studyTimer.runningSince;
-    const active = since && (studyTimer.owner === undefined || studyTimer.owner === timerOwner)
-      ? Math.max(0,Math.floor((now-Math.max(start,since))/1000)) : 0;
-    total.textContent = timerClock(saved + active);
-    const date = $("#studyDayDate");
-    if (date) date.textContent = dayFormatter.format(now);
+    const active = since && (studyTimer.owner === undefined || studyTimer.owner === timerOwner);
+    if (active) rememberStart(timerOwner,since);
+    const anchor = Number(localStorage.getItem(keysFor(timerOwner).anchor));
+    const range = $("#studyDayDate");
+    if (!anchor) {
+      total.textContent = timerClock(0);
+      range.textContent = "Starts with your first session";
+      return;
+    }
+    const start = periodStart(anchor,now);
+    let ms = active ? Math.max(0,now-Math.max(start,since)) : 0;
+    for (const row of Object.values({...localStudy,...cloudRows})) {
+      const end = Math.min(now,row.start + Number(row.seconds)*1000);
+      ms += Math.max(0,end-Math.max(row.start,start));
+    }
+    total.textContent = timerClock(Math.floor(ms/1000));
+    const reset = new Date(start+periodMs);
+    const label = "Resets " + dayFormatter.format(reset) + " at " + reset.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+    if (range.textContent !== label) range.textContent = label;
   }
+
   function saveStudyInterval(from, until, owner) {
+    rememberStart(owner,from);
     const rows = [];
     while (from < until) {
-      const end = Math.min(until,nextMidnight(from),from+86400000);
+      const end = Math.min(until,from+dayMs);
       const seconds = Math.floor((end-from)/1000);
       if (seconds) {
-        const key = studyDayKey(owner,from);
-        const id = crypto.randomUUID();
-        const records = readDay(key);
-        records[id] = seconds;
-        localStorage.setItem(key,JSON.stringify(records));
-        rows.push({id,user_id:owner,started_at:new Date(from).toISOString(),duration_seconds:seconds});
+        const row = {id:crypto.randomUUID(),user_id:owner,started_at:new Date(from).toISOString(),duration_seconds:seconds};
+        localStorage.setItem(keysFor(owner).rows+from,JSON.stringify(row));
+        rows.push(row);
       }
       from = end;
     }
-    if (owner && ready() && rows.length) {
-      Promise.resolve(sb.from("study_sessions").insert(rows)).catch(()=>{});
-    }
+    localStudy = null;
+    if (owner && ready() && rows.length) Promise.resolve(sb.from("study_sessions").insert(rows)).catch(()=>{});
   }
   function pauseStudyTimer() {
     studyTimer=readTimerState();
@@ -143,6 +191,7 @@
     if (!studyTimer.runningSince) {
       studyTimer.runningSince=Date.now();
       studyTimer.owner=timerOwner;
+      rememberStart(timerOwner,studyTimer.runningSince);
       saveTimerState();
     }
   }
@@ -1130,12 +1179,12 @@
     window.addEventListener("ca:timer-update",()=>{studyTimer=readTimerState();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized)});
     $("#countdownButton")?.addEventListener("click",renderCountdown);renderCountdown();if(countdownPanel)countdownPanel.classList.toggle("is-minimized",studyTimer.countdownMinimized);
     const display=$("#focusTimer"),startButton=$("#timerStart"),pauseButton=$("#timerPause"),resetButton=$("#timerReset"),minimizeButton=$("#timerMinimize"),focusButton=$("#timerFocus"),panel=$("#timerPanel");
-    const renderTimer=()=>{studyTimer=readTimerState();renderStudyDay();if(display)display.textContent=timerClock(currentTimerSeconds());if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":(currentTimerSeconds()?"Resume session":"Start session");startButton.disabled=Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(minimizeButton)minimizeButton.disabled=studyTimer.focusMode;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Pause & exit focus":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
+    const renderTimer=()=>{studyTimer=readTimerState();renderStudyPeriod();if(display)display.textContent=timerClock(currentTimerSeconds());if(startButton){startButton.textContent=studyTimer.runningSince?"Session running":(currentTimerSeconds()?"Resume session":"Start session");startButton.disabled=Boolean(studyTimer.runningSince)}if(pauseButton)pauseButton.disabled=!studyTimer.runningSince;if(minimizeButton)minimizeButton.disabled=studyTimer.focusMode;if(focusButton)focusButton.textContent=studyTimer.focusMode?"Pause & exit focus":"Start focus mode";if(panel)panel.classList.toggle("is-minimized",studyTimer.minimized)};
     startButton?.addEventListener("click",()=>{startStudyTimer();renderTimer();msg("#timerStatus","Session running. Your elapsed time is saved on this device.")});
     pauseButton?.addEventListener("click",()=>{pauseStudyTimer();renderTimer();msg("#timerStatus","Paused and saved. Resume to continue from this time.")});
     resetButton?.addEventListener("click",()=>{if(studyTimer.runningSince)pauseStudyTimer();studyTimer=readTimerState();studyTimer.elapsed=0;studyTimer.runningSince=null;studyTimer.focusMode=false;saveTimerState();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});msg("#timerStatus","Session finished. All paused time remains in your study-hours total.")});
     minimizeButton?.addEventListener("click",()=>{studyTimer=readTimerState();studyTimer.minimized=true;saveTimerState();renderTimer()});
-    focusButton?.addEventListener("click",async()=>{studyTimer=readTimerState();if(studyTimer.focusMode){pauseStudyTimer();if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});renderTimer();msg("#timerStatus","Focus mode ended. Your study time is saved; you can use other resources now.");return}try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen()}catch{}}studyTimer.focusMode=true;if(!studyTimer.runningSince){studyTimer.runningSince=Date.now();studyTimer.owner=timerOwner;}saveTimerState();msg("#timerStatus","Focus mode is on. Leaving this page will pause and save your session.")}catch{studyTimer.focusMode=false;saveTimerState();msg("#timerStatus","Fullscreen is unavailable in this browser. You can still use the timer normally.","error")}renderTimer()});
+    focusButton?.addEventListener("click",async()=>{studyTimer=readTimerState();if(studyTimer.focusMode){pauseStudyTimer();if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});renderTimer();msg("#timerStatus","Focus mode ended. Your study time is saved; you can use other resources now.");return}try{if(!document.fullscreenElement&&document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen()}catch{}}studyTimer.focusMode=true;if(!studyTimer.runningSince){studyTimer.runningSince=Date.now();studyTimer.owner=timerOwner;rememberStart(timerOwner,studyTimer.runningSince);}saveTimerState();msg("#timerStatus","Focus mode is on. Leaving this page will pause and save your session.")}catch{studyTimer.focusMode=false;saveTimerState();msg("#timerStatus","Fullscreen is unavailable in this browser. You can still use the timer normally.","error")}renderTimer()});
     const leaveFocusPage=()=>{studyTimer=readTimerState();if(studyTimer.focusMode)pauseStudyTimer()};
     document.addEventListener("visibilitychange",()=>{studyTimer=readTimerState();if(document.visibilityState==="hidden"&&studyTimer.focusMode){pauseStudyTimer();renderTimer();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}});
     window.addEventListener("pagehide",leaveFocusPage);

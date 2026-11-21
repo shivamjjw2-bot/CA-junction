@@ -1,0 +1,44 @@
+/* Shared action colours, including disclosure controls and button links. */
+html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a) {
+  background-color: var(--action-fill, #214b94) !important;
+  background-image: none !important;
+  color: var(--action-ink, #fff) !important;
+  border-color: var(--action-edge, #81a9ec) !important;
+  font-weight: 750 !important;
+}
+html[data-theme] :is(.secondary, .btn-reset, .site-back-link, #themeToggle) {
+  --action-fill: #37485f;
+  --action-edge: #97aac4;
+}
+html[data-theme] :is(.btn-save, .btn-green, .active, [aria-pressed="true"], .paper-btn, #timerStart) {
+  --action-fill: #126044;
+  --action-edge: #74c9a7;
+}
+html[data-theme] :is(.danger, input[type="reset"]) {
+  --action-fill: #912d39;
+  --action-edge: #f4a2ac;
+}
+html[data-theme] .google-sign-in {
+  --action-fill: #fff;
+  --action-ink: #202124;
+  --action-edge: #747775;
+}
+html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a) :is(strong, small, h2, h3, .major-copy span, .name) {
+  color: var(--action-ink, #fff) !important;
+}
+html[data-theme] .resume-form summary,
+html[data-theme] .design-options > summary {
+  padding: .65rem .9rem;
+  border-radius: .55rem;
+  cursor: pointer;
+}
+html[data-theme] .site-back-link {border-radius:.55rem}
+html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a):focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: -5px;
+}
+html[data-theme] :is(button, input[type="button"], input[type="submit"], input[type="reset"], summary, [role="button"], .btn, .paper-btn, .action-app, .level-app, a.app, .site-back-link, .paper-actions a):disabled {
+  --action-fill: #485464;
+  --action-edge: #94a1b2;
+  opacity: .78;
+}
