@@ -30,6 +30,8 @@ footer{border-top:1px solid var(--line);margin-top:25px;padding:23px 0;color:var
   </div>
   <textarea id="resumeMaster" form="resumeForm" rows="2" maxlength="20000" aria-label="Resume details (optional)" placeholder="Paste your existing CV or write rough notes about your education, articleship, experience, skills, and achievements."></textarea>
   <div class="master-actions">
+    <input type="file" id="resumePdfFile" accept=".pdf,application/pdf" hidden>
+    <button type="button" form="resumeForm" class="btn secondary" id="attachResumePdf"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m8 13 7-7a3 3 0 0 1 4 4L9 20a5 5 0 0 1-7-7L13 2m-7 13 9-9"/></svg> Attach PDF</button>
     <button class="btn btn-ai" type="button" form="resumeForm" id="generateResumeDraft">Generate My Resume</button><span id="resumeDraftClock" class="processing-clock" role="timer" aria-label="Resume drafting elapsed time" hidden>00:00</span>
     <button type="button" form="resumeForm" class="btn btn-save" id="downloadMaster">Download my details</button>
     <a href="#resumePaper">View one-page preview</a>
@@ -62,4 +64,4 @@ footer{border-top:1px solid var(--line);margin-top:25px;padding:23px 0;color:var
 <dialog id="templateDialog" aria-labelledby="templateDialogTitle"><div class="template-dialog-top"><h2 id="templateDialogTitle">Resume preview</h2><button type="button" id="closeTemplateDialog" aria-label="Close template preview">✕</button></div><p>Illustrative sample only. Your details will replace this content.</p><img id="templateDialogImage" alt="Full resume preview"><button type="button" id="usePreviewTemplate" class="btn btn-ai">Use this template</button></dialog></main>
 <footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=animated-time-1"></script>
-<script src="assets/resume-builder.js?v=pdf-clock-1"></script></body></html>
+<script src="assets/resume-builder.js?v=local-pdf-import-1"></script></body></html>

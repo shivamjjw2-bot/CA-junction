@@ -48,6 +48,48 @@
 
  $('resumeForm').addEventListener('input',render);document.querySelectorAll('.resume-controls input,.resume-controls select').forEach(x=>x.addEventListener('input',render));new ResizeObserver(checkFit).observe($('resumePreviewViewport'));
  $('resumeForm').addEventListener('reset',()=>setTimeout(()=>{render();status('Details cleared. No resume is saved on this site.')},0));
+ const attachPdf=$('attachResumePdf'),pdfFile=$('resumePdfFile'),notes=$('resumeMaster');
+ let importVersion=0;
+ attachPdf.addEventListener('click',()=>pdfFile.click());
+ $('resumeForm').addEventListener('reset',()=>{importVersion++;pdfFile.value='';attachPdf.disabled=false;$('generateResumeDraft').disabled=false;$('masterDownloadStatus').textContent=''});
+ pdfFile.addEventListener('change',async()=>{
+  const file=pdfFile.files[0];
+  pdfFile.value='';
+  if(!file)return;
+  const version=++importVersion,feedback=$('masterDownloadStatus'),generate=$('generateResumeDraft');
+  let task;
+  attachPdf.disabled=true;generate.disabled=true;feedback.textContent='Reading PDF on this device…';
+  try{
+   if(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf')throw new Error('Choose a PDF file.');
+   if(file.size>20*1024*1024)throw new Error('Choose a PDF under 20 MB or paste your details.');
+   const base='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/';
+   let pdfjs;
+   try{pdfjs=await import(base+'pdf.min.mjs')}catch{throw new Error('The PDF reader could not load. Check your connection and try again.')}
+   pdfjs.GlobalWorkerOptions.workerSrc=base+'pdf.worker.min.mjs';
+   task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false,useSystemFonts:true});
+   const pdf=await task.promise,parts=[];
+   let length=0;
+   for(let i=1;i<=pdf.numPages&&version===importVersion;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    const text=content.items.filter(item=>typeof item.str==='string').map(item=>item.str+(item.hasEOL?'\n':' ')).join('').replace(/[ \t]+\n/g,'\n').trim();
+    page.cleanup();
+    if(text){parts.push(text);length+=text.length}
+    if(length>notes.maxLength)throw new Error('This PDF contains more text than the box allows. Paste the relevant sections instead.');
+   }
+   if(version!==importVersion)return;
+   if(!parts.length)throw new Error('No selectable text found. For a scanned CV, use text recognition (OCR), then paste the text here.');
+   const imported=parts.join('\n\n'),separator=notes.value?'\n\n':'';
+   if(notes.value.length+separator.length+imported.length>notes.maxLength)throw new Error('These details exceed the box limit. Paste only the sections you want to add.');
+   notes.value+=separator+imported;notes.dispatchEvent(new Event('input',{bubbles:true}));
+   feedback.textContent='PDF text added. Review the details before generating your resume.';
+  }catch(error){
+   if(version===importVersion)feedback.textContent=error.name==='PasswordException'?'This PDF needs a password. Choose an unlocked copy.':error.name==='InvalidPDFException'?'This file could not be read as a PDF. Choose another copy.':error.message||'Could not read this PDF. Paste your details instead.';
+  }finally{
+   if(version===importVersion){attachPdf.disabled=false;generate.disabled=false}
+   if(task)await task.destroy().catch(()=>{});
+  }
+ });
  $('downloadMaster').addEventListener('click',()=>{const text=[value('Master'),...sections.map(([id,label])=>value(id)?label+'\n'+value(id):'')].filter(Boolean).join('\n\n');if(!text){$('masterDownloadStatus').textContent='Add your notes or fill in your career details first.';$('resumeMaster').focus();return}const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'})),a=node('a');a.href=url;a.download='my-resume-details.txt';a.click();$('masterDownloadStatus').textContent='Your resume details download has started.';setTimeout(()=>URL.revokeObjectURL(url),1000)});
  function startClock(clock){
   const start=performance.now();
