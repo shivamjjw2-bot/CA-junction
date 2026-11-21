@@ -22,17 +22,19 @@ footer{border-top:1px solid var(--line);margin-top:25px;padding:23px 0;color:var
  <a href="career-guidance.html" data-career-tab-link="guidance">Career Guidance</a>
 </nav>
 <section id="resume">
-<div class="section-head"><div class="eyebrow">Resume builder</div><h2>Your experience. A sharper first impression.</h2><p>Start with your master CV, then choose a template and refine your one-page resume.</p></div>
+<div class="section-head"><div class="eyebrow">Resume builder</div><h2>Your experience. A sharper first impression.</h2><p>Add your details, then choose a template and refine your one-page resume.</p></div>
 <section class="master-workspace panel" aria-labelledby="masterCvTitle">
   <div class="master-heading">
     <svg aria-hidden="true" focusable="false" width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="1" y="1" width="34" height="34" rx="10" fill="#37538c"/><path d="M11 8h10l5 5v14H11z" fill="#ebf4ff"/><path d="M21 8v6h5" fill="#9bcdf8"/><path d="M15 18h8m-8 4h6" stroke="#37538c" stroke-width="2" stroke-linecap="round"/></svg>
-    <h3 id="masterCvTitle">Master CV</h3>
+    <h3 id="masterCvTitle">Turn My Details Into a Resume</h3>
   </div>
-  <p id="masterCvHelp">Keep your full career history here. Use these notes to build a focused one-page resume.</p>
-  <label for="resumeMaster">Master CV notes</label>
-  <textarea id="resumeMaster" form="resumeForm" maxlength="20000" aria-describedby="masterCvHelp masterSaveHint" placeholder="Write or paste your education, articleship experience, projects and achievements."></textarea>
+  <p id="masterCvHelp">Paste your existing CV here, or write a few lines about your education, articleship, projects or achievements. Rough notes are fine.</p>
+  <p id="resumeNotesExample"><strong>For example:</strong> “During articleship, I checked purchase invoices and helped reconcile GST returns.”</p>
+  <label for="resumeMaster">My resume details (optional)</label>
+  <textarea id="resumeMaster" form="resumeForm" maxlength="20000" aria-describedby="masterCvHelp resumeNotesExample masterSaveHint" placeholder="Write or paste your education, articleship experience, projects and achievements."></textarea>
+  <p>Choose <strong>Draft my one-page resume</strong> below when you’re ready. AI uses your details to write a draft you can edit. Your notes stay in this box.</p>
   <div class="master-actions">
-    <button type="button" form="resumeForm" class="btn btn-save" id="downloadMaster">Download master notes</button>
+    <button type="button" form="resumeForm" class="btn btn-save" id="downloadMaster">Download my details</button>
     <a href="#resumePaper">View one-page preview</a>
   </div>
   <p id="masterSaveHint">Download a text copy to keep your work before leaving.</p>
@@ -52,16 +54,16 @@ footer{border-top:1px solid var(--line);margin-top:25px;padding:23px 0;color:var
 <label>Full name<input id="resumeName" type="text" maxlength="240"></label><label>Email<input id="resumeEmail" type="email" maxlength="240"></label><label>Phone<input id="resumePhone" type="tel" maxlength="240"></label><label>City / location<input id="resumeLocation" type="text" maxlength="240"></label><label>LinkedIn URL<input id="resumeLinkedIn" type="url" maxlength="240"></label><label>Portfolio URL (optional)<input id="resumePortfolio" type="url" maxlength="240"></label>
 </div><label>Bullet structure<select id="resumeBulletOrder"><option value="achievement">Action → Achievement → Process</option><option value="process">Action → Process → Achievement (product roles)</option></select></label>
 <label>Institute requirements (optional)<textarea id="resumeInstitute" maxlength="1000" placeholder="Required section order, headings or other format requirements"></textarea></label>
-<h3>4. Resume content</h3><p class="form-hint">Fill in facts below, or provide them in your master CV. AI can polish the wording. You can edit every section afterwards. Use **bold** around key numbers or keywords only.</p>
+<h3>4. Resume content</h3><p class="form-hint">Fill in facts below, or write them in the box at the top. AI can polish the wording. You can edit every section afterwards. Use **bold** around key numbers or keywords only.</p>
 <label for="resumeObjective">Professional summary / objective</label><textarea id="resumeObjective" maxlength="1000" placeholder="AI can draft this from your career facts."></textarea>
 <label for="resumeEducation">Education</label><textarea id="resumeEducation" maxlength="4000" placeholder="Year | Degree / examination | Institution | Grade / rank"></textarea><label for="resumeProfessional">Professional qualifications</label><textarea id="resumeProfessional" maxlength="4000" placeholder="Year | CA level / certification | Institute | Grade / rank"></textarea><label for="resumeExperience">Experience</label><textarea id="resumeExperience" maxlength="4000" placeholder="Role, organisation, dates. Add factual achievements, how you achieved them and results. One item per line."></textarea><label for="resumeProjects">Projects</label><textarea id="resumeProjects" maxlength="4000" placeholder="Project, dates, your action, process and outcome."></textarea><label for="resumeSkills">Skills & certifications</label><textarea id="resumeSkills" maxlength="4000" placeholder="Only skills and certifications you actually have."></textarea><label for="resumeAchievements">Leadership & achievements</label><textarea id="resumeAchievements" maxlength="4000" placeholder="Positions of responsibility, awards, volunteering and measurable outcomes."></textarea><label for="resumeLanguages">Languages</label><textarea id="resumeLanguages" maxlength="4000" placeholder="Languages you speak; include proficiency only if known."></textarea><label for="resumeHobbies">Interests</label><textarea id="resumeHobbies" maxlength="4000" placeholder="Specific interests you want to include."></textarea>
 <p class="form-hint">For education tables: one qualification per line, separated by | in the order shown. For work: use a short role/date line, then each bullet on its own line starting with •.</p>
 <div class="resume-actions"><button class="btn btn-ai" type="button" id="generateResumeDraft">Draft my one-page resume</button><button class="btn btn-save" type="button" id="printResume">Print / save PDF</button><button class="btn btn-reset" type="reset">Clear details</button></div>
-<p class="status" id="resumeStatus" role="status" aria-live="polite">Contact fields stay on this page. Career content and master notes are sent for AI drafting only when you request it. Download your master notes before leaving.</p>
+<p class="status" id="resumeStatus" role="status" aria-live="polite">Contact fields stay on this page. Career content and notes are sent for AI drafting only when you request it. Download your details before leaving.</p>
 </form>
 <div class="resume-preview-column"><p id="resumeFit" role="status" aria-live="polite"></p><div id="resumePreviewViewport"><article id="resumePaper" tabindex="-1" aria-label="Resume preview"></article></div><p class="form-hint">Review facts and wording with a senior, alumnus or mentor from your target firm. Export on A4 at 100% scale, with browser headers and footers off.</p></div>
 </div></section>
 <dialog id="templateDialog" aria-labelledby="templateDialogTitle"><div class="template-dialog-top"><h2 id="templateDialogTitle">Resume preview</h2><button type="button" id="closeTemplateDialog" aria-label="Close template preview">✕</button></div><p>Illustrative sample only. Your details will replace this content.</p><img id="templateDialogImage" alt="Full resume preview"><button type="button" id="usePreviewTemplate" class="btn btn-ai">Use this template</button></dialog></main>
 <footer><div class="container">© 2026 CA Junction · <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script><script src="assets/backend.js"></script><script src="assets/app.js?v=restore-rolling-1"></script>
-<script src="assets/resume-builder.js?v=master-5"></script></body></html>
+<script src="assets/resume-builder.js?v=resume-details-6"></script></body></html>
