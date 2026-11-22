@@ -104,8 +104,11 @@ async function initYearLibrary(host){
      const cell=tr.insertCell();
      const matches=group.filter(r=>r.chapter===chapterKey(series,kind));
      if(!matches.length)cell.textContent='Not available';
+     if(series==='mtp') matches.sort((a,b)=>(metadata(a)?.mtpSeries||0)-(metadata(b)?.mtpSeries||0));
      for(const record of matches){
-       const open=button('Open PDF',()=>openPaper(record));
+       const n=series==='mtp' && metadata(record)?.mtpSeries;
+       const label=n===1?'Series I':n===2?'Series II':'Open PDF';
+       const open=button(label,()=>openPaper(record));
        open.setAttribute('aria-label','Open '+(kind==='question'?'question paper':'solution')+' PDF: '+(record.title||row.subject));
        cell.append(open);
      }
