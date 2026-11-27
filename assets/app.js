@@ -1513,18 +1513,7 @@
           if(error)throw error;
         } catch { msg("#adminStatus","Google sign-in could not start. Try again.","error"); }
       });
-      $("#signInForm").addEventListener("submit",async event=>{
-        event.preventDefault();
-        const submit=event.currentTarget.querySelector("button");
-        submit.disabled=true;
-        try {
-          const {error}=await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(),password:$("#loginPassword").value});
-          $("#loginPassword").value="";
-          if(error) throw error;
-          location.reload();
-        } catch { msg("#adminStatus","Sign-in failed. Check your credentials and try again.","error"); }
-        finally { submit.disabled=false; }
-      });
+
     }
     if(!user){offerLogin("Sign in with your administrator account.");return}
     const {data:role,error:roleError}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
@@ -1559,6 +1548,8 @@
       if(error)msg("#adminStatus","Could not sign out. Retry.","error");else location.reload();
     });
     initPasswordSettings(user);$("#adminProfileIdentity").textContent=[user.user_metadata?.full_name,user.email].filter(Boolean).join(" · ");
+    const {data:ownerAccess}=await sb.rpc("is_platform_owner");
+    if(ownerAccess!==true) $("#admin-roles")?.remove();
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
     const adminViewButtons=[...document.querySelectorAll("#adminPanel [data-admin-nav]")];
     const adminViewPanels=[...document.querySelectorAll("#adminPanel [data-admin-view]")];
