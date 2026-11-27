@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { sealCheckpoint, openCheckpoint } from '../functions/_lib/trend-checkpoint.js';
+import { trendResponse } from '../assets/trend-http.js';
+const state={userId:'student-a',sourceStamp:'paper-v1',expires:Date.now()+60000,draft:{questions:[]}};
+const sealed=await sealCheckpoint(state,'test-only');
+assert.deepEqual(await openCheckpoint(sealed,'test-only','student-a','paper-v1'),state);
+assert.equal(await openCheckpoint(sealed,'test-only','student-b','paper-v1'),null);
+assert.equal(await openCheckpoint(sealed,'test-only','student-a','paper-v2'),null);
+assert.equal(await openCheckpoint({...sealed,payload:sealed.payload.replace('student-a','student-b')},'test-only','student-b','paper-v1'),null);
+assert.equal(await openCheckpoint(sealed,'wrong-secret','student-a','paper-v1'),null);
+assert.equal(await openCheckpoint(await sealCheckpoint({...state,expires:0},'test-only'),'test-only','student-a','paper-v1'),null);
+await assert.rejects(()=>trendResponse(new Response('<!DOCTYPE html><h1>1102 Worker exceeded resource limits</h1>',{status:500,headers:{'cf-ray':'test-ray'}})),e=>e.code==='HOST_RESOURCE_LIMIT'&&e.message.includes('test-ray')&&!e.message.includes('Unexpected token'));
+await assert.rejects(()=>trendResponse(new Response('<html>timeout</html>',{status:524})),e=>e.code==='HOST_TIMEOUT');
+await assert.rejects(()=>trendResponse(Response.json({error:'Unreadable PDF',code:'PDF_UNREADABLE'},{status:422})),e=>e.code==='PDF_UNREADABLE');
+assert.deepEqual(await trendResponse(Response.json({pending:true})),{pending:true});
+console.log('PASS: checkpoint signatures, user/source binding, expiry, tamper rejection, HTML host errors, JSON errors and success.');

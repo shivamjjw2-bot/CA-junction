@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {readPdf,MAX_PDF_BYTES} from '../functions/_lib/trend-pdf.js';
+const good='%PDF-1.7\n1 0 obj\n<<>>\nendobj\n%%EOF';
+assert.equal(new TextDecoder().decode(await readPdf(new Response(good))),good);
+assert.equal((await readPdf(new Response(good,{headers:{'content-length':String(good.length)}}))).length,good.length);
+await assert.rejects(()=>readPdf(new Response('denied',{status:403})),/HTTP 403/);
+await assert.rejects(()=>readPdf(new Response('<html>Login required</html>')),/instead of a PDF/);
+await assert.rejects(()=>readPdf(new Response('%PDF-1.7 truncated')),/truncated/);
+await assert.rejects(()=>readPdf(new Response(good,{headers:{'content-length':String(good.length+1)}})),/incomplete/);
+await assert.rejects(()=>readPdf(new Response(good,{headers:{'content-length':String(MAX_PDF_BYTES+1)}})),/50 MB/);
+await assert.rejects(()=>readPdf(new Response('%PDF-1.7\n/Encrypt 1 0 R\n%%EOF')),/password protected/);
+console.log('PASS: PDF response status, bounded download, length validation, PDF signature, truncation and password-protection errors.');
