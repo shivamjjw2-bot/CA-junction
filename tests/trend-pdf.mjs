@@ -3,6 +3,7 @@ import {readPdf,MAX_PDF_BYTES} from '../functions/_lib/trend-pdf.js';
 const good='%PDF-1.7\n1 0 obj\n<<>>\nendobj\n%%EOF';
 assert.equal(new TextDecoder().decode(await readPdf(new Response(good))),good);
 assert.equal((await readPdf(new Response(good,{headers:{'content-length':String(good.length)}}))).length,good.length);
+assert.equal((await readPdf(new Response(good,{headers:{'content-length':'10','content-encoding':'gzip'}}))).length,good.length);
 await assert.rejects(()=>readPdf(new Response('denied',{status:403})),/HTTP 403/);
 await assert.rejects(()=>readPdf(new Response('<html>Login required</html>')),/instead of a PDF/);
 await assert.rejects(()=>readPdf(new Response('%PDF-1.7 truncated')),/truncated/);

@@ -3,7 +3,10 @@ export async function readPdf(response) {
   if (!response.ok) throw Error('The original PDF could not be retrieved (HTTP ' + response.status
     + '). Ask the admin to check the file link or its access permissions.');
   if (!response.body) throw Error('The original PDF response was empty.');
-  const length = Number(response.headers.get('content-length'));
+  // Fetch decodes compressed HTTP bodies; their wire Content-Length is not the
+  // length of the PDF bytes being read. Still enforce the limit on decoded bytes.
+  const encoding = response.headers.get('content-encoding');
+  const length = encoding && encoding !== 'identity' ? 0 : Number(response.headers.get('content-length'));
   if (length > MAX_PDF_BYTES) throw Error('This PDF exceeds the document reader’s 50 MB limit. Ask the admin for a compressed copy.');
   const declared = Number.isSafeInteger(length) && length > 0 ? length : null;
   // A known length needs only one output buffer, not a second full-size copy.
