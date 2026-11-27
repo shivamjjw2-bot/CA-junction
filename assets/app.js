@@ -1517,7 +1517,7 @@
     }
     if(!user){offerLogin("Sign in with your administrator account.");return}
     const {data:role,error:roleError}=await sb.from("user_roles").select("role").eq("user_id",user.id).eq("role","admin").maybeSingle();
-    if(roleError||!role){offerLogin("Admin access could not be verified. Sign in with an authorized account.");return}
+    if(roleError){offerLogin("Admin access could not be verified. Sign in with an authorized account.");return}
     const assurance=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
     if(assurance.error){msg("#adminStatus","Could not verify your session. Reload to retry.","error");return}
     if(assurance.data.nextLevel==="aal2" && assurance.data.currentLevel!=="aal2"){
@@ -1538,6 +1538,14 @@
       });
       return;
     }
+    if(!role){
+      const {data:collections,error}=await sb.rpc("ca_manager_collections");
+      if(error||!collections?.length){offerLogin("Sign in with an authorised team account.");return}
+      const {managerDesk}=await import('./admin-team.js');
+      managerDesk($("#adminStatus"),sb,collections);
+      msg("#adminStatus","Signed in as "+user.email);
+      return;
+    }
     const authorization=await sb.rpc("is_admin");
     if(authorization.error || authorization.data!==true){
       offerLogin("Administrator authorization could not be confirmed.");
@@ -1550,6 +1558,7 @@
     initPasswordSettings(user);$("#adminProfileIdentity").textContent=[user.user_metadata?.full_name,user.email].filter(Boolean).join(" · ");
     const {data:ownerAccess}=await sb.rpc("is_platform_owner");
     if(ownerAccess!==true) $("#admin-roles")?.remove();
+    else (await import("./admin-team.js")).ownerTeam($("#admin-roles"),sb);
     $("#adminPanel").hidden=false;msg("#adminStatus","Admin access verified for "+user.email+".");
     const adminViewButtons=[...document.querySelectorAll("#adminPanel [data-admin-nav]")];
     const adminViewPanels=[...document.querySelectorAll("#adminPanel [data-admin-view]")];
