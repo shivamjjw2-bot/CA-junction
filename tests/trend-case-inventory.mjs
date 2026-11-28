@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {canonicalCaseInventory} from '../functions/_lib/trend-case-inventory.js';
+import {validateExtraction} from '../assets/trend-core.js';
+const questions=Array.from({length:5},(_,i)=>({section:'Case Study '+(i+1),ref:(i+1)+'.1',group:'CS'+(i+1),page:i+1,marks:25,chapter:'A',evidence:'Printed case allocation',uncertain:false}));
+const rule={section:'Whole paper',maximum:100,compulsory:[],choose_from:[1,2,3,4,5],choose_count:4};
+const draft={document_matches:true,complete:true,exam_marks:100,questions,allocations:questions.map(q=>({group:q.group,marks:q.marks})),rules:[rule],choices:[{id:'cases',section:'General',choose_count:4,alternatives:questions.map(q=>({refs:[q.section]}))}]};
+const normalized=canonicalCaseInventory(draft);
+assert.equal(normalized.choices.length,0);
+assert.equal(validateExtraction(normalized,['A']).totalOffered,125);
+assert.deepEqual(normalized.questions.map(({section,...q})=>q),questions.map(({section,...q})=>q));
+const invalid=canonicalCaseInventory({...draft,rules:questions.map((q,i)=>({section:q.section,maximum:20,compulsory:[1,2,3,4,5,6,7,8],choose_from:[],choose_count:0}))});
+assert.deepEqual(invalid.rules,[],'Contradictory per-case maxima require an independent source audit');
+assert.equal(invalid.choices.length,1,'Never discard whole-case choices without an equivalent rule');
+const missing=structuredClone(draft);missing.questions[2].marks=20;
+assert.throws(()=>validateExtraction(canonicalCaseInventory(missing),['A']),/totals do not reconcile/);
+const wrong=structuredClone(draft);wrong.questions[1].ref='1.1';
+assert.equal(canonicalCaseInventory(wrong),wrong,'Ambiguous case identity must remain rejected');
+console.log('PASS: whole-case choice representation, preserved source facts, missing marks rejected and ambiguous rules require source review.');
