@@ -6,8 +6,15 @@ export function repairTarget(draft,diagnostic,attempted=[]){
  const optional=diagnostic.ranges.filter(r=>r.optional),frequencies=new Map();
  for(const r of optional)if(r.min===r.max)frequencies.set(r.min,(frequencies.get(r.min)||0)+1);
  const modes=[...frequencies].sort((a,b)=>b[1]-a[1]);
- const typical=modes[0]?.[1]>=2&&modes[0][1]>(modes[1]?.[1]||0)?modes[0][0]:null;
+ let typical=modes[0]?.[1]>=2&&modes[0][1]>(modes[1]?.[1]||0)?modes[0][0]:null;
  const fixed=diagnostic.ranges.filter(r=>!r.optional);
+ // Repeated bad extraction can outnumber correctly read questions. Prefer an
+ // observed alternative allocation consistent with fixed questions and the
+ // printed total, only to select a re-read; never assign it to a question.
+ if(fixed.length&&fixed.every(r=>r.min===r.max)&&diagnostic.chooseCount>0){
+  const expected=(diagnostic.maximum-fixed.reduce((n,r)=>n+r.min,0))/diagnostic.chooseCount;
+  if((frequencies.get(expected)||0)>=2)typical=expected;
+ }
  const fixedExpected=fixed.length===1&&typical!==null&&Number.isFinite(diagnostic.maximum)&&Number.isInteger(diagnostic.chooseCount)?diagnostic.maximum-diagnostic.chooseCount*typical:null;
  const suspects=diagnostic.ranges.filter(r=>r.min!==r.max||(r.optional&&typical!==null&&r.min!==typical)||(!r.optional&&fixedExpected!==null&&r.min!==fixedExpected));
  for(const range of suspects){
