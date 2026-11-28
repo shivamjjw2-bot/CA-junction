@@ -4,7 +4,12 @@
  function saved(){try{return localStorage.getItem(key)==="light"?"light":"dark"}catch{return "dark"}}
  function apply(theme){document.documentElement.dataset.theme=theme;
    const toggle=document.getElementById("themeToggle");
-   if(toggle)toggle.textContent=theme==="light"?"Switch to Dark Mode":"Switch to Light Mode";}
+   if(toggle){
+     const label=theme==="light"?"Switch to Dark Mode":"Switch to Light Mode";
+     toggle.setAttribute("aria-label",label);toggle.title=label;
+     const shape=theme==="light"?'<path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/>':'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>';
+     toggle.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+shape+'</svg>';
+   }}
  apply(saved());
  function addSkipLink(){
    const main=document.querySelector("main");
@@ -19,8 +24,9 @@
  }
  function mount(){
    addSkipLink();
-   const nav=document.querySelector("header .nav,header .inner-navigation") || document.querySelector("header");
-   if(!nav || document.getElementById("themeToggle"))return;
+   let nav=document.querySelector("header .nav,header .inner-navigation") || document.querySelector("header");
+   if(document.getElementById("themeToggle"))return;
+   if(!nav){nav=document.createElement("div");nav.className="theme-controls";document.body.prepend(nav)}
    nav.classList.add("theme-nav");
    const button=document.createElement("button");
    button.type="button"; button.id="themeToggle"; button.className="theme-toggle";

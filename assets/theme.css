@@ -31,8 +31,8 @@ html[data-theme="light"] .navlinks.open{background:#faf6e9}
 @media print{.theme-toggle{display:none}header .nav{padding-right:0}}
 
 /* Shared frosted-glass surfaces in both themes. */
-header .nav{padding-right:124px}
-.theme-toggle{width:112px;padding:7px 9px;font-size:12px;font-weight:750;white-space:nowrap;box-shadow:inset 0 1px 0 #ffffff60,inset 0 -1px 0 #ffffff12,0 5px 20px #0002;backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%)}
+header .nav{padding-right:56px}
+.theme-toggle{width:40px;padding:0;font-size:20px;font-weight:750;white-space:nowrap;box-shadow:inset 0 1px 0 #ffffff60,inset 0 -1px 0 #ffffff12,0 5px 20px #0002;backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%)}
 :is(.panel,.card,.app,.note,.level-app,.service-group,.service-tile,.resource-filters,.study-session,.plan-day,.action-app,.notice,.timer-dock,.compact-countdown,dialog){backdrop-filter:blur(20px) saturate(135%);-webkit-backdrop-filter:blur(20px) saturate(135%);box-shadow:inset 0 1px 0 #ffffff18,0 8px 28px #00000012}
 header{backdrop-filter:blur(24px) saturate(150%);-webkit-backdrop-filter:blur(24px) saturate(150%)}
 html[data-theme="dark"] :is(.panel,.card,.app,.note,.service-group,.service-tile,.resource-filters){background:linear-gradient(140deg,rgba(255,255,255,.075),rgba(24,30,55,.58))}
@@ -43,9 +43,9 @@ html[data-theme="light"] :is(.panel,.card,.app,.note,.service-group,.service-til
 
 /* Keep the theme control in the header flow, before the mobile menu. */
 header .nav.theme-nav{padding-right:0;gap:12px}
-.theme-nav>.theme-toggle{position:static;order:3;flex:0 0 auto;margin-left:auto;width:112px;height:40px;min-height:40px;z-index:auto}
+.theme-nav>.theme-toggle{position:static;order:3;flex:0 0 auto;margin-left:auto;width:40px;height:40px;min-width:40px;min-height:40px;padding:0;z-index:auto}
 .theme-nav>.menu{flex:0 0 40px;width:40px;min-height:40px;line-height:1}
-@media(max-width:900px){header .nav.theme-nav{gap:8px}.theme-nav>.brand{min-width:0}.theme-nav>.theme-toggle{order:0;font-size:11px;width:108px;padding:7px 6px}.theme-nav>.navlinks.open{z-index:30}}
+@media(max-width:900px){header .nav.theme-nav{gap:8px}.theme-nav>.brand{min-width:0}.theme-nav>.theme-toggle{order:0;font-size:20px;width:40px;padding:0}.theme-nav>.navlinks.open{z-index:30}}
 
 html[data-theme="light"] .theme-nav>.menu{color:#294e31}
 
@@ -124,3 +124,5 @@ html[data-theme] :is(#focusTimer,#caTimerDockTime,#caDockCountdown,#countdownDay
 @media(prefers-reduced-motion:reduce){html[data-theme] :is(#focusTimer,#caTimerDockTime,#caDockCountdown,#countdownDays,#compactCountdownText,#revisionElapsed,#aiPracticeTimer,.processing-clock,.timed-progress):not(:empty):not([hidden])::before{animation:none}}
 .processing-clock[hidden]{display:none!important}
 @media print{.processing-clock{display:none!important}}
+
+.theme-controls{position:fixed;top:12px;right:12px;z-index:2000}.theme-toggle svg{display:block;flex-shrink:0;pointer-events:none}
