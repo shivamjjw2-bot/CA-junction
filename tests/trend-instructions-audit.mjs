@@ -15,7 +15,7 @@ for(const fixture of fixtures)for(const incorrectAudit of [false,true]){
  // is written to production, and the missing question is not claimed as verified.
  const corrected=structuredClone(withHeader);
  if(missing){corrected.questions.push({...corrected.questions.find(q=>q.ref==='5(c)'),ref:'5(b)',marks:5,evidence:'Synthetic missing-part test fixture'});}
- let saved,fullCalls=0,auditCalls=0;
+ let saved,fullCalls=0,auditCalls=0,focusedCalls=0;
  globalThis.fetch=async(url,o={})=>{const u=String(url);
   if(u.includes('/auth/v1/user'))return Response.json({id:'student'});
   if(u.includes('/rest/v1/materials'))return Response.json([{id:fixture.id,title:fixture.title,level:'Foundation',subject:'Accounting',category:'icai_link',chapter:'previous_year_question',file_bucket:'ca-materials',file_path:'admin/fixture.pdf',is_published:true,is_premium:false}]);
@@ -26,6 +26,7 @@ for(const fixture of fixtures)for(const incorrectAudit of [false,true]){
   if(u.endsWith('/upload-test'))return Response.json({file:{name:'files/test',uri:'https://generativelanguage.googleapis.com/v1beta/files/test',state:'ACTIVE'}});
   if(u.includes(':generateContent')){const body=JSON.parse(o.body);let output;
    if(!body.generationConfig.responseSchema.properties.questions){auditCalls++;assert(!body.contents[0].parts[1].text.includes('Prior inventory'));output={document_matches:true,exam_marks:100,rules:withHeader.rules.map(r=>({...r,maximum:incorrectAudit?99:r.maximum})),choices:withHeader.choices,choice_instructions:'Source fixture choices'}}
+   else if(!body.generationConfig.responseSchema.properties.rules){focusedCalls++;output={complete:true,questions:corrected.questions.filter(q=>q.ref.startsWith('5')).map(q=>({...q,group:'Descriptive|5:verified'})),choices:corrected.choices.filter(c=>c.alternatives.some(b=>b.refs.some(r=>r.startsWith('5'))))}}
    else{fullCalls++;output=fullCalls===1?bad:corrected}
    return Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(output)}]}}]});
   }
@@ -37,6 +38,6 @@ for(const fixture of fixtures)for(const incorrectAudit of [false,true]){
   data=await response.json();if(!data.pending)break;
   assert.equal(data.questions,undefined,'Never show a partial inventory as completed');
  }
- assert.equal(response.status,200,JSON.stringify(data));assert.equal(data.examMarks,100);assert.equal(auditCalls,1);assert.equal(fullCalls,missing||incorrectAudit?3:2);
+ assert.equal(response.status,200,JSON.stringify(data));assert.equal(data.examMarks,100);assert.equal(auditCalls,1);assert.equal(fullCalls,incorrectAudit?3:2);assert.equal(focusedCalls,missing?1:0);
  console.log('PASS: '+fixture.title+' - '+(incorrectAudit?'incorrect independent audit does not poison later reads':'independent instructions and strict missing-part rejection')+' (mock provider).');
 }

@@ -1,0 +1,1092 @@
+[
+  {
+    "title": "Intermediate · Taxation · May 2026 · Question paper",
+    "source": "https://resource.cdn.icai.org/92144bos-aps4903-int-may2026-p3.pdf",
+    "draft": {
+      "choices": [
+        {
+          "id": "Descriptive-A-Q2-Q4",
+          "section": "Descriptive-A",
+          "choose_count": 2,
+          "alternatives": [
+            {
+              "refs": [
+                "2(a)",
+                "2(b)"
+              ]
+            },
+            {
+              "refs": [
+                "3(a)",
+                "3(b)"
+              ]
+            },
+            {
+              "refs": [
+                "4(a)",
+                "4(b)"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "Descriptive-A-4b-or-4b",
+          "section": "Descriptive-A",
+          "choose_count": 1,
+          "alternatives": [
+            {
+              "refs": [
+                "4(b)"
+              ]
+            },
+            {
+              "refs": [
+                "4(b) OR"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "Descriptive-B-Q6-Q8",
+          "section": "Descriptive-B",
+          "choose_count": 2,
+          "alternatives": [
+            {
+              "refs": [
+                "6(a)",
+                "6(b)"
+              ]
+            },
+            {
+              "refs": [
+                "7(a)",
+                "7(b)"
+              ]
+            },
+            {
+              "refs": [
+                "8(a)",
+                "8(b)"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "Descriptive-B-8b-or-8b",
+          "section": "Descriptive-B",
+          "choose_count": 1,
+          "alternatives": [
+            {
+              "refs": [
+                "8(b)"
+              ]
+            },
+            {
+              "refs": [
+                "8(b) OR"
+              ]
+            }
+          ]
+        }
+      ],
+      "document_matches": true,
+      "complete": true,
+      "exam_marks": 100,
+      "total_offered_marks": 134,
+      "notes": "Question paper for Intermediate Taxation May 2026. Contains MCQ Part-I (30 marks) and Descriptive Part-II (70 marks answerable out of 104 offered including internal/external choices).",
+      "rules": [
+        {
+          "section": "MCQ",
+          "maximum": 30,
+          "compulsory": [],
+          "choose_from": [],
+          "choose_count": 0
+        },
+        {
+          "section": "Descriptive-A",
+          "maximum": 35,
+          "compulsory": [
+            1
+          ],
+          "choose_from": [
+            2,
+            3,
+            4
+          ],
+          "choose_count": 2
+        },
+        {
+          "section": "Descriptive-B",
+          "maximum": 35,
+          "compulsory": [
+            5
+          ],
+          "choose_from": [
+            6,
+            7,
+            8
+          ],
+          "choose_count": 2
+        }
+      ],
+      "allocations": [
+        {
+          "group": "MCQ-1",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-2",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-3",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-4",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-5",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-6",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-7",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-8",
+          "marks": 1
+        },
+        {
+          "group": "MCQ-9",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-10",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-11",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-12",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-13",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-14",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-15",
+          "marks": 2
+        },
+        {
+          "group": "MCQ-16",
+          "marks": 1
+        },
+        {
+          "group": "Descriptive-A-1",
+          "marks": 15
+        },
+        {
+          "group": "Descriptive-A-2",
+          "marks": 10
+        },
+        {
+          "group": "Descriptive-A-3",
+          "marks": 10
+        },
+        {
+          "group": "Descriptive-A-4",
+          "marks": 10
+        },
+        {
+          "group": "Descriptive-A-4-OR",
+          "marks": 4
+        },
+        {
+          "group": "Descriptive-B-5",
+          "marks": 10
+        },
+        {
+          "group": "Descriptive-B-6",
+          "marks": 10
+        },
+        {
+          "group": "Descriptive-B-7",
+          "marks": 10
+        },
+        {
+          "group": "Descriptive-B-8",
+          "marks": 10
+        },
+        {
+          "group": "Descriptive-B-8-OR",
+          "marks": 5
+        }
+      ],
+      "questions": [
+        {
+          "group": "MCQ-1",
+          "section": "MCQ",
+          "ref": "1",
+          "page": 4,
+          "chapter": "Chapter 3: Heads of Income",
+          "marks": 2,
+          "evidence": "Net worth computation for slump sale",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-2",
+          "section": "MCQ",
+          "ref": "2",
+          "page": 4,
+          "chapter": "Chapter 3: Heads of Income",
+          "marks": 2,
+          "evidence": "Capital gain or loss on slump sale",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-3",
+          "section": "MCQ",
+          "ref": "3",
+          "page": 4,
+          "chapter": "Chapter 7: Tax Deduction or Collection at Source and Advance Tax",
+          "marks": 2,
+          "evidence": "TDS on payments related to slump sale",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-4",
+          "section": "MCQ",
+          "ref": "4",
+          "page": 5,
+          "chapter": "Chapter 4: Income of Other Persons included in Total Income of Assessee",
+          "marks": 2,
+          "evidence": "Clubbing of rental income from gifted house",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-5",
+          "section": "MCQ",
+          "ref": "5",
+          "page": 6,
+          "chapter": "Chapter 4: Income of Other Persons included in Total Income of Assessee",
+          "marks": 2,
+          "evidence": "Clubbing of rental income when gifted to major son",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-6",
+          "section": "MCQ",
+          "ref": "6",
+          "page": 6,
+          "chapter": "Chapter 6: Deductions from Gross Total Income",
+          "marks": 2,
+          "evidence": "Deduction for pension scheme contribution",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-7",
+          "section": "MCQ",
+          "ref": "7",
+          "page": 7,
+          "chapter": "Chapter 7: Tax Deduction or Collection at Source and Advance Tax",
+          "marks": 2,
+          "evidence": "Advance tax applicability for presumptive professional",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-8",
+          "section": "MCQ",
+          "ref": "8",
+          "page": 7,
+          "chapter": "Chapter 2: Residential Status and Scope of Total Income",
+          "marks": 1,
+          "evidence": "Head of income for FPI trading in listed shares",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-9",
+          "section": "MCQ",
+          "ref": "9",
+          "page": 9,
+          "chapter": "Chapter 9: Registration",
+          "marks": 2,
+          "evidence": "Effective date of GST registration for partnership firm",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-10",
+          "section": "MCQ",
+          "ref": "10",
+          "page": 9,
+          "chapter": "Chapter 3: Charge of GST",
+          "marks": 2,
+          "evidence": "Tax payable under composition levy for quarter",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-11",
+          "section": "MCQ",
+          "ref": "11",
+          "page": 10,
+          "chapter": "Chapter 2: Supply under GST",
+          "marks": 2,
+          "evidence": "Import of services treatment as supply",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-12",
+          "section": "MCQ",
+          "ref": "12",
+          "page": 10,
+          "chapter": "Chapter 10: Tax Invoice; Credit and Debit Notes",
+          "marks": 2,
+          "evidence": "Time limit for issuing tax invoice for goods",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-13",
+          "section": "MCQ",
+          "ref": "13",
+          "page": 10,
+          "chapter": "Chapter 4: Place of Supply",
+          "marks": 2,
+          "evidence": "Place of supply for goods located in territorial waters",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-14",
+          "section": "MCQ",
+          "ref": "14",
+          "page": 11,
+          "chapter": "Chapter 9: Registration",
+          "marks": 2,
+          "evidence": "Statement of stock on withdrawal of composition levy",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-15",
+          "section": "MCQ",
+          "ref": "15",
+          "page": 11,
+          "chapter": "Chapter 15: Returns",
+          "marks": 2,
+          "evidence": "Interest amount payable for delayed GST return filing",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "MCQ-16",
+          "section": "MCQ",
+          "ref": "16",
+          "page": 12,
+          "chapter": "Chapter 14: Tax Deduction at Source and Collection of Tax at Source",
+          "marks": 1,
+          "evidence": "TCS (IGST) amount to be collected by e-commerce operator",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-A-1",
+          "section": "Descriptive-A",
+          "ref": "1",
+          "page": 13,
+          "chapter": "Chapter 3: Heads of Income",
+          "marks": 15,
+          "evidence": "Total income and tax liability computation for manufacturing business",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-A-2",
+          "section": "Descriptive-A",
+          "ref": "2(a)",
+          "page": 16,
+          "chapter": "Chapter 2: Residential Status and Scope of Total Income",
+          "marks": 6,
+          "evidence": "Residential status and total income of an individual",
+          "optionalGroup": "Q2",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-A-2",
+          "section": "Descriptive-A",
+          "ref": "2(b)",
+          "page": 17,
+          "chapter": "Chapter 7: Tax Deduction or Collection at Source and Advance Tax",
+          "marks": 4,
+          "evidence": "TDS/TCS applicability in independent situations",
+          "optionalGroup": "Q2",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-A-3",
+          "section": "Descriptive-A",
+          "ref": "3(a)",
+          "page": 18,
+          "chapter": "Chapter 3: Heads of Income",
+          "marks": 6,
+          "evidence": "Perquisites and salary income computation",
+          "optionalGroup": "Q3",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-A-3",
+          "section": "Descriptive-A",
+          "ref": "3(b)",
+          "page": 19,
+          "chapter": "Chapter 3: Heads of Income",
+          "marks": 4,
+          "evidence": "Taxability of property purchase and insurance claim",
+          "optionalGroup": "Q3",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-A-4",
+          "section": "Descriptive-A",
+          "ref": "4(a)",
+          "page": 20,
+          "chapter": "Chapter 5: Set-Off or Carry Forward and Set-off of Losses",
+          "marks": 6,
+          "evidence": "Gross total income computation and loss set-off",
+          "optionalGroup": "Q4",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-A-4",
+          "section": "Descriptive-A",
+          "ref": "4(b)",
+          "page": 21,
+          "chapter": "Chapter 8: Provisions for filing Return of Income and Self Assessment",
+          "marks": 4,
+          "evidence": "Due dates for updated, revised, and belated income tax returns",
+          "optionalGroup": "Q4",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-A-4-OR",
+          "section": "Descriptive-A",
+          "ref": "4(b) OR",
+          "page": 22,
+          "chapter": "Chapter 8: Provisions for filing Return of Income and Self Assessment",
+          "marks": 4,
+          "evidence": "Mandatory filing of income tax return requirements",
+          "optionalGroup": "Q4-OR",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-B-5",
+          "section": "Descriptive-B",
+          "ref": "5",
+          "page": 23,
+          "chapter": "Chapter 13: Payment of Tax",
+          "marks": 10,
+          "evidence": "Net minimum GST liability in cash after ITC utilization",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-B-6",
+          "section": "Descriptive-B",
+          "ref": "6(a)",
+          "page": 27,
+          "chapter": "Chapter 8: Input Tax Credit",
+          "marks": 5,
+          "evidence": "Eligible Input Tax Credit computation for inward supplies",
+          "optionalGroup": "Q6",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-B-6",
+          "section": "Descriptive-B",
+          "ref": "6(b)",
+          "page": 29,
+          "chapter": "Chapter 4: Place of Supply",
+          "marks": 5,
+          "evidence": "Place of supply determination for airline ticket bookings",
+          "optionalGroup": "Q6",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-B-7",
+          "section": "Descriptive-B",
+          "ref": "7(a)",
+          "page": 29,
+          "chapter": "Chapter 14: Tax Deduction at Source and Collection of Tax at Source",
+          "marks": 5,
+          "evidence": "TDS calculation on payments by public sector undertaking",
+          "optionalGroup": "Q7",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-B-7",
+          "section": "Descriptive-B",
+          "ref": "7(b)",
+          "page": 30,
+          "chapter": "Chapter 11: Accounts and Records",
+          "marks": 5,
+          "evidence": "Additional accounts and records for works contract execution",
+          "optionalGroup": "Q7",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-B-8",
+          "section": "Descriptive-B",
+          "ref": "8(a)",
+          "page": 30,
+          "chapter": "Chapter 2: Supply under GST",
+          "marks": 5,
+          "evidence": "Meaning and tax treatment of specified actionable claims",
+          "optionalGroup": "Q8",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-B-8",
+          "section": "Descriptive-B",
+          "ref": "8(b)",
+          "page": 30,
+          "chapter": "Chapter 10: Tax Invoice; Credit and Debit Notes",
+          "marks": 5,
+          "evidence": "Conditions for issuing revised tax invoice",
+          "optionalGroup": "Q8",
+          "uncertain": false
+        },
+        {
+          "group": "Descriptive-B-8-OR",
+          "section": "Descriptive-B",
+          "ref": "8(b) OR",
+          "page": 31,
+          "chapter": "Chapter 15: Returns",
+          "marks": 5,
+          "evidence": "Exemptions and due date for filing annual return",
+          "optionalGroup": "Q8-OR",
+          "uncertain": false
+        }
+      ]
+    }
+  },
+  {
+    "title": "Intermediate · Taxation · January 2025 · Question paper",
+    "source": "https://cdn.shopify.com/s/files/1/0023/3200/0311/files/T_Jan_Q.pdf?v=1744788174",
+    "draft": {
+      "choices": [
+        {
+          "id": "choice_8",
+          "section": "Section - B",
+          "choose_count": 1,
+          "alternatives": [
+            {
+              "refs": [
+                "8(a)"
+              ]
+            },
+            {
+              "refs": [
+                "8(a)_OR"
+              ]
+            }
+          ]
+        }
+      ],
+      "document_matches": true,
+      "complete": true,
+      "exam_marks": 70,
+      "total_offered_marks": 75,
+      "notes": "Question 8 has an internal OR between question 8(a) and its alternative 8(a) under Section B.",
+      "rules": [
+        {
+          "section": "Section - A",
+          "maximum": 35,
+          "compulsory": [
+            1
+          ],
+          "choose_from": [
+            2,
+            3,
+            4
+          ],
+          "choose_count": 2
+        },
+        {
+          "section": "Section - B",
+          "maximum": 35,
+          "compulsory": [
+            5
+          ],
+          "choose_from": [
+            6,
+            7,
+            8
+          ],
+          "choose_count": 2
+        }
+      ],
+      "allocations": [
+        {
+          "group": "Section - A:1",
+          "marks": 15
+        },
+        {
+          "group": "Section - A:2",
+          "marks": 10
+        },
+        {
+          "group": "Section - A:3",
+          "marks": 10
+        },
+        {
+          "group": "Section - A:4",
+          "marks": 14
+        },
+        {
+          "group": "Section - B:5",
+          "marks": 15
+        },
+        {
+          "group": "Section - B:6",
+          "marks": 10
+        },
+        {
+          "group": "Section - B:7",
+          "marks": 10
+        },
+        {
+          "group": "Section - B:8",
+          "marks": 10
+        },
+        {
+          "group": "Section - B:8_OR",
+          "marks": 5
+        }
+      ],
+      "questions": [
+        {
+          "group": "Section - A:1",
+          "section": "Section - A",
+          "ref": "1",
+          "page": 2,
+          "chapter": "Chapter 9: Income Tax Liability - Computation and Optimisation",
+          "marks": 15,
+          "evidence": "Computation of net taxable income and tax liability of a resident medical practitioner.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - A:2",
+          "section": "Section - A",
+          "ref": "2(a)",
+          "page": 4,
+          "chapter": "Chapter 3: Heads of Income",
+          "marks": 6,
+          "evidence": "Slump sale capital gain computation.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - A:2",
+          "section": "Section - A",
+          "ref": "2(b)",
+          "page": 5,
+          "chapter": "Chapter 7: Tax Deduction or Collection at Source and Advance Tax",
+          "marks": 4,
+          "evidence": "TDS applicability on professional and other payments.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - A:3",
+          "section": "Section - A",
+          "ref": "3(a)",
+          "page": 6,
+          "chapter": "Chapter 9: Income Tax Liability - Computation and Optimisation",
+          "marks": 6,
+          "evidence": "Meaning of Micro and Small Enterprise u/s 43B.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - A:3",
+          "section": "Section - A",
+          "ref": "3(b)",
+          "page": 6,
+          "chapter": "Chapter 3: Heads of Income",
+          "marks": 4,
+          "evidence": "Depreciation allowed on specific business assets.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - A:4",
+          "section": "Section - A",
+          "ref": "4(a)",
+          "page": 7,
+          "chapter": "Chapter 5: Set-Off or Carry Forward and Set-off of Losses",
+          "marks": 6,
+          "evidence": "Compute total income after set-off and carry forward of losses and deductions.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - A:4",
+          "section": "Section - A",
+          "ref": "4(b)(i)",
+          "page": 8,
+          "chapter": "Chapter 8: Provisions for filing Return of Income and Self Assessment",
+          "marks": 4,
+          "evidence": "Mandatory return filing provisions under section 80.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - A:4",
+          "section": "Section - A",
+          "ref": "4(b)(ii)",
+          "page": 8,
+          "chapter": "Chapter 8: Provisions for filing Return of Income and Self Assessment",
+          "marks": 4,
+          "evidence": "Consequences of non-filing of return of loss in time.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:5",
+          "section": "Section - B",
+          "ref": "5(a)",
+          "page": 9,
+          "chapter": "Chapter 8: Input Tax Credit",
+          "marks": 10,
+          "evidence": "Compute net minimum GST payable in cash for outward/inward supplies.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:5",
+          "section": "Section - B",
+          "ref": "5(b)",
+          "page": 10,
+          "chapter": "Chapter 3: Charge of GST",
+          "marks": 5,
+          "evidence": "Determine GST rates and payable for movie tickets and combo offers.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:6",
+          "section": "Section - B",
+          "ref": "6(a)",
+          "page": 12,
+          "chapter": "Chapter 3: Charge of GST",
+          "marks": 5,
+          "evidence": "Compute GST payable under reverse charge basis for various transactions.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:6",
+          "section": "Section - B",
+          "ref": "6(b)",
+          "page": 13,
+          "chapter": "Chapter 4: Place of Supply",
+          "marks": 5,
+          "evidence": "Determine place of supply for independent cases.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:7",
+          "section": "Section - B",
+          "ref": "7(a)",
+          "page": 14,
+          "chapter": "Chapter 9: Registration",
+          "marks": 5,
+          "evidence": "Determine effective date of registration and revised tax invoice periods.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:7",
+          "section": "Section - B",
+          "ref": "7(b)",
+          "page": 14,
+          "chapter": "Chapter 15: Returns",
+          "marks": 5,
+          "evidence": "Short notes on rectification of errors in returns.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:8",
+          "section": "Section - B",
+          "ref": "8(a)",
+          "page": 15,
+          "chapter": "Chapter 6: Time of Supply",
+          "marks": 5,
+          "evidence": "Clarification on Time of Supply for road construction under HAM model.",
+          "optionalGroup": "OR_Group_8",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:8_OR",
+          "section": "Section - B",
+          "ref": "8(a)_OR",
+          "page": 15,
+          "chapter": "Chapter 5: Exemptions from GST",
+          "marks": 5,
+          "evidence": "Exemption available for services provided by an Old Age Home.",
+          "optionalGroup": "OR_Group_8",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:8",
+          "section": "Section - B",
+          "ref": "8(b)(i)",
+          "page": 15,
+          "chapter": "Chapter 12: E-Way Bill",
+          "marks": 2,
+          "evidence": "Rule 138E restrictions on furnishing Part A of Form GST EWB-01.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Section - B:8",
+          "section": "Section - B",
+          "ref": "8(b)(ii)",
+          "page": 15,
+          "chapter": "Chapter 1: GST in India - An Introduction",
+          "marks": 3,
+          "evidence": "List State taxes subsumed in the GST regime.",
+          "optionalGroup": "",
+          "uncertain": false
+        }
+      ]
+    }
+  },
+  {
+    "title": "Intermediate · Advanced Accounting · May 2024 · Question paper",
+    "source": "https://cdn.shopify.com/s/files/1/0023/3200/0311/files/CA_Inter_Adv_Accounts_May_24_Question_Paper.pdf?v=1732612842",
+    "draft": {
+      "choices": [
+        {
+          "id": "6_choice",
+          "section": "Part II",
+          "choose_count": 1,
+          "alternatives": [
+            {
+              "refs": [
+                "6(a)"
+              ]
+            },
+            {
+              "refs": [
+                "6(a) OR",
+                "6(b)",
+                "6(c)"
+              ]
+            }
+          ]
+        }
+      ],
+      "document_matches": true,
+      "complete": true,
+      "exam_marks": 70,
+      "total_offered_marks": 84,
+      "notes": "Question 1 is compulsory. Any 4 out of the remaining 5 questions (Q2, Q3, Q4, Q5, Q6) are to be answered. Question 6 has an internal OR choice between 6(a) and the combination of 6(a) OR, 6(b), and 6(c).",
+      "rules": [
+        {
+          "section": "Part II",
+          "maximum": 70,
+          "compulsory": [
+            1
+          ],
+          "choose_from": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "choose_count": 4
+        }
+      ],
+      "allocations": [
+        {
+          "group": "Part II - Q1",
+          "marks": 14
+        },
+        {
+          "group": "Part II - Q2",
+          "marks": 14
+        },
+        {
+          "group": "Part II - Q3",
+          "marks": 14
+        },
+        {
+          "group": "Part II - Q4",
+          "marks": 14
+        },
+        {
+          "group": "Part II - Q5",
+          "marks": 14
+        },
+        {
+          "group": "Part II - Q6",
+          "marks": 7
+        },
+        {
+          "group": "Part II - Q6_OR",
+          "marks": 14
+        }
+      ],
+      "questions": [
+        {
+          "group": "Part II - Q1",
+          "section": "Part II",
+          "ref": "1(a)",
+          "page": 2,
+          "chapter": "Chapter 5: Assets Based Accounting Standards",
+          "marks": 7,
+          "evidence": "Capitalization of borrowing costs for a qualified asset.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q1",
+          "section": "Part II",
+          "ref": "1(b)",
+          "page": 3,
+          "chapter": "Chapter 7: Accounting Standards Based on Items Impacting Financial Statement",
+          "marks": 7,
+          "evidence": "Valuation of closing inventory for joint products and by-products.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q2",
+          "section": "Part II",
+          "ref": "2",
+          "page": 4,
+          "chapter": "Chapter 14: Internal Reconstruction",
+          "marks": 14,
+          "evidence": "Journal entries and accounts for a corporate reconstruction scheme.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q3",
+          "section": "Part II",
+          "ref": "3(a)",
+          "page": 6,
+          "chapter": "Chapter 8: Revenue Based Accounting Standards",
+          "marks": 7,
+          "evidence": "Stage of completion and profit recognition for construction contracts.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q3",
+          "section": "Part II",
+          "ref": "3(b)",
+          "page": 7,
+          "chapter": "Chapter 7: Accounting Standards Based on Items Impacting Financial Statement",
+          "marks": 7,
+          "evidence": "Calculation of net cash flow from operating activities.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q4",
+          "section": "Part II",
+          "ref": "4",
+          "page": 8,
+          "chapter": "Chapter 13: Amalgamation of Companies",
+          "marks": 14,
+          "evidence": "Amalgamation accounting and balance sheet for a new company.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q5",
+          "section": "Part II",
+          "ref": "5",
+          "page": 10,
+          "chapter": "Chapter 10: Accounting Standards for Consolidated Financial Statement",
+          "marks": 14,
+          "evidence": "Consolidated balance sheet preparation with subsidiary adjustments.",
+          "optionalGroup": "",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q6",
+          "section": "Part II",
+          "ref": "6(a)",
+          "page": 12,
+          "chapter": "Chapter 9: Other Accounting Standards",
+          "marks": 7,
+          "evidence": "Lease classification and unearned finance income calculation.",
+          "optionalGroup": "6_option",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q6_OR",
+          "section": "Part II",
+          "ref": "6(a) OR",
+          "page": 13,
+          "chapter": "Chapter 7: Accounting Standards Based on Items Impacting Financial Statement",
+          "marks": 4,
+          "evidence": "Computation of basic and diluted earnings per share.",
+          "optionalGroup": "6_option",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q6_OR",
+          "section": "Part II",
+          "ref": "6(b)",
+          "page": 14,
+          "chapter": "Chapter 11: Financial Statements of Companies",
+          "marks": 4,
+          "evidence": "Dividend declaration recommendation out of general reserve.",
+          "optionalGroup": "6_option",
+          "uncertain": false
+        },
+        {
+          "group": "Part II - Q6_OR",
+          "section": "Part II",
+          "ref": "6(c)",
+          "page": 14,
+          "chapter": "Chapter 15: Accounting for Branches including Foreign Branches",
+          "marks": 6,
+          "evidence": "Trial balance conversion for an integral foreign branch.",
+          "optionalGroup": "6_option",
+          "uncertain": false
+        }
+      ]
+    }
+  }
+]

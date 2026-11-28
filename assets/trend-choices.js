@@ -2,6 +2,33 @@ const refKey = value => String(value || '').replace(/\s/g, '').toLowerCase();
 const key = q => q.section + '|' + refKey(q.ref);
 const numberOf = q => Number(String(q.ref).match(/\d+/)?.[0]);
 
+// Drop only a proven duplicate of an existing section rule. Partial or
+// contradictory cross-question choices still fail closed in choiceCalculator.
+export function normalizeSectionChoices(questions,choices,rules){
+ if(!Array.isArray(choices)||!Array.isArray(rules))return choices;
+ const inventory=new Map(questions.map(q=>[key(q),q]));
+ return choices.filter(choice=>{
+  if(!Array.isArray(choice.alternatives)||choice.alternatives.length<2)return true;
+  const branches=choice.alternatives.map(b=>Array.isArray(b.refs)?b.refs.map(ref=>inventory.get(choice.section+'|'+refKey(ref))):[]);
+  if(branches.some(b=>!b.length||b.some(q=>!q)||new Set(b.map(key)).size!==b.length||new Set(b.map(numberOf)).size!==1))return true;
+  const numbers=branches.map(b=>numberOf(b[0]));
+  if(new Set(numbers).size!==numbers.length)return true;
+  const rule=rules.find(r=>r.section===choice.section&&r.choose_count===choice.choose_count&&Array.isArray(r.choose_from)&&r.choose_from.length===numbers.length&&r.choose_from.every(n=>numbers.includes(n)));
+  if(!rule)return true;
+  for(const branch of branches){
+   const n=numberOf(branch[0]),covered=new Set(branch.map(key));
+   for(const internal of choices){
+    if(internal===choice||internal.section!==choice.section||!Array.isArray(internal.alternatives))continue;
+    const alternatives=internal.alternatives.map(b=>Array.isArray(b.refs)?b.refs.map(ref=>inventory.get(choice.section+'|'+refKey(ref))):[]);
+    if(alternatives.some(b=>!b.length||b.some(q=>!q||numberOf(q)!==n)))continue;
+    if(alternatives.some(b=>b.every(q=>covered.has(key(q)))))for(const q of alternatives.flat())covered.add(key(q));
+   }
+   if(questions.some(q=>q.section===choice.section&&numberOf(q)===n&&!covered.has(key(q))))return true;
+  }
+  return false;
+ });
+}
+
 // Internal choices have their own cardinality. They are independent of the
 // section's choice between main questions, and may contain composite branches.
 export function choiceCalculator(questions, choices) {
@@ -20,7 +47,7 @@ export function choiceCalculator(questions, choices) {
       if (!Array.isArray(branch.refs) || !branch.refs.length) throw Error('An internal-choice branch has no question references.');
       return branch.refs.map(ref => {
         const k=choice.section+'|'+refKey(ref), q=inventory.get(k);
-        if (!q || used.has(k)) throw Error('Internal-choice references are missing, duplicated or overlapping: '+ref);
+        if (!q || used.has(k)) {const e=Error('Internal-choice references are missing, duplicated or overlapping: '+ref);e.diagnostic={section:choice.section,ranges:[{number:numberOf({ref}),min:0,max:1,optional:false}]};throw e}
         if (mainNumber === undefined) mainNumber=numberOf(q);
         if (numberOf(q)!==mainNumber) throw Error('An internal choice crosses main questions; use a section choice rule instead.');
         used.add(k);return q;
