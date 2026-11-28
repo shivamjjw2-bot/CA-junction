@@ -35,6 +35,12 @@ for(const f of fixtures){
  }
  const replacement={complete:true,questions:items.map(q=>({...q,group:target.key+':verified'})),choices};
  const repaired=mergeQuestion(d,target,replacement);
+ const shared=structuredClone(d);shared.questions.forEach(q=>q.group='shared-model-label');shared.allocations=[{group:'shared-model-label',marks:shared.questions.reduce((n,q)=>n+q.marks,0)}];
+ const sharedRepair=mergeQuestion(shared,target,replacement);
+ assert.equal(validateExtraction(sharedRepair,chapters).examMarks,70);
+ const unchanged=shared.questions.filter(q=>!(q.section===target.section&&Number(q.ref.match(/\d+/)[0])===number));
+ assert.deepEqual(sharedRepair.questions.slice(0,unchanged.length),unchanged,'Shared bookkeeping must not change other questions');
+ assert.throws(()=>mergeQuestion({...shared,rules:undefined},target,replacement),/overlaps/,'Do not lose the only independent check when no section rules exist');
  const relabeled={...replacement,questions:replacement.questions.map(q=>({...q,group:'model-generated-label'}))};
  assert.deepEqual(mergeQuestion(d,target,relabeled),repaired,'Bookkeeping labels must not reject the correct question');
  assert.equal(validateExtraction(repaired,chapters).examMarks,70);

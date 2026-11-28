@@ -1,4 +1,4 @@
-import {verifyAllPapers} from './trend-verification-core.js';
+import {verifyAllPapers} from './trend-verification-core.js?v=quota-pause-1';
 import {trendRequest} from './trend-transport.js?v=transport-1';
 const sb=window.CA_APP?.supabase,$=id=>document.getElementById(id);let running=false,stop=false,last=null,userId;
 async function headers(){const {data,error}=await sb.auth.getSession();if(error||!data.session||data.session.user.id!==userId){const e=Error('Please sign in again with the same admin account.');e.status=401;throw e}return{authorization:'Bearer '+data.session.access_token,accept:'application/x-ndjson','content-type':'application/json','x-ca-trend-version':'7'}}

@@ -22,7 +22,7 @@ export async function verifyAllPapers({request,headers,update=()=>{},stopped=()=
    if(result?.pending)throw Error('Processing is still pending; saved progress can be resumed.');
    if(result?.complete!==true||result.audited!==true||!Array.isArray(result.questions)||!result.questions.length||result.paper?.id!==row.id||result.paper?.revision!==row.revision)throw Error('The API did not return a complete audited result for this paper revision.');
    row.status='processed';row.questions=result.questions.length;row.hash=result.hash;row.generatedAt=result.generatedAt;row.uncertainMarks=result.questions.filter(q=>q.uncertain).reduce((s,q)=>s+q.marks,0);
-  }catch(e){row.status='failed';row.error=e.message;row.code=e.code||'';row.httpStatus=e.status||null;if([401,403,429].includes(e.status)){update(rows,e.message);return{rows,discoveryComplete,stopped:true}}}
+  }catch(e){row.status=e.status===429?'pending':'failed';row.error=e.status===429?'Waiting for document-reader quota. Saved progress is kept; resume later.':e.message;row.code=e.code||'';row.httpStatus=e.status||null;if([401,403,429].includes(e.status)){update(rows,e.message);return{rows,discoveryComplete,stopped:true}}}
   finally{row.elapsedSeconds=Math.round((Date.now()-start)/1000)}
   update(rows,row.title);
  }
