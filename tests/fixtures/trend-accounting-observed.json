@@ -1,0 +1,629 @@
+[
+  {
+    "id": "34889680-32c5-4181-acf7-5b781865d60b",
+    "title": "Foundation · Accounting · June 2024 · Question paper",
+    "draft": {
+      "notes": "Question 1 is compulsory. Candidates must answer any four from the remaining five questions (Q2 to Q6). Question 5(b) has an internal choice between (i) and (ii).",
+      "rules": [
+        {
+          "maximum": 80,
+          "section": "Descriptive",
+          "compulsory": [
+            1
+          ],
+          "choose_from": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "choose_count": 4
+        }
+      ],
+      "choices": [
+        {
+          "id": "Q5b",
+          "section": "Descriptive",
+          "alternatives": [
+            {
+              "refs": [
+                "5(b)(i)"
+              ]
+            },
+            {
+              "refs": [
+                "5(b)(ii)"
+              ]
+            }
+          ],
+          "choose_count": 1
+        }
+      ],
+      "complete": true,
+      "questions": [
+        {
+          "ref": "1(a)(i)",
+          "page": 1,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 2: Accounting Process",
+          "section": "Descriptive",
+          "evidence": "Closing stock in trial balance and its treatment",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(ii)",
+          "page": 1,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 2: Accounting Process",
+          "section": "Descriptive",
+          "evidence": "Error of principle definition",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(iii)",
+          "page": 1,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 1: Theoretical Framework",
+          "section": "Descriptive",
+          "evidence": "Accounting standards and statute precedence",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(iv)",
+          "page": 1,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 6: Bills of Exchange and Promissory Notes",
+          "section": "Descriptive",
+          "evidence": "Difference between promissory note and bill of exchange",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(v)",
+          "page": 1,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 2: Accounting Process",
+          "section": "Descriptive",
+          "evidence": "All errors rectified by journal entries",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(vi)",
+          "page": 1,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 10: Partnership and LLP Accounts",
+          "section": "Descriptive",
+          "evidence": "Revaluation account also known as profit and loss adjustment account",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(b)(i)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 1: Theoretical Framework",
+          "section": "Descriptive",
+          "evidence": "Define accounting policy and conditions to change",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(b)(ii)(1)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 1,
+          "chapter": "Chapter 1: Theoretical Framework",
+          "section": "Descriptive",
+          "evidence": "Explain cash basis of accounting",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(b)(ii)(2)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 1,
+          "chapter": "Chapter 1: Theoretical Framework",
+          "section": "Descriptive",
+          "evidence": "Explain going concern concept",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(c)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 4,
+          "chapter": "Chapter 2: Accounting Process",
+          "section": "Descriptive",
+          "evidence": "Pass journal entries for transactions with GST",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "2(a)",
+          "page": 2,
+          "group": "Descriptive-2",
+          "marks": 12,
+          "chapter": "Chapter 2: Accounting Process",
+          "section": "Descriptive",
+          "evidence": "Trial balance rectification of errors",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "2(b)",
+          "page": 3,
+          "group": "Descriptive-2",
+          "marks": 8,
+          "chapter": "Chapter 5: Depreciation and Amortisation",
+          "section": "Descriptive",
+          "evidence": "Machinery account with change of depreciation method",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "3(a)",
+          "page": 4,
+          "group": "Descriptive-3",
+          "marks": 12,
+          "chapter": "Chapter 8: Financial Statements of Not-for-Profit Organisations",
+          "section": "Descriptive",
+          "evidence": "Income and expenditure and balance sheet from receipts and payments",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "3(b)",
+          "page": 5,
+          "group": "Descriptive-3",
+          "marks": 8,
+          "chapter": "Chapter 10: Partnership and LLP Accounts",
+          "section": "Descriptive",
+          "evidence": "Dissolution of partnership firm accounts",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "4(a)",
+          "page": 7,
+          "group": "Descriptive-4",
+          "marks": 12,
+          "chapter": "Chapter 10: Partnership and LLP Accounts",
+          "section": "Descriptive",
+          "evidence": "Admission of partner with revaluation and capital accounts",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "4(b)",
+          "page": 8,
+          "group": "Descriptive-4",
+          "marks": 8,
+          "chapter": "Chapter 9: Accounts from Incomplete Records",
+          "section": "Descriptive",
+          "evidence": "Trading and profit and loss account and balance sheet from incomplete records",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "5(a)",
+          "page": 10,
+          "group": "Descriptive-5",
+          "marks": 5,
+          "chapter": "Chapter 4: Inventories",
+          "section": "Descriptive",
+          "evidence": "Inventory valuation given stock taking date mismatch",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "5(b)(i)",
+          "page": 11,
+          "group": "Descriptive-5",
+          "marks": 5,
+          "chapter": "Chapter 7: Preparation of Final Accounts of Sole Proprietors",
+          "section": "Descriptive",
+          "evidence": "Prepare manufacturing account",
+          "uncertain": false,
+          "optionalGroup": "choice_5b"
+        },
+        {
+          "ref": "5(b)(ii)",
+          "page": 12,
+          "group": "Descriptive-5",
+          "marks": 5,
+          "chapter": "Chapter 3: Bank Reconciliation Statement",
+          "section": "Descriptive",
+          "evidence": "Prepare bank reconciliation statement from overdraft",
+          "uncertain": false,
+          "optionalGroup": "choice_5b"
+        },
+        {
+          "ref": "5(c)",
+          "page": 13,
+          "group": "Descriptive-5",
+          "marks": 10,
+          "chapter": "Chapter 11: Company Accounts",
+          "section": "Descriptive",
+          "evidence": "Forfeiture reissue and bonus shares journal entries",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "6(a)",
+          "page": 14,
+          "group": "Descriptive-6",
+          "marks": 15,
+          "chapter": "Chapter 11: Company Accounts",
+          "section": "Descriptive",
+          "evidence": "Redemption of preference shares",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "6(b)",
+          "page": 14,
+          "group": "Descriptive-6",
+          "marks": 5,
+          "chapter": "Chapter 2: Accounting Process",
+          "section": "Descriptive",
+          "evidence": "Advantages of subsidiary books",
+          "uncertain": false,
+          "optionalGroup": ""
+        }
+      ],
+      "exam_marks": 100,
+      "allocations": [
+        {
+          "group": "Descriptive-1",
+          "marks": 20
+        },
+        {
+          "group": "Descriptive-2",
+          "marks": 20
+        },
+        {
+          "group": "Descriptive-3",
+          "marks": 20
+        },
+        {
+          "group": "Descriptive-4",
+          "marks": 20
+        },
+        {
+          "group": "Descriptive-5",
+          "marks": 20
+        },
+        {
+          "group": "Descriptive-6",
+          "marks": 20
+        }
+      ],
+      "document_matches": true,
+      "total_offered_marks": 105
+    },
+    "chapters": [
+      "Chapter 1: Theoretical Framework",
+      "Chapter 2: Accounting Process",
+      "Chapter 3: Bank Reconciliation Statement",
+      "Chapter 4: Inventories",
+      "Chapter 5: Depreciation and Amortisation",
+      "Chapter 6: Bills of Exchange and Promissory Notes",
+      "Chapter 7: Preparation of Final Accounts of Sole Proprietors",
+      "Chapter 8: Financial Statements of Not-for-Profit Organisations",
+      "Chapter 9: Accounts from Incomplete Records",
+      "Chapter 10: Partnership and LLP Accounts",
+      "Chapter 11: Company Accounts"
+    ]
+  },
+  {
+    "id": "eb13ad21-7f1a-4caf-b2a5-2e1bf8e471c6",
+    "title": "Foundation · Accounting · September 2025 · Question paper",
+    "draft": {
+      "notes": "Question 1 is compulsory. Answer any four questions from the remaining five questions (Q2-Q6). Question 5(a) contains an internal choice between two sub-parts.",
+      "rules": [
+        {
+          "maximum": 80,
+          "section": "Descriptive",
+          "compulsory": [
+            1
+          ],
+          "choose_from": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "choose_count": 4
+        }
+      ],
+      "choices": [
+        {
+          "id": "5(a)",
+          "section": "Descriptive",
+          "alternatives": [
+            {
+              "refs": [
+                "5(a)(i)"
+              ]
+            },
+            {
+              "refs": [
+                "5(a)(ii)"
+              ]
+            }
+          ],
+          "choose_count": 1
+        }
+      ],
+      "complete": true,
+      "questions": [
+        {
+          "ref": "1(a)(i)",
+          "page": 1,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 1: Theoretical Framework",
+          "section": "Descriptive",
+          "evidence": "Materiality depends on factors beyond just the amount.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(ii)",
+          "page": 1,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 8: Financial Statements of Not-for-Profit Organisations",
+          "section": "Descriptive",
+          "evidence": "Accrual concept in Income and Expenditure Account.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(iii)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 10: Partnership and LLP Accounts",
+          "section": "Descriptive",
+          "evidence": "Profit sharing and capital contribution ratio independence.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(iv)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 5: Depreciation and Amortisation",
+          "section": "Descriptive",
+          "evidence": "Depreciation provision during loss years.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(v)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 1: Theoretical Framework",
+          "section": "Descriptive",
+          "evidence": "Business entity concept separating personal and business affairs.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(a)(vi)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 2,
+          "chapter": "Chapter 11: Company Accounts",
+          "section": "Descriptive",
+          "evidence": "Issuing equity shares at a discount.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(b)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 4,
+          "chapter": "Chapter 1: Theoretical Framework",
+          "section": "Descriptive",
+          "evidence": "Generally accepted valuation principles explanation.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "1(c)",
+          "page": 2,
+          "group": "Descriptive-1",
+          "marks": 4,
+          "chapter": "Chapter 2: Accounting Process",
+          "section": "Descriptive",
+          "evidence": "Recording transactions in the purchase book.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "2(a)",
+          "page": 3,
+          "group": "Descriptive-2",
+          "marks": 8,
+          "chapter": "Chapter 5: Depreciation and Amortisation",
+          "section": "Descriptive",
+          "evidence": "Machinery account and provision for depreciation.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "2(b)",
+          "page": 3,
+          "group": "Descriptive-2",
+          "marks": 12,
+          "chapter": "Chapter 2: Accounting Process",
+          "section": "Descriptive",
+          "evidence": "Journal entries for transaction rectification.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "3(a)",
+          "page": 5,
+          "group": "Descriptive-3",
+          "marks": 12,
+          "chapter": "Chapter 9: Accounts from Incomplete Records",
+          "section": "Descriptive",
+          "evidence": "Trading, P&L, and Balance Sheet preparation.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "3(b)",
+          "page": 6,
+          "group": "Descriptive-3",
+          "marks": 8,
+          "chapter": "Chapter 10: Partnership and LLP Accounts",
+          "section": "Descriptive",
+          "evidence": "Goodwill adjustments for partner admissions and retirements.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "4(a)",
+          "page": 7,
+          "group": "Descriptive-4",
+          "marks": 12,
+          "chapter": "Chapter 10: Partnership and LLP Accounts",
+          "section": "Descriptive",
+          "evidence": "Admission of partner with revaluation and balance sheet.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "4(b)",
+          "page": 9,
+          "group": "Descriptive-4",
+          "marks": 8,
+          "chapter": "Chapter 8: Financial Statements of Not-for-Profit Organisations",
+          "section": "Descriptive",
+          "evidence": "Income and Expenditure Account for a club.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "5(a)(i)",
+          "page": 10,
+          "group": "Descriptive-5",
+          "marks": 5,
+          "chapter": "Chapter 3: Bank Reconciliation Statement",
+          "section": "Descriptive",
+          "evidence": "Bank Reconciliation Statement with amended cash book.",
+          "uncertain": false,
+          "optionalGroup": "5(a)"
+        },
+        {
+          "ref": "5(a)(ii)",
+          "page": 11,
+          "group": "Descriptive-5",
+          "marks": 5,
+          "chapter": "Chapter 6: Bills of Exchange and Promissory Notes",
+          "section": "Descriptive",
+          "evidence": "Bills of exchange renewal and insolvency.",
+          "uncertain": false,
+          "optionalGroup": "5(a)"
+        },
+        {
+          "ref": "5(c)",
+          "page": 13,
+          "group": "Descriptive-5",
+          "marks": 10,
+          "chapter": "Chapter 11: Company Accounts",
+          "section": "Descriptive",
+          "evidence": "Redemption of preference shares and equity issue.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "6(a)",
+          "page": 13,
+          "group": "Descriptive-6",
+          "marks": 15,
+          "chapter": "Chapter 11: Company Accounts",
+          "section": "Descriptive",
+          "evidence": "Share issue, pro-rata allotment, forfeiture, and re-issue.",
+          "uncertain": false,
+          "optionalGroup": ""
+        },
+        {
+          "ref": "6(b)",
+          "page": 14,
+          "group": "Descriptive-6",
+          "marks": 5,
+          "chapter": "Chapter 4: Inventories",
+          "section": "Descriptive",
+          "evidence": "Inventory valuation with specific adjustments.",
+          "uncertain": false,
+          "optionalGroup": ""
+        }
+      ],
+      "exam_marks": 100,
+      "allocations": [
+        {
+          "group": "Descriptive-1",
+          "marks": 20
+        },
+        {
+          "group": "Descriptive-2",
+          "marks": 20
+        },
+        {
+          "group": "Descriptive-3",
+          "marks": 20
+        },
+        {
+          "group": "Descriptive-4",
+          "marks": 20
+        },
+        {
+          "group": "Descriptive-5",
+          "marks": 10
+        },
+        {
+          "group": "Descriptive-6",
+          "marks": 20
+        }
+      ],
+      "document_matches": true,
+      "total_offered_marks": 105
+    },
+    "chapters": [
+      "Chapter 1: Theoretical Framework",
+      "Chapter 2: Accounting Process",
+      "Chapter 3: Bank Reconciliation Statement",
+      "Chapter 4: Inventories",
+      "Chapter 5: Depreciation and Amortisation",
+      "Chapter 6: Bills of Exchange and Promissory Notes",
+      "Chapter 7: Preparation of Final Accounts of Sole Proprietors",
+      "Chapter 8: Financial Statements of Not-for-Profit Organisations",
+      "Chapter 9: Accounts from Incomplete Records",
+      "Chapter 10: Partnership and LLP Accounts",
+      "Chapter 11: Company Accounts"
+    ]
+  }
+]
