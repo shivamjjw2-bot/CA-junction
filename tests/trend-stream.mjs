@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {streamTrendResponse} from '../functions/_lib/trend-stream.js';
+import {trendResponse} from '../assets/trend-http.js';
+import {trendRequest} from '../assets/trend-transport.js';
+const enc=new TextEncoder();
+let finish,signal;
+const response=streamTrendResponse({},ctx=>{signal=ctx.streamSignal;return new Promise(resolve=>{finish=resolve;ctx.streamSignal.addEventListener('abort',()=>resolve(Response.json({error:'Cancelled'},{status:499})))})},10);
+const reader=response.body.getReader();
+const first=await Promise.race([reader.read(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Headers/progress blocked behind AI work')),300))]);
+assert(new TextDecoder().decode(first.value).includes('progress'));await reader.cancel();assert(signal.aborted);
+const progress=[];
+assert.deepEqual(await trendResponse(streamTrendResponse({},async({reportProgress})=>{reportProgress('Source audit');return Response.json({complete:true})}),s=>progress.push(s)),{complete:true});
+assert(progress.includes('Source audit'));
+await assert.rejects(()=>trendResponse(streamTrendResponse({},async()=>Response.json({error:'Sign in'},{status:401}))),e=>e.status===401&&e.code!=='STREAM_INTERRUPTED');
+await assert.rejects(()=>trendResponse(streamTrendResponse({},async()=>Response.json({error:'Quota',code:'QUOTA'},{status:429}))),e=>e.status===429);
+const interrupted=()=>new Response(new ReadableStream({start(c){c.enqueue(enc.encode('{"type":"progress","stage":"question extraction"}\n'));c.close()}}),{headers:{'content-type':'application/x-ndjson'}});
+await assert.rejects(()=>trendResponse(interrupted()),e=>e.code==='STREAM_INTERRUPTED'&&e.message.includes('question extraction'));
+let calls=0;const pauses=[];
+const result=await trendRequest('/test',{method:'POST'},()=>{},{pause:async ms=>pauses.push(ms),fetch:async()=>{calls++;if(calls===1)return new Response('<html>Bad Gateway</html>',{status:502});if(calls===2)return interrupted();return Response.json({complete:true,cached:true})}});
+assert.equal(calls,3);assert.deepEqual(pauses,[1000,3000]);assert.equal(result.cached,true);
+calls=0;await assert.rejects(()=>trendRequest('/test',{},()=>{},{pause:async()=>{},fetch:async()=>{calls++;return new Response('<html>Gateway</html>',{status:502})}}),e=>e.code==='HOST_GATEWAY');assert.equal(calls,3);
+for(const status of [401,403,409,422,429]){calls=0;await assert.rejects(()=>trendRequest('/test',{},()=>{},{pause:async()=>{},fetch:async()=>{calls++;return Response.json({error:'Do not retry'},{status})}}));assert.equal(calls,1)}
+console.log('PASS: immediate progress before processing, cancellation, status preservation, truncated-stream detection, bounded 502 recovery, saved-result recovery, and no retry of auth/quota/validation errors.');
