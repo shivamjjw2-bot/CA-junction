@@ -4,6 +4,11 @@ import {choiceCalculator} from '../assets/trend-choices.js';
 import {repairTarget} from '../functions/_lib/trend-question-repair.js';
 import {restoreRejectedDraft} from '../functions/_lib/trend-rules-audit.js';
 const q=(ref,marks)=>({ref,marks,section:'S',group:'Q6',page:3,chapter:'A',evidence:'Source evidence',uncertain:false});
+for(const item of [q('6(b)(iii)',0),{...q('6(b)',4),chapter:'Invalid chapter'},{...q('6(b)',4),page:0}]){
+ const bad={document_matches:true,complete:true,questions:[item]};
+ assert.throws(()=>validateExtraction(bad,['A']),e=>e.code==='QUESTION_INVENTORY_INVALID'&&repairTarget(bad,e.diagnostic)?.number===6);
+ assert.equal(bad.questions[0],item,'Invalid source data must not be silently rewritten');
+}
 const questions=[q('6(c)',4),q('6(c) (Option 1)',4),q('6(c) (Option 2)',4)];
 const draft={document_matches:true,complete:true,questions,choices:[],allocations:[{group:'Q6',marks:12}],rules:[{section:'S',maximum:4,compulsory:[6],choose_from:[],choose_count:0}]};
 let failure;try{validateExtraction(draft,['A'])}catch(e){failure=e}
