@@ -1,4 +1,4 @@
-import {trendResponse} from './trend-http.js?v=transport-1';
+import {trendResponse} from './trend-http.js?v=available-1';
 
 export async function trendRequest(path,options,onProgress=()=>{},dependencies={}){
  const fetcher=dependencies.fetch||fetch;

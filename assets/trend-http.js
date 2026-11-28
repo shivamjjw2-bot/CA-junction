@@ -20,6 +20,7 @@ export async function trendResponse(response,onProgress=()=>{}) {
   }
   if (!response.ok || !data || typeof data !== 'object' || Array.isArray(data)) {
     const error = new Error(data?.error || 'The document service could not complete this paper.');
+    error.available = data?.available?.status === 'unverified' ? data.available : null;
     error.code = data?.code;
     error.status = response.status;
     throw error;
