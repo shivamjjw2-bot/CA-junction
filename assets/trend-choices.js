@@ -67,7 +67,7 @@ export function choiceCalculator(questions, choices) {
     const count = choice.choose_count;
     if (!choice.id || ids.has(id) || !Array.isArray(choice.alternatives)
       || !Number.isInteger(count) || count < 1 || count >= choice.alternatives.length)
-      throw Error('Read the printed number of alternatives to answer for each internal choice.');
+      {const e=Error('Read the printed number of alternatives to answer for each internal choice.');const refs=choice.alternatives?.flatMap(b=>Array.isArray(b.refs)?b.refs:[])||[];const numbers=[...new Set(refs.map(ref=>numberOf({ref})))];if(numbers.length===1&&Number.isInteger(numbers[0]))e.diagnostic={section:choice.section,ranges:[{number:numbers[0],min:0,max:1,optional:false}]};throw e}
     ids.add(id);
     let mainNumber;
     const branches = choice.alternatives.map(branch => {

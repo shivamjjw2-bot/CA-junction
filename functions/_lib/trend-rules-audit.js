@@ -35,7 +35,7 @@ export async function auditPrintedRules(file, sections, apiKey, signal, question
 export function restoreRejectedDraft(checkpoint) {
   if(checkpoint.rulesAudit?.auditVersion===RULES_AUDIT_VERSION||checkpoint.rejectedDraft)return;
   const repair=checkpoint.repair||'';
-  if(!/answerable marks|SECTION_MARKS_MISMATCH|Section totals do not reconcile|[Ii]nternal.choice/.test(repair))return;
+  if(!/answerable marks|SECTION_MARKS_MISMATCH|Section totals do not reconcile|must cover exactly these numeric|Subquestion marks exceed|[Ii]nternal.choice/.test(repair))return;
   const start=repair.indexOf('{');
   if(start<0)return;
   try{const draft=JSON.parse(repair.slice(start));if(Array.isArray(draft.questions)&&Array.isArray(draft.rules))checkpoint.rejectedDraft=draft}catch{}
