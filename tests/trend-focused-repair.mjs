@@ -35,11 +35,14 @@ for(const f of fixtures){
  }
  const replacement={complete:true,questions:items.map(q=>({...q,group:target.key+':verified'})),choices};
  const repaired=mergeQuestion(d,target,replacement);
+ const relabeled={...replacement,questions:replacement.questions.map(q=>({...q,group:'model-generated-label'}))};
+ assert.deepEqual(mergeQuestion(d,target,relabeled),repaired,'Bookkeeping labels must not reject the correct question');
  assert.equal(validateExtraction(repaired,chapters).examMarks,70);
  const untouched=q=>!(q.section===target.section&&Number(q.ref.match(/\d+/)[0])===number);
  assert.deepEqual(repaired.questions.filter(untouched),d.questions.filter(untouched));
  assert.throws(()=>mergeQuestion(d,target,{...replacement,complete:false}),/could not/);
  assert.throws(()=>mergeQuestion(d,target,{...replacement,questions:[{...replacement.questions[0],ref:'99'}]}),/different question/);
+ assert.throws(()=>mergeQuestion(d,target,{...replacement,questions:[{...replacement.questions[0],section:'Wrong section'}]}),/different question/);
  globalThis.fetch=async(url,o)=>{const request=JSON.parse(o.body),prompt=request.contents[0].parts[1].text;assert(!prompt.includes('35 to 39'));assert(!prompt.includes('63 to 70'));return Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(replacement)}]}}]})};
  const actual=await rereadQuestion({uri:'fixture'},d,target,chapters,'test-only');assert.deepEqual(actual,repaired);
  console.log('PASS: '+f.title+' - exact failure reproduced; source-checked question boundaries reconcile without changing other questions (mock model transport).');

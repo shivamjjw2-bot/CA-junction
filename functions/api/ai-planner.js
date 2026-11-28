@@ -33,7 +33,7 @@ async function fetchHtml(url){
 }
 function links(html){const out=[];for(const m of String(html||"").matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){const href=m[1].match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];if(!href)continue;try{const u=new URL(href.replace(/&amp;/gi,"&"),"https://www.icai.org");if(u.protocol==="https:"&&u.hostname==="www.icai.org"&&u.pathname.startsWith("/post/"))out.push({url:u.href,text:htmlText(m[2]).replace(/\s+/g," ").trim(),context:htmlText(String(html||"").slice(Math.max(0,m.index-650),m.index)).slice(-220)})}catch{}}return out}
 function chapterLines(html){const lines=htmlText(html).split("\n").map(x=>x.trim()).filter(x=>/^(chapter|ch\.)\s*(?:no\.?\s*)?\d+[a-z]?\s*[:.–-]?\s*\S/i.test(x)),out=[],seen=new Set();for(const line of lines){const x=line.replace(/\s+/g," ").slice(0,500),k=x.toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}return out.slice(0,80)}
-async function getOutline(level,subject){
+export async function getOutline(level,subject){
  if(level==="Final"&&subject.toLowerCase()==="advanced auditing, assurance and professional ethics")return{subject,chapters:FINAL_AUDIT_CHAPTERS,url:"https://www.icai.org/post/sm-final-p3-may2027"};
  const i=CATALOG[level].findIndex(x=>x.toLowerCase()===subject.toLowerCase());if(i<0)return{subject,chapters:[],url:MATERIAL_URL[level]};
  const n=i+1,base="https://www.icai.org/post/sm-"+SLUG[level]+"-paper"+n;

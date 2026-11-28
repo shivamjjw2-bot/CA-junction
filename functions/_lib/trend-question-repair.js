@@ -35,11 +35,19 @@ export async function rereadQuestion(file,draft,target,chapters,apiKey,signal){
 export function mergeQuestion(draft,target,replacement){
  if(replacement.complete!==true||!Array.isArray(replacement.questions)||!replacement.questions.length||!Array.isArray(replacement.choices))throw Error('The complete question and its alternatives could not be independently read.');
  const belongs=q=>q.section===target.section&&numberOf(q)===target.number;
- if(replacement.questions.some(q=>!belongs(q)||!String(q.group).startsWith(target.key)))throw Error('The focused read returned a different question.');
+ if(replacement.questions.some(q=>!belongs(q)))throw Error('The focused read returned a different question.');
+ // Group IDs are bookkeeping, not printed question identity. Own their
+ // namespace here so a correct source read cannot fail on model spelling.
+ const groups=new Map(),occupied=new Set(draft.questions.filter(q=>!belongs(q)).map(q=>q.group));
+ const questions=replacement.questions.map(q=>{
+  const original=String(q.group??'');
+  if(!groups.has(original)){let id=target.key+':repair:'+groups.size;while(occupied.has(id))id+=':r';groups.set(original,id);occupied.add(id)}
+  return {...q,group:groups.get(original)};
+ });
  if(replacement.choices.some(c=>c.section!==target.section||!Array.isArray(c.alternatives)||c.alternatives.some(b=>!Array.isArray(b.refs)||b.refs.some(ref=>numberOf({ref})!==target.number))))throw Error('The focused read returned an unrelated choice.');
  const old=draft.questions.filter(belongs),removedGroups=new Set(old.map(q=>q.group));
  if(draft.questions.some(q=>!belongs(q)&&removedGroups.has(q.group)))throw Error('Question allocation overlaps another main question; a complete source re-read is required.');
  const retainedChoices=(draft.choices||[]).filter(c=>!(c.section===target.section&&c.alternatives.some(b=>b.refs.some(ref=>numberOf({ref})===target.number))));
- const allocations=new Map();for(const q of replacement.questions)allocations.set(q.group,(allocations.get(q.group)||0)+q.marks);
- return {...draft,questions:[...draft.questions.filter(q=>!belongs(q)),...replacement.questions],choices:[...retainedChoices,...replacement.choices],allocations:[...(draft.allocations||[]).filter(a=>!removedGroups.has(a.group)),...[...allocations].map(([group,marks])=>({group,marks}))]};
+ const allocations=new Map();for(const q of questions)allocations.set(q.group,(allocations.get(q.group)||0)+q.marks);
+ return {...draft,questions:[...draft.questions.filter(q=>!belongs(q)),...questions],choices:[...retainedChoices,...replacement.choices],allocations:[...(draft.allocations||[]).filter(a=>!removedGroups.has(a.group)),...[...allocations].map(([group,marks])=>({group,marks}))]};
 }

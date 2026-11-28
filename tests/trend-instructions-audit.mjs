@@ -20,7 +20,7 @@ for(const fixture of fixtures)for(const incorrectAudit of [false,true]){
   if(u.includes('/auth/v1/user'))return Response.json({id:'student'});
   if(u.includes('/rest/v1/materials'))return Response.json([{id:fixture.id,title:fixture.title,level:'Foundation',subject:'Accounting',category:'icai_link',chapter:'previous_year_question',file_bucket:'ca-materials',file_path:'admin/fixture.pdf',is_published:true,is_premium:false}]);
   if(u.includes('/rest/v1/trend_document_checkpoints')){if(o.method==='POST'){saved=JSON.parse(o.body);return new Response(null,{status:201})}return Response.json(saved?[saved]:[])}
-  if(u.includes('/api/ai-planner'))return Response.json({outlines:[{chapters:fixture.chapters}]});
+  if(u.startsWith('https://www.icai.org/'))return new Response(fixture.chapters.map(c=>'<p>'+c+'</p>').join(''));
   if(u.includes('/storage/v1/object/'))return new Response('%PDF-1.7 fixture %%EOF');
   if(u.endsWith('/upload/v1beta/files'))return new Response('',{headers:{'x-goog-upload-url':'https://generativelanguage.googleapis.com/upload-test'}});
   if(u.endsWith('/upload-test'))return Response.json({file:{name:'files/test',uri:'https://generativelanguage.googleapis.com/v1beta/files/test',state:'ACTIVE'}});
