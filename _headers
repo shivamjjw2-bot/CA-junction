@@ -2,3 +2,12 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Content-Security-Policy: base-uri 'self'; frame-ancestors 'self'
+
+/trend-analysis
+  Cache-Control: no-cache, must-revalidate
+
+/trend-analysis.html
+  Cache-Control: no-cache, must-revalidate
+
+/assets/trend-*
+  Cache-Control: no-cache, must-revalidate

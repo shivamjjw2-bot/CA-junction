@@ -1,0 +1,264 @@
+{
+  "title": "Final · Direct Tax Laws & International Taxation · May 2024 · Question paper",
+  "draft": {
+    "notes": "The question paper comprises Part II containing 6 questions. Question 1 is compulsory. Candidates have to answer any 4 out of the remaining 5 questions. All questions carry 14 marks each, including internal options.",
+    "rules": [
+      {
+        "maximum": 70,
+        "section": "Descriptive",
+        "compulsory": [
+          1
+        ],
+        "choose_from": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "choose_count": 4
+      }
+    ],
+    "complete": true,
+    "questions": [
+      {
+        "ref": "1",
+        "page": 2,
+        "group": "Descriptive-Q1",
+        "marks": 14,
+        "chapter": "Chapter 3: Profits and Gains of Business or Profession",
+        "section": "Descriptive",
+        "evidence": "Computation of total income of a company with various business adjustments.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "2(a)(i)",
+        "page": 5,
+        "group": "Descriptive-Q2",
+        "marks": 4,
+        "chapter": "Chapter 4: Capital Gains",
+        "section": "Descriptive",
+        "evidence": "Calculation of taxable capital gains on sale of residential house.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "2(a)(ii)",
+        "page": 6,
+        "group": "Descriptive-Q2",
+        "marks": 4,
+        "chapter": "Chapter 5: Income from Other Sources",
+        "section": "Descriptive",
+        "evidence": "Deemed dividend under section 2(22)(e) on advance rent.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "2(b)",
+        "page": 7,
+        "group": "Descriptive-Q2",
+        "marks": 6,
+        "chapter": "Chapter 21: Non Resident Taxation",
+        "section": "Descriptive",
+        "evidence": "Residential status and total income computation of a foreign company.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "3(a)(i)",
+        "page": 8,
+        "group": "Descriptive-Q3",
+        "marks": 4,
+        "chapter": "Chapter 10: Assessment of Trusts and Institutions, Political Parties and Other Special Entities",
+        "section": "Descriptive",
+        "evidence": "Taxability of specified income under section 115BBI for charitable trust.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "3(a)(ii)",
+        "page": 8,
+        "group": "Descriptive-Q3",
+        "marks": 4,
+        "chapter": "Chapter 10: Assessment of Trusts and Institutions, Political Parties and Other Special Entities",
+        "section": "Descriptive",
+        "evidence": "Provisional registration and final registration timelines for public charitable trust.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "3(b)",
+        "page": 9,
+        "group": "Descriptive-Q3",
+        "marks": 6,
+        "chapter": "Chapter 22: Double Taxation Relief",
+        "section": "Descriptive",
+        "evidence": "Total income and tax liability computation for resident earning foreign income without DTAA.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "4(a)(i)",
+        "page": 10,
+        "group": "Descriptive-Q4",
+        "marks": 3,
+        "chapter": "Chapter 13: Deduction, Collection and Recovery of Tax",
+        "section": "Descriptive",
+        "evidence": "TDS applicability on disbursement of tips to employees.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "4(a)(ii)",
+        "page": 10,
+        "group": "Descriptive-Q4",
+        "marks": 3,
+        "chapter": "Chapter 13: Deduction, Collection and Recovery of Tax",
+        "section": "Descriptive",
+        "evidence": "TDS obligation on contractor payment and rent by individual under 44AD.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "4(a)(iii)",
+        "page": 11,
+        "group": "Descriptive-Q4",
+        "marks": 2,
+        "chapter": "Chapter 13: Deduction, Collection and Recovery of Tax",
+        "section": "Descriptive",
+        "evidence": "TDS and collection regarding e-commerce operator transactions.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "4(b)",
+        "page": 11,
+        "group": "Descriptive-Q4",
+        "marks": 6,
+        "chapter": "Chapter 24: Transfer Pricing",
+        "section": "Descriptive",
+        "evidence": "Determination of Associated Enterprises and arm's length price for notified jurisdictional area.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "5(a)(i)",
+        "page": 12,
+        "group": "Descriptive-Q5",
+        "marks": 4,
+        "chapter": "Chapter 26: Application and Interpretation of Tax Treaties",
+        "section": "Descriptive",
+        "evidence": "Higher rate of TDS under section 206AA versus DTAA provisions in absence of PAN.",
+        "uncertain": false,
+        "optionalGroup": "choice_5a"
+      },
+      {
+        "ref": "5(a)(ii)",
+        "page": 12,
+        "group": "Descriptive-Q5",
+        "marks": 4,
+        "chapter": "Chapter 15: Assessment Procedure",
+        "section": "Descriptive",
+        "evidence": "Time limit for rectification of mistakes under section 154 following appellate authority order.",
+        "uncertain": false,
+        "optionalGroup": "choice_5a"
+      },
+      {
+        "ref": "5(a)(iii)",
+        "page": 13,
+        "group": "Descriptive-Q5",
+        "marks": 4,
+        "chapter": "Chapter 13: Deduction, Collection and Recovery of Tax",
+        "section": "Descriptive",
+        "evidence": "Levy of penalty under section 271C and interest under section 201(1A) for delayed TDS deposit.",
+        "uncertain": false,
+        "optionalGroup": "choice_5a"
+      },
+      {
+        "ref": "5(b)(i)",
+        "page": 13,
+        "group": "Descriptive-Q5",
+        "marks": 4,
+        "chapter": "Chapter 27: Overview of Model Tax Conventions",
+        "section": "Descriptive",
+        "evidence": "Exchange of information under Article 26 of OECD and UN Model Conventions.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "5(b)(ii)",
+        "page": 13,
+        "group": "Descriptive-Q5",
+        "marks": 2,
+        "chapter": "Chapter 25: Fundamentals of BEPS",
+        "section": "Descriptive",
+        "evidence": "Understanding GloBE Rules and covered entities under Pillar Two.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "6(a)(i)",
+        "page": 13,
+        "group": "Descriptive-Q6",
+        "marks": 6,
+        "chapter": "Chapter 20: Tax Audit and Ethical Compliances",
+        "section": "Descriptive",
+        "evidence": "Professional misconduct of Chartered Accountant regarding Form 15CB issuance.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "6(a)(ii)",
+        "page": 14,
+        "group": "Descriptive-Q6",
+        "marks": 4,
+        "chapter": "Chapter 11: Tax Planning, Tax Avoidance and Tax Evasion",
+        "section": "Descriptive",
+        "evidence": "Distinction between tax planning, tax management and tax evasion.",
+        "uncertain": false,
+        "optionalGroup": ""
+      },
+      {
+        "ref": "6(b)",
+        "page": 15,
+        "group": "Descriptive-Q6",
+        "marks": 4,
+        "chapter": "Chapter 23: Advance Rulings",
+        "section": "Descriptive",
+        "evidence": "Rejection of application by Board of Advance Rulings when question is pending before tax authority.",
+        "uncertain": false,
+        "optionalGroup": ""
+      }
+    ],
+    "exam_marks": 70,
+    "allocations": [
+      {
+        "group": "Descriptive-Q1",
+        "marks": 14
+      },
+      {
+        "group": "Descriptive-Q2",
+        "marks": 14
+      },
+      {
+        "group": "Descriptive-Q3",
+        "marks": 14
+      },
+      {
+        "group": "Descriptive-Q4",
+        "marks": 14
+      },
+      {
+        "group": "Descriptive-Q5",
+        "marks": 18
+      },
+      {
+        "group": "Descriptive-Q6",
+        "marks": 14
+      }
+    ],
+    "document_matches": true,
+    "total_offered_marks": 84
+  }
+}

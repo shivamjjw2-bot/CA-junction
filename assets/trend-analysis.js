@@ -1,12 +1,12 @@
-import{trendResponse}from'./trend-http.js';
-import{SUBJECTS,makeReport}from'./trend-core.js';
+import{trendResponse}from'./trend-http.js?v=choice-rules-1';
+import{SUBJECTS,makeReport}from'./trend-core.js?v=choice-rules-1';
 import{downloadTrendPdf,downloadTrendCsv}from'./trend-export.js';
 const $=s=>document.querySelector(s),sb=window.CA_APP?.supabase;
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}
 function button(text,action,cls=''){const b=el('button',text,'trend-button '+cls);b.type='button';b.onclick=action;return b}
 const level=$('#trendLevel'),subject=$('#trendSubject'),status=$('#trendStatus'),resultsHost=$('#trendResults'),progress=$('#trendProgress'),run=$('#trendGenerate');let plan=null,results=[],failures=[],busy=false;
 for(const name of Object.keys(SUBJECTS))level.add(new Option(name,name));function subjects(){subject.replaceChildren(new Option('Choose subject',''),...SUBJECTS[level.value].map(s=>new Option(s,s)));plan=null;results=[];failures=[];resultsHost.replaceChildren();status.textContent=''}level.onchange=subjects;subjects();subject.onchange=()=>{plan=null;results=[];failures=[];resultsHost.replaceChildren();status.textContent=''};
-async function authHeaders(){const{data}=await sb.auth.getSession();if(!data.session)throw Error('Please sign in to generate your trend chart.');return{'content-type':'application/json',authorization:'Bearer '+data.session.access_token}}
+async function authHeaders(){const{data}=await sb.auth.getSession();if(!data.session)throw Error('Please sign in to generate your trend chart.');return{'content-type':'application/json','x-ca-trend-version':'7',authorization:'Bearer '+data.session.access_token}}
 async function request(path,options){return trendResponse(await fetch(path,{...options,signal:AbortSignal.timeout(120000)}))}
 async function analysePaper(paper,onProgress){for(let step=0;step<20;step++){const result=await request('/api/trend-analysis',{method:'POST',headers:await authHeaders(),body:JSON.stringify({id:paper.id,level:level.value,subject:subject.value})});if(!result.pending)return result;onProgress(result.stage);if(result.retryAfter)await new Promise(resolve=>setTimeout(resolve,Math.min(5,result.retryAfter)*1000))}throw Error('This PDF is still being prepared. Progress is saved; retry the remaining papers.')}
 run.onclick=()=>generate(false);
