@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {verifyAllPapers} from '../assets/trend-verification-core.js';
+const subjects={Foundation:['A'],Intermediate:['B'],Final:['C']};let calls=0,quota=false,partial=false;
+const request=async(path,options)=>{if(!options.method){const p=new URL(path,'https://test').searchParams;return{papers:[{id:p.get('level'),title:p.get('subject'),revision:'revision'}]}}calls++;const body=JSON.parse(options.body);if(quota){const e=Error('Quota');e.status=429;throw e}return{complete:!partial,audited:true,paper:{id:body.id,revision:'revision'},questions:[{marks:4,uncertain:false}]}};
+const opts={request,headers:async()=>({}),subjects,pause:async()=>{}};
+let result=await verifyAllPapers(opts);assert.equal(result.rows.length,3);assert(result.rows.every(r=>r.status==='processed'));assert.equal(calls,3);assert(result.discoveryComplete);
+calls=0;quota=true;result=await verifyAllPapers(opts);assert(result.stopped);assert.equal(calls,1);assert.equal(result.rows.filter(r=>r.status==='pending').length,2);
+quota=false;partial=true;result=await verifyAllPapers(opts);assert(result.rows.every(r=>r.status==='failed'));
+result=await verifyAllPapers({...opts,stopped:()=>true});assert(result.stopped);assert.equal(result.rows.length,0);
+result=await verifyAllPapers({...opts,request:async()=>{const e=Error('Access denied');e.status=403;throw e}});assert(result.stopped);assert.equal(result.discoveryComplete,false);
+console.log('PASS: all-level discovery, sequential paper processing, quota/access hard stops, incomplete-result rejection and pause.');

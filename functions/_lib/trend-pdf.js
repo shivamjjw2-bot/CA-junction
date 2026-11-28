@@ -31,6 +31,6 @@ export async function readPdf(response) {
     throw Error('The file link returned a web page or another file type instead of a PDF. Ask the admin to correct the link.');
   const tail = decoder.decode(bytes.subarray(Math.max(0,size-65536)));
   if (!tail.includes('%%EOF')) throw Error('The PDF is truncated or damaged (missing end-of-file marker). Ask the admin to replace it.');
-  if (/\/Encrypt\s/.test(tail)) throw Error('This PDF is password protected. Ask the admin for an unlocked examination paper.');
+  if (/\/Encrypt\s/.test(tail)) {const error=Error('This PDF contains encryption settings, even if it opens without a password. The document processor needs an unencrypted copy of the same examination paper.');error.code='PDF_ENCRYPTED';error.status=422;throw error}
   return bytes;
 }

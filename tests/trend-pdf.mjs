@@ -9,5 +9,5 @@ await assert.rejects(()=>readPdf(new Response('<html>Login required</html>')),/i
 await assert.rejects(()=>readPdf(new Response('%PDF-1.7 truncated')),/truncated/);
 await assert.rejects(()=>readPdf(new Response(good,{headers:{'content-length':String(good.length+1)}})),/incomplete/);
 await assert.rejects(()=>readPdf(new Response(good,{headers:{'content-length':String(MAX_PDF_BYTES+1)}})),/50 MB/);
-await assert.rejects(()=>readPdf(new Response('%PDF-1.7\n/Encrypt 1 0 R\n%%EOF')),/password protected/);
+await assert.rejects(()=>readPdf(new Response('%PDF-1.7\n/Encrypt 1 0 R\n%%EOF')),e=>e.code==='PDF_ENCRYPTED'&&e.status===422&&e.message.includes('encryption settings'));
 console.log('PASS: PDF response status, bounded download, length validation, PDF signature, truncation and password-protection errors.');
