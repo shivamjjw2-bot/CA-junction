@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {normalizeSectionChoices,choiceCalculator} from '../assets/trend-choices.js';
+import {repairTarget} from '../functions/_lib/trend-question-repair.js';
+const questions=['2(a)','2(b)','3(a)','3(b)','4(a)','4(b)','4(b) OR'].map(ref=>({ref,section:'A',marks:ref.includes('(a)')?6:4,page:8}));
+const choices=[{id:'flattened',section:'A',choose_count:2,alternatives:[{refs:['2(a)','2(b)']},{refs:['3(a)','3(b)']},{refs:['4(a)','4(b)']},{refs:['4(a)','4(b) OR']}]}];
+const rules=[{section:'A',choose_count:2,choose_from:[2,3,4]}];
+const normalized=normalizeSectionChoices(questions,choices,rules);
+assert.equal(normalized.length,1);assert.deepEqual(normalized[0].alternatives,[{refs:['4(b)']},{refs:['4(b) OR']}]);assert.equal(normalized[0].choose_count,1);
+assert.deepEqual(choiceCalculator(questions,normalized)(questions.filter(q=>q.ref.startsWith('4'))),{min:10,max:10});
+assert.deepEqual(normalizeSectionChoices(questions,choices,[]),choices);
+const partial=structuredClone(choices);partial[0].alternatives[0].refs=['2(a)'];assert.deepEqual(normalizeSectionChoices(questions,partial,rules),partial);
+const draft={questions:[{ref:'1',section:'A',page:1}]};const diagnostic={section:'A',maximum:100,chooseCount:4,ranges:[{number:1,min:14,max:14,optional:false},...[2,3,4,5,6].map(number=>({number,min:20,max:20,optional:true}))]};
+assert.equal(repairTarget(draft,diagnostic).number,1,'Re-read faulty compulsory questions too; do not assign inferred marks');
+assert.equal(draft.questions[0].marks,undefined);
+console.log('PASS: flattened main/internal choices factored without changing marks; ambiguous coverage retained; compulsory-question reread targeting.');

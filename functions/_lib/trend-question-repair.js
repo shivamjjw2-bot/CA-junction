@@ -7,7 +7,9 @@ export function repairTarget(draft,diagnostic,attempted=[]){
  for(const r of optional)if(r.min===r.max)frequencies.set(r.min,(frequencies.get(r.min)||0)+1);
  const modes=[...frequencies].sort((a,b)=>b[1]-a[1]);
  const typical=modes[0]?.[1]>=2&&modes[0][1]>(modes[1]?.[1]||0)?modes[0][0]:null;
- const suspects=diagnostic.ranges.filter(r=>r.min!==r.max||(r.optional&&typical!==null&&r.min!==typical));
+ const fixed=diagnostic.ranges.filter(r=>!r.optional);
+ const fixedExpected=fixed.length===1&&typical!==null&&Number.isFinite(diagnostic.maximum)&&Number.isInteger(diagnostic.chooseCount)?diagnostic.maximum-diagnostic.chooseCount*typical:null;
+ const suspects=diagnostic.ranges.filter(r=>r.min!==r.max||(r.optional&&typical!==null&&r.min!==typical)||(!r.optional&&fixedExpected!==null&&r.min!==fixedExpected));
  for(const range of suspects){
   const key=diagnostic.section+'|'+range.number;if(attempted.includes(key))continue;
   const items=draft.questions.filter(q=>q.section===diagnostic.section&&numberOf(q)===range.number);

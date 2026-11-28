@@ -8,7 +8,7 @@ Status: INCOMPLETE. This is not an error-free certification.
 - The encrypted file is Final Advanced Auditing, Assurance and Professional Ethics, May 2025. It opens with an empty password but contains PDF encryption settings unsupported by the current document pipeline. Original material was not modified.
 - The remaining source download batch was blocked by automatic approval review after unrelated Visual Studio telemetry was detected. Offline inspection of already downloaded files completed.
 - Direct live API test: HTTP 403 Cloudflare Access denied page, reference a617dca9bad1fd38-SIN. This is an edge-access block, not a Trend Analysis JSON response. No authentication or firewall rules were weakened.
-- Twelve automated suites passed: checkpoint, PDF, pipeline, choices, observed failure, core, all-subject patterns, instruction audit, streaming, rules recovery, focused question repair and verification runner.
+- Thirteen automated suites passed: checkpoint, PDF, pipeline, choices, observed failure, core, all-subject patterns, instruction audit, streaming, rules recovery, focused question repair verification runner and nested-choice normalization.
 - Actual Taxation January 2025 page 8 and Advanced Accounting May 2024 pages 12–14 were visually checked for shared marks and OR boundaries. Tests use source-checked replacements with mock model transport; these are not a full live-model accuracy test.
 
 ## Signed-in all-paper verification

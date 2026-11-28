@@ -7,6 +7,33 @@ const numberOf = q => Number(String(q.ref).match(/\d+/)?.[0]);
 export function normalizeSectionChoices(questions,choices,rules){
  if(!Array.isArray(choices)||!Array.isArray(rules))return choices;
  const inventory=new Map(questions.map(q=>[key(q),q]));
+ choices=choices.flatMap(choice=>{
+  if(!Array.isArray(choice.alternatives))return[choice];
+  const grouped=new Map();
+  for(const branch of choice.alternatives){
+   if(!Array.isArray(branch.refs)||!branch.refs.length)return[choice];
+   const items=branch.refs.map(ref=>inventory.get(choice.section+'|'+refKey(ref)));
+   if(items.some(q=>!q)||new Set(items.map(numberOf)).size!==1||new Set(items.map(key)).size!==items.length)return[choice];
+   const n=numberOf(items[0]);if(!grouped.has(n))grouped.set(n,[]);grouped.get(n).push(items);
+  }
+  if(grouped.size<2||![...grouped.values()].some(b=>b.length>1))return[choice];
+  const rule=rules.find(r=>r.section===choice.section&&r.choose_count===choice.choose_count&&r.choose_from?.length===grouped.size&&r.choose_from.every(n=>grouped.has(n)));
+  if(!rule)return[choice];
+  const factored=[];
+  for(const [n,branches] of grouped){
+   const covered=new Set(branches.flat().map(key));
+   if(questions.some(q=>q.section===choice.section&&numberOf(q)===n&&!covered.has(key(q))))return[choice];
+   if(branches.length===1)continue;
+   const common=new Set(branches[0].filter(q=>branches.every(b=>b.some(v=>key(v)===key(q)))).map(key));
+   const distinct=branches.map(b=>b.filter(q=>!common.has(key(q))));
+   const refs=distinct.flat().map(key);
+   if(distinct.some(b=>!b.length)||new Set(refs).size!==refs.length)return[choice];
+   // Existing independent internal-choice entries must not overlap this factoring.
+   if(choices.some(c=>c!==choice&&c.section===choice.section&&c.alternatives?.some(b=>b.refs?.some(ref=>refs.includes(choice.section+'|'+refKey(ref))))))return[choice];
+   factored.push({id:choice.id+'-question-'+n,section:choice.section,choose_count:1,alternatives:distinct.map(b=>({refs:b.map(q=>q.ref)}))});
+  }
+  return factored;
+ });
  return choices.filter(choice=>{
   if(!Array.isArray(choice.alternatives)||choice.alternatives.length<2)return true;
   const branches=choice.alternatives.map(b=>Array.isArray(b.refs)?b.refs.map(ref=>inventory.get(choice.section+'|'+refKey(ref))):[]);
