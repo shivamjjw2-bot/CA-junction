@@ -4,7 +4,7 @@ import {onRequest} from '../functions/api/trend-analysis.js';
 import {validateExtraction} from '../assets/trend-core.js';
 import {restoreRejectedDraft} from '../functions/_lib/trend-rules-audit.js';
 const fixtures=JSON.parse(fs.readFileSync(new URL('./fixtures/trend-accounting-observed.json',import.meta.url)));
-for(const fixture of fixtures){
+for(const fixture of fixtures)for(const incorrectAudit of [false,true]){
  const bad=structuredClone(fixture.draft),withHeader=structuredClone(bad);withHeader.rules[0].maximum=100;
  assert.throws(()=>validateExtraction(bad,fixture.chapters),e=>e.code==='SECTION_MARKS_MISMATCH');
  const legacy={repair:'REPAIR AUDIT: answerable marks mismatch. Previous draft: '+JSON.stringify(bad)};restoreRejectedDraft(legacy);assert.deepEqual(legacy.rejectedDraft,bad);
@@ -25,7 +25,7 @@ for(const fixture of fixtures){
   if(u.endsWith('/upload/v1beta/files'))return new Response('',{headers:{'x-goog-upload-url':'https://generativelanguage.googleapis.com/upload-test'}});
   if(u.endsWith('/upload-test'))return Response.json({file:{name:'files/test',uri:'https://generativelanguage.googleapis.com/v1beta/files/test',state:'ACTIVE'}});
   if(u.includes(':generateContent')){const body=JSON.parse(o.body);let output;
-   if(!body.generationConfig.responseSchema.properties.questions){auditCalls++;assert(!body.contents[0].parts[1].text.includes('Prior inventory'));output={document_matches:true,exam_marks:100,rules:withHeader.rules}}
+   if(!body.generationConfig.responseSchema.properties.questions){auditCalls++;assert(!body.contents[0].parts[1].text.includes('Prior inventory'));output={document_matches:true,exam_marks:100,rules:withHeader.rules.map(r=>({...r,maximum:incorrectAudit?99:r.maximum})),choices:withHeader.choices,choice_instructions:'Source fixture choices'}}
    else{fullCalls++;output=fullCalls===1?bad:corrected}
    return Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(output)}]}}]});
   }
@@ -37,6 +37,6 @@ for(const fixture of fixtures){
   data=await response.json();if(!data.pending)break;
   assert.equal(data.questions,undefined,'Never show a partial inventory as completed');
  }
- assert.equal(response.status,200,JSON.stringify(data));assert.equal(data.examMarks,100);assert.equal(auditCalls,1);assert.equal(fullCalls,missing?3:2);
- console.log('PASS: '+fixture.title+' — independent instructions stage, strict missing-part rejection, then source re-read and final audit (mock provider).');
+ assert.equal(response.status,200,JSON.stringify(data));assert.equal(data.examMarks,100);assert.equal(auditCalls,1);assert.equal(fullCalls,missing||incorrectAudit?3:2);
+ console.log('PASS: '+fixture.title+' - '+(incorrectAudit?'incorrect independent audit does not poison later reads':'independent instructions and strict missing-part rejection')+' (mock provider).');
 }
